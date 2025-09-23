@@ -2,9 +2,9 @@
   "name": "app",
   "private": true,
   "scripts": {
-    "dev": "DATABASE_URL=\"file:./dev.db\" next dev --port 5000 --hostname 0.0.0.0",
-    "build": "DATABASE_URL=\"file:./dev.db\" next build",
-    "start": "DATABASE_URL=\"file:./dev.db\" next start --port 5000 --hostname 0.0.0.0",
+    "dev": "DATABASE_URL=\"file:./prisma/dev.db\" next dev --port 5000 --hostname 0.0.0.0",
+    "build": "DATABASE_URL=\"file:./prisma/dev.db\" next build",
+    "start": "DATABASE_URL=\"file:./prisma/dev.db\" next start --port 5000 --hostname 0.0.0.0",
     "lint": "next lint"
   },
   "prisma": {
