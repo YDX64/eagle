@@ -1,0 +1,410 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model League {
+  id          Int       @id
+  name        String
+  country     String
+  logo        String?
+  season      Int
+  type        String    // league, cup
+  current     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  teams       Team[]
+  matches     Match[]
+  standings   Standing[]
+  statistics  TeamStatistic[]
+  
+  @@unique([id, season])
+  @@map("leagues")
+}
+
+model Team {
+  id          Int       @id
+  name        String
+  code        String?
+  country     String?
+  founded     Int?
+  national    Boolean   @default(false)
+  logo        String?
+  venue_id    Int?
+  venue_name  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  leagues             League[]
+  homeMatches         Match[]         @relation("HomeTeam")
+  awayMatches         Match[]         @relation("AwayTeam")
+  standings           Standing[]
+  statistics          TeamStatistic[]
+  headToHeadAsTeam1   HeadToHead[]    @relation("Team1HeadToHead")
+  headToHeadAsTeam2   HeadToHead[]    @relation("Team2HeadToHead")
+  events              MatchEvent[]
+  matchStatistics     MatchStatistic[]
+  
+  @@map("teams")
+}
+
+model Match {
+  id              Int       @id
+  referee         String?
+  timezone        String?
+  date            DateTime
+  timestamp       Int
+  venue_id        Int?
+  venue_name      String?
+  venue_city      String?
+  status_long     String
+  status_short    String
+  status_elapsed  Int?
+
+  league_id       Int
+  league_season   Int
+  league_round    String?
+
+  home_team_id    Int
+  away_team_id    Int
+  home_goals      Int?
+  away_goals      Int?
+  home_score_ht   Int?
+  away_score_ht   Int?
+  home_score_ft   Int?
+  away_score_ft   Int?
+  home_score_et   Int?
+  away_score_et   Int?
+  home_score_pen  Int?
+  away_score_pen  Int?
+
+  // High Confidence Tracking
+  has_high_confidence_prediction Boolean @default(false)
+  last_analysis_at            DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  league          League    @relation(fields: [league_id, league_season], references: [id, season])
+  homeTeam        Team      @relation("HomeTeam", fields: [home_team_id], references: [id])
+  awayTeam        Team      @relation("AwayTeam", fields: [away_team_id], references: [id])
+  statistics      MatchStatistic[]
+  predictions     Prediction[]
+  events          MatchEvent[]
+
+  // Confidence Analysis Relations
+  analysisRuns                AnalysisRun[]
+  highConfidenceRecommendations HighConfidenceRecommendation[]
+  confidenceSummary          MatchConfidenceSummary?
+
+  @@index([date, has_high_confidence_prediction])
+  @@index([league_id, date, has_high_confidence_prediction])
+  @@map("matches")
+}
+
+model MatchStatistic {
+  id          Int       @id @default(autoincrement())
+  match_id    Int
+  team_id     Int
+  type        String    // home, away
+  
+  shots_on_goal           Int?
+  shots_off_goal          Int?
+  total_shots             Int?
+  blocked_shots           Int?
+  shots_inside_box        Int?
+  shots_outside_box       Int?
+  fouls                   Int?
+  corner_kicks            Int?
+  offside                 Int?
+  ball_possession         String?
+  yellow_cards            Int?
+  red_cards               Int?
+  goalkeeper_saves        Int?
+  total_passes            Int?
+  passes_accurate         Int?
+  passes_percentage       String?
+  expected_goals          Float?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  match       Match     @relation(fields: [match_id], references: [id])
+  team        Team      @relation(fields: [team_id], references: [id])
+  
+  @@unique([match_id, team_id])
+  @@map("match_statistics")
+}
+
+model MatchEvent {
+  id          Int       @id @default(autoincrement())
+  match_id    Int
+  team_id     Int
+  type        String    // goal, card, substitution
+  detail      String?   // yellow card, red card, penalty, own goal, etc.
+  comments    String?
+  time_elapsed Int
+  time_extra   Int?
+  player_id   Int?
+  player_name String?
+  assist_id   Int?
+  assist_name String?
+  
+  createdAt   DateTime  @default(now())
+  
+  match       Match     @relation(fields: [match_id], references: [id])
+  team        Team      @relation(fields: [team_id], references: [id])
+  
+  @@map("match_events")
+}
+
+model Standing {
+  id              Int       @id @default(autoincrement())
+  league_id       Int
+  league_season   Int
+  team_id         Int
+  rank            Int
+  points          Int
+  goalsDiff       Int
+  group           String?
+  form            String?
+  status          String?
+  description     String?
+  
+  played          Int
+  win             Int
+  draw            Int
+  lose            Int
+  goals_for       Int
+  goals_against   Int
+  
+  home_played     Int
+  home_win        Int
+  home_draw       Int
+  home_lose       Int
+  home_goals_for  Int
+  home_goals_against Int
+  
+  away_played     Int
+  away_win        Int
+  away_draw       Int
+  away_lose       Int
+  away_goals_for  Int
+  away_goals_against Int
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  league          League    @relation(fields: [league_id, league_season], references: [id, season])
+  team            Team      @relation(fields: [team_id], references: [id])
+  
+  @@unique([league_id, league_season, team_id])
+  @@map("standings")
+}
+
+model TeamStatistic {
+  id              Int       @id @default(autoincrement())
+  team_id         Int
+  league_id       Int
+  league_season   Int
+  
+  matches_played  Int
+  wins            Int
+  draws           Int
+  losses          Int
+  goals_for       Int
+  goals_against   Int
+  clean_sheets    Int
+  failed_to_score Int
+  average_goals_for Float
+  average_goals_against Float
+  
+  home_matches_played Int
+  home_wins           Int
+  home_draws          Int
+  home_losses         Int
+  
+  away_matches_played Int
+  away_wins           Int
+  away_draws          Int
+  away_losses         Int
+  
+  form_last_5         String?
+  form_last_10        String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  team            Team      @relation(fields: [team_id], references: [id])
+  league          League    @relation(fields: [league_id, league_season], references: [id, season])
+  
+  @@unique([team_id, league_id, league_season])
+  @@map("team_statistics")
+}
+
+model Prediction {
+  id                    Int       @id @default(autoincrement())
+  match_id              Int
+
+  prediction_type       String    // match_winner, both_teams_score, over_under_goals
+  predicted_value       String    // home, away, draw, yes, no, over, under
+  confidence_score      Float     // 0.0 to 1.0
+
+  // Analysis factors
+  home_form_score       Float?
+  away_form_score       Float?
+  head_to_head_score    Float?
+  home_advantage_score  Float?
+  goals_analysis_score  Float?
+
+  // High Confidence Tracking
+  is_high_confidence    Boolean   @default(false)
+  confidence_tier       String?   // "platinum", "gold", "silver"
+  confidence_rank       Int?      // For ordering within tier
+  analysis_run_id       String?   // Reference to analysis run
+
+  // Value Betting
+  expected_value        Float?    // EV calculation
+  kelly_percentage      Float?    // Suggested stake %
+
+  // Additional metadata
+  algorithm_version     String    @default("1.0")
+  factors_used          Json?     // JSON object with detailed factor breakdown
+
+  is_correct           Boolean?  // Will be updated after match completion
+  actual_result        String?   // Actual match result for comparison
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  match                Match     @relation(fields: [match_id], references: [id])
+
+  @@index([is_high_confidence, confidence_score])
+  @@index([confidence_tier, createdAt])
+  @@index([match_id, is_high_confidence])
+  @@map("predictions")
+}
+
+model HeadToHead {
+  id              Int       @id @default(autoincrement())
+  team1_id        Int
+  team2_id        Int
+  
+  total_matches   Int       @default(0)
+  team1_wins      Int       @default(0)
+  team2_wins      Int       @default(0)
+  draws           Int       @default(0)
+  
+  team1_goals     Int       @default(0)
+  team2_goals     Int       @default(0)
+  
+  last_5_results  String?   // e.g., "W-L-D-W-L" from team1 perspective
+  last_match_date DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  team1           Team      @relation("Team1HeadToHead", fields: [team1_id], references: [id])
+  team2           Team      @relation("Team2HeadToHead", fields: [team2_id], references: [id])
+  
+  @@unique([team1_id, team2_id])
+  @@map("head_to_head")
+}
+
+model CacheEntry {
+  id            Int       @id @default(autoincrement())
+  cache_key     String    @unique
+  data          Json
+  expires_at    DateTime
+  createdAt     DateTime  @default(now())
+
+  @@map("cache_entries")
+}
+
+model BacktestResult {
+  id                    Int       @id @default(autoincrement())
+  league_id             Int?
+  team_id               Int?
+  prediction_type       String?   // match_winner, both_teams_score, over_under_goals
+  date_from             DateTime
+  date_to               DateTime
+
+  total_predictions     Int
+  correct_predictions   Int
+  success_rate          Float
+
+  // Detailed metrics
+  home_win_count        Int       @default(0)
+  home_win_correct      Int       @default(0)
+  away_win_count        Int       @default(0)
+  away_win_correct      Int       @default(0)
+  draw_count            Int       @default(0)
+  draw_correct          Int       @default(0)
+
+  // Confidence metrics
+  high_confidence_count     Int   @default(0)
+  high_confidence_correct   Int   @default(0)
+  medium_confidence_count   Int   @default(0)
+  medium_confidence_correct Int   @default(0)
+  low_confidence_count      Int   @default(0)
+  low_confidence_correct    Int   @default(0)
+
+  // ROI metrics
+  total_stake           Float?    // If betting 1 unit per prediction
+  total_return          Float?    // Actual returns
+  roi_percentage        Float?    // Return on investment
+
+  algorithm_version     String    @default("2.0")
+  metadata              Json?     // Additional statistics
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([league_id, date_from, date_to])
+  @@index([team_id, date_from, date_to])
+  @@index([prediction_type, success_rate])
+  @@map("backtest_results")
+}
+
+model PredictionStatistics {
+  id                    Int       @id @default(autoincrement())
+  period                String    // daily, weekly, monthly
+  period_date           DateTime
+
+  league_id             Int?
+  league_name           String?
+  team_id               Int?
+  team_name             String?
+
+  // Performance metrics
+  total_predictions     Int       @default(0)
+  correct_predictions   Int       @default(0)
+  success_rate          Float     @default(0)
+
+  // By prediction type
+  match_winner_success  Float?
+  btts_success          Float?    // Both teams to score
+  over_under_success    Float?
+
+  // By confidence level
+  high_conf_success     Float?
+  medium_conf_success   Float?
+  low_conf_success      Float?
+
+  // Best performing
+  best_prediction_type  String?
+  best_confidence_range String?
+
+  createdAt             DateTime  @default(now())
+
+  @@index([period, period_date])
+  @@index([league_id, success_rate])
+  @@index([team_id, success_rate])
+  @@map("prediction_statistics")
+}
