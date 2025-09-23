@@ -4,10 +4,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Use DATABASE_URL from environment or default to SQLite
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./dev.db";
-}
+// PostgreSQL connection will use DATABASE_URL from environment
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: ['error', 'warn']

@@ -2,9 +2,11 @@
   "name": "app",
   "private": true,
   "scripts": {
-    "dev": "DATABASE_URL=\"file:./prisma/dev.db\" next dev --port 5000 --hostname 0.0.0.0",
-    "build": "DATABASE_URL=\"file:./prisma/dev.db\" next build",
-    "start": "DATABASE_URL=\"file:./prisma/dev.db\" next start --port 5000 --hostname 0.0.0.0",
+    "dev": "next dev --port 5000 --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --port 5000 --hostname 0.0.0.0",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
     "lint": "next lint"
   },
   "prisma": {
@@ -77,6 +79,10 @@
     "cmdk": "1.0.0",
     "cookie": "1.0.2",
     "csv": "6.3.11",
+    "datatables.net": "^2.3.4",
+    "datatables.net-dt": "^2.3.4",
+    "datatables.net-responsive": "^3.0.6",
+    "datatables.net-responsive-dt": "^3.0.6",
     "date-fns": "3.6.0",
     "dayjs": "1.11.13",
     "dotenv": "16.5.0",

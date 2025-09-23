@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
@@ -458,4 +458,49 @@ model MatchConfidenceSummary {
   match                Match     @relation(fields: [match_id], references: [id])
   
   @@map("match_confidence_summaries")
+}
+
+model BulkAnalysisResult {
+  id                    Int       @id @default(autoincrement())
+  match_id              Int
+  date                  DateTime
+  
+  // Match info
+  home_team             String
+  away_team             String
+  league_name           String
+  match_time            String
+  status                String
+  
+  // Prediction results
+  predicted_winner      String?   // home, away, draw
+  winner_confidence     Float?
+  btts_prediction       String?   // yes, no
+  btts_confidence       Float?
+  over_under_prediction String?   // over, under
+  over_under_confidence Float?
+  
+  // Analysis factors
+  home_form_score       Float?
+  away_form_score       Float?
+  head_to_head_score    Float?
+  home_advantage        Float?
+  goals_analysis        Float?
+  
+  // Overall assessment  
+  overall_confidence    Float?
+  confidence_tier       String?   // platinum, gold, silver
+  recommendation        String?
+  risk_level           String?    // low, medium, high
+  
+  // Value betting
+  expected_value        Float?
+  kelly_percentage      Float?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  @@index([date, confidence_tier])
+  @@index([league_name, overall_confidence])
+  @@map("bulk_analysis_results")
 }
