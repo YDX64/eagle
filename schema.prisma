@@ -408,3 +408,54 @@ model PredictionStatistics {
   @@index([team_id, success_rate])
   @@map("prediction_statistics")
 }
+
+model AnalysisRun {
+  id              String    @id @default(cuid())
+  start_time      DateTime  @default(now())
+  end_time        DateTime?
+  status          String    @default("running") // running, completed, failed
+  
+  matches_analyzed Int      @default(0)
+  high_conf_found  Int      @default(0)
+  
+  createdAt       DateTime  @default(now())
+  
+  matches         Match[]
+  
+  @@map("analysis_runs")
+}
+
+model HighConfidenceRecommendation {
+  id                    String    @id @default(cuid())
+  match_id              Int
+  confidence_tier       String    // "platinum", "gold", "silver"
+  confidence_score      Float
+  recommendation        String    // The betting recommendation
+  reasoning            String?   // Why this is recommended
+  
+  createdAt            DateTime  @default(now())
+  
+  match                Match     @relation(fields: [match_id], references: [id])
+  
+  @@index([confidence_tier, confidence_score])
+  @@map("high_confidence_recommendations")
+}
+
+model MatchConfidenceSummary {
+  id                    Int       @id @default(autoincrement())
+  match_id              Int       @unique
+  overall_confidence    Float
+  tier_classification  String?   // "platinum", "gold", "silver"
+  
+  total_factors         Int       @default(0)
+  strong_factors        Int       @default(0)
+  
+  summary_text          String?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  match                Match     @relation(fields: [match_id], references: [id])
+  
+  @@map("match_confidence_summaries")
+}

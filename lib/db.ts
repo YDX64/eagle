@@ -4,9 +4,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// FORCE SQLite database usage - override system environment variable
-// Fix: Use correct database path without creating nested directory
-process.env.DATABASE_URL = "file:./dev.db";
+// Use DATABASE_URL from environment or default to SQLite
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:./dev.db";
+}
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: ['error', 'warn'],
@@ -20,6 +21,6 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Gracefully handle connection
-prisma.$connect().catch((error) => {
+prisma.$connect().catch((error: any) => {
   console.error('Failed to connect to database:', error);
 });
