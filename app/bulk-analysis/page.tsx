@@ -1,12 +1,39 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  Alert,
+  CircularProgress,
+  Grid,
+  Paper,
+  IconButton,
+  Tooltip,
+  Stack,
+  Divider,
+} from '@mui/material';
+import {
+  Analytics,
+  PlayArrow,
+  Refresh,
+  FilterList,
+  Download,
+  Visibility,
+  TrendingUp,
+  SportsSoccer,
+} from '@mui/icons-material';
+import { toast } from 'react-hot-toast';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import Script from 'next/script';
 
 declare global {
@@ -65,339 +92,435 @@ interface BulkAnalysisResult {
   market_odds_draw?: number;
 }
 
+interface Stats {
+  total: number;
+  byTier: Record<string, number>;
+}
+
 export default function BulkAnalysisPage() {
   const [results, setResults] = useState<BulkAnalysisResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [dataTablesLoaded, setDataTablesLoaded] = useState(false);
   const [tableInstance, setTableInstance] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
+    tier: '',
+    riskLevel: '',
     league: '',
-    confidence_tier: 'all',
-    risk_level: 'all'
   });
+  
   const tableRef = useRef<HTMLTableElement>(null);
-  const { toast } = useToast();
 
-  const initializeDataTable = () => {
-    if (dataTablesLoaded && tableRef.current && results.length > 0) {
-      // Destroy existing table if it exists
-      if (tableInstance) {
-        tableInstance.destroy();
-      }
-
-      // Initialize DataTable
-      const newTableInstance = window.$(tableRef.current).DataTable({
-        data: results,
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tümü"]],
-        language: {
-          search: "Ara:",
-          lengthMenu: "_MENU_ kayıt göster",
-          info: "_START_ - _END_ / _TOTAL_ kayıt",
-          infoEmpty: "0 kayıt",
-          infoFiltered: "(_MAX_ kayıttan filtrelendi)",
-          paginate: {
-            first: "İlk",
-            last: "Son",
-            next: "Sonraki",
-            previous: "Önceki"
-          },
-          emptyTable: "Tabloda veri yok"
-        },
-        columns: [
-          { 
-            title: "Maç", 
-            data: null,
-            render: function(data: any) {
-              return `<div class="font-medium">${data.home_team}</div><div class="text-sm text-gray-600">vs ${data.away_team}</div>`;
-            }
-          },
-          { title: "Lig", data: "league_name" },
-          { title: "Saat", data: "match_time" },
-          { 
-            title: "Tahmin", 
-            data: null,
-            render: function(data: any) {
-              return `<div class="font-medium">${data.predicted_winner || '-'}</div><div class="text-sm text-gray-600">${data.winner_confidence ? (data.winner_confidence * 100).toFixed(1) + '%' : '-'}</div>`;
-            }
-          },
-          { 
-            title: "Güven Seviyesi", 
-            data: null,
-            render: function(data: any) {
-              const tier = data.confidence_tier;
-              let badgeClass = 'px-2 py-1 rounded-full text-xs font-medium';
-              if (tier === 'platinum') badgeClass += ' category-api-ms';
-              else if (tier === 'gold') badgeClass += ' category-perf';
-              else if (tier === 'silver') badgeClass += ' category-market';
-              else badgeClass += ' category-badge';
-              return `<span class="${badgeClass}">${tier || '-'}</span>`;
-            }
-          },
-          { 
-            title: "Risk", 
-            data: null,
-            render: function(data: any) {
-              const risk = data.risk_level;
-              let badgeClass = 'px-2 py-1 rounded-full text-xs font-medium';
-              if (risk === 'low') badgeClass += ' category-own-an';
-              else if (risk === 'medium') badgeClass += ' category-perf';
-              else if (risk === 'high') badgeClass += ' category-risk';
-              else badgeClass += ' category-badge';
-              return `<span class="${badgeClass}">${risk === 'low' ? 'Düşük' : risk === 'medium' ? 'Orta' : risk === 'high' ? 'Yüksek' : '-'}</span>`;
-            }
-          },
-          { 
-            title: "API-MS Şutlar", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-api-ms">${data.api_ms_home_shots_on_goal || 0} - ${data.api_ms_away_shots_on_goal || 0}</span>`;
-            }
-          },
-          { 
-            title: "API-Form", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-api-form">${data.api_form_home_last_5 || '-'} vs ${data.api_form_away_last_5 || '-'}</span>`;
-            }
-          },
-          { 
-            title: "API-Lig Poz.", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-api-league">${data.api_league_home_position || '-'} vs ${data.api_league_away_position || '-'}</span>`;
-            }
-          },
-          { 
-            title: "Own-Değer", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-own-an">${data.own_an_value_score ? data.own_an_value_score.toFixed(2) : '-'}</span>`;
-            }
-          },
-          { 
-            title: "Risk-Var", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-risk">${data.risk_variance_score ? data.risk_variance_score.toFixed(2) : '-'}</span>`;
-            }
-          },
-          { 
-            title: "Market Oranlar", 
-            data: null,
-            render: function(data: any) {
-              return `<span class="category-badge category-market">${data.market_odds_home || '-'} | ${data.market_odds_draw || '-'} | ${data.market_odds_away || '-'}</span>`;
-            }
-          }
-        ],
-        order: [[4, "desc"]] // Order by confidence tier
-      });
-
-      setTableInstance(newTableInstance);
+  // Helper functions
+  const getConfidenceColor = (tier: string) => {
+    switch (tier) {
+      case 'platinum': return 'primary';
+      case 'gold': return 'warning';
+      case 'silver': return 'info';
+      default: return 'default';
     }
   };
 
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'low': return 'success';
+      case 'medium': return 'warning';
+      case 'high': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const formatPercentage = (value: number) => `${(value * 100).toFixed(1)}%`;
+
+  // Load analysis results
   const loadResults = async () => {
+    if (!filters.date) return;
+    
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters.date) params.append('date', filters.date);
-      if (filters.league) params.append('league', filters.league);
-      if (filters.confidence_tier && filters.confidence_tier !== 'all') params.append('confidence_tier', filters.confidence_tier);
-      if (filters.risk_level && filters.risk_level !== 'all') params.append('risk_level', filters.risk_level);
+      const params = new URLSearchParams({
+        date: filters.date,
+        ...(filters.tier && { tier: filters.tier }),
+        ...(filters.riskLevel && { riskLevel: filters.riskLevel }),
+        ...(filters.league && { league: filters.league }),
+      });
 
       const response = await fetch(`/api/bulk-analysis/results?${params}`);
       const data = await response.json();
 
-      if (response.ok) {
-        setResults(data.results || []);
+      if (data.success) {
+        setResults(data.data.results || []);
+        setStats(data.data.stats || null);
+        
+        if (data.data.results?.length === 0) {
+          toast('Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.');
+        } else {
+          toast.success(`${data.data.results?.length || 0} maç yüklendi`);
+        }
       } else {
-        throw new Error(data.error || 'Failed to load results');
+        throw new Error(data.error || 'Veriler yüklenirken hata oluştu');
       }
     } catch (error) {
       console.error('Error loading results:', error);
-      toast({
-        title: 'Hata',
-        description: 'Sonuclar yuklenirken hata olustu.',
-        variant: 'destructive'
-      });
+      toast.error('Veriler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
   };
 
-  const runBulkAnalysis = async () => {
+  // Start bulk analysis
+  const startAnalysis = async () => {
+    if (!filters.date) {
+      toast.error('Lütfen bir tarih seçin');
+      return;
+    }
+
     setAnalyzing(true);
     try {
       const response = await fetch(`/api/bulk-analysis?date=${filters.date}&forceRefresh=true`, {
-        method: 'POST'
+        method: 'POST',
       });
+      
       const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: 'Basarili',
-          description: `${data.count} mac analiz edildi.`
-        });
-        await loadResults();
+      
+      if (data.success) {
+        toast.success(`Analiz tamamlandı: ${data.count} maç analiz edildi`);
+        loadResults(); // Reload results after analysis
       } else {
-        throw new Error(data.error || 'Analysis failed');
+        throw new Error(data.error || 'Analiz sırasında hata oluştu');
       }
     } catch (error) {
-      console.error('Error running analysis:', error);
-      toast({
-        title: 'Hata',
-        description: 'Analiz sirasinda hata olustu.',
-        variant: 'destructive'
-      });
+      console.error('Analysis error:', error);
+      toast.error('Analiz sırasında hata oluştu');
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const getConfidenceBadge = (tier?: string) => {
-    if (tier === 'platinum') return <Badge className="bg-purple-500 text-white">Platinum</Badge>;
-    if (tier === 'gold') return <Badge className="bg-yellow-500 text-white">Gold</Badge>;
-    if (tier === 'silver') return <Badge className="bg-gray-500 text-white">Silver</Badge>;
-    return <Badge variant="outline">-</Badge>;
-  };
+  // Initialize DataTables
+  const initializeDataTable = () => {
+    if (!tableRef.current || !window.$ || !window.DataTable || tableInstance) return;
 
-  const getRiskBadge = (risk?: string) => {
-    if (risk === 'low') return <Badge className="bg-green-500 text-white">Dusuk Risk</Badge>;
-    if (risk === 'medium') return <Badge className="bg-yellow-500 text-white">Orta Risk</Badge>;
-    if (risk === 'high') return <Badge className="bg-red-500 text-white">Yuksek Risk</Badge>;
-    return <Badge variant="outline">-</Badge>;
-  };
+    try {
+      const table = window.$(tableRef.current).DataTable({
+        responsive: true,
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        order: [[6, 'desc']], // Sort by confidence
+        columnDefs: [
+          { targets: '_all', className: 'text-center' },
+          { targets: [0, 1], className: 'text-left' },
+        ],
+        language: {
+          search: 'Ara:',
+          lengthMenu: 'Sayfa başına _MENU_ kayıt göster',
+          info: '_TOTAL_ kayıttan _START_ - _END_ arası gösteriliyor',
+          paginate: {
+            first: 'İlk',
+            last: 'Son',
+            next: 'Sonraki',
+            previous: 'Önceki'
+          },
+          emptyTable: 'Tabloda veri bulunmamaktadır'
+        }
+      });
 
-  // Initialize DataTable when data loads
-  useEffect(() => {
-    if (results.length > 0) {
-      setTimeout(() => {
-        initializeDataTable();
-      }, 100);
+      setTableInstance(table);
+    } catch (error) {
+      console.error('DataTable initialization error:', error);
     }
-  }, [results, dataTablesLoaded]);
+  };
 
+  // Effects
   useEffect(() => {
     loadResults();
-  }, [filters]);
+  }, [filters.date]);
+
+  useEffect(() => {
+    if (dataTablesLoaded && results.length > 0) {
+      // Clean up existing table instance
+      if (tableInstance) {
+        tableInstance.destroy();
+        setTableInstance(null);
+      }
+      
+      // Initialize new table
+      setTimeout(initializeDataTable, 100);
+    }
+  }, [dataTablesLoaded, results]);
 
   return (
-    <>
-      <Script 
-        src="https://code.jquery.com/jquery-3.7.1.min.js" 
+    <DashboardLayout title="Bulk Match Analysis">
+      {/* Load DataTables */}
+      <Script
+        src="https://code.jquery.com/jquery-3.7.0.min.js"
         onLoad={() => console.log('jQuery loaded')}
       />
-      <Script 
+      <Script
         src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
         onLoad={() => {
-          setDataTablesLoaded(true);
           console.log('DataTables loaded');
+          setDataTablesLoaded(true);
         }}
       />
-      <Script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js" />
-      
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Toplu Maç Analizi</h1>
-            <p className="text-muted-foreground">Günün tüm maçları analiz edin ve sonuçları kategorili şekilde filtreleyin</p>
-          </div>
-          <Button 
-            onClick={runBulkAnalysis} 
-            disabled={analyzing}
-            size="lg"
-          >
-            {analyzing ? 'Analiz Ediliyor...' : 'Analizi Başlat'}
-          </Button>
-        </div>
+      <Script
+        src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtreler</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-              <label className="text-sm font-medium">Tarih</label>
-              <Input
-                type="date"
-                value={filters.date}
-                onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Lig</label>
-              <Input
-                placeholder="Lig adi..."
-                value={filters.league}
-                onChange={(e) => setFilters(prev => ({ ...prev, league: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Guven Seviyesi</label>
-              <Select value={filters.confidence_tier} onValueChange={(value) => setFilters(prev => ({ ...prev, confidence_tier: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tumunu Sec" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tumunu Sec</SelectItem>
-                  <SelectItem value="platinum">Platinum</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="silver">Silver</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Risk Seviyesi</label>
-              <Select value={filters.risk_level} onValueChange={(value) => setFilters(prev => ({ ...prev, risk_level: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tumunu Sec" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tumunu Sec</SelectItem>
-                  <SelectItem value="low">Dusuk</SelectItem>
-                  <SelectItem value="medium">Orta</SelectItem>
-                  <SelectItem value="high">Yuksek</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={loadResults} variant="outline" className="w-full">
-                Sonuclari Yukle
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Box sx={{ mb: 4 }}>
+        {/* Header Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
+            Bulk Match Analysis
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Comprehensive football match analysis with AI-powered predictions
+          </Typography>
+        </Box>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Analiz Sonuclari</CardTitle>
-          <CardDescription>Toplam {results.length} mac bulundu</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Yükleniyor...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table ref={tableRef} className="w-full display responsive nowrap" style={{width: '100%'}}>
-                {/* DataTables will populate this automatically */}
-              </table>
+        {/* Stats Cards */}
+        {stats && (
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ 
+                      bgcolor: 'primary.main', 
+                      color: 'white', 
+                      p: 1, 
+                      borderRadius: 2,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      <SportsSoccer />
+                    </Box>
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                        {stats.total}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Matches
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            {Object.entries(stats.byTier).map(([tier, count]) => (
+              <Grid item xs={12} sm={6} md={3} key={tier}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{ 
+                        bgcolor: getConfidenceColor(tier) === 'primary' ? 'primary.main' : 
+                               getConfidenceColor(tier) === 'warning' ? 'warning.main' : 'info.main',
+                        color: 'white', 
+                        p: 1, 
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <TrendingUp />
+                      </Box>
+                      <Box>
+                        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                          {count}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        {/* Controls */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Grid container spacing={3} alignItems="center">
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Analysis Date"
+                  value={filters.date}
+                  onChange={(e) => setFilters({...filters, date: e.target.value})}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
               
-              {results.length === 0 && !dataTablesLoaded && (
-                <div className="text-center py-8 text-gray-500">
-                  Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.
-                </div>
+              <Grid item xs={12} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Confidence Tier</InputLabel>
+                  <Select
+                    value={filters.tier}
+                    label="Confidence Tier"
+                    onChange={(e) => setFilters({...filters, tier: e.target.value})}
+                  >
+                    <MenuItem value="">All Tiers</MenuItem>
+                    <MenuItem value="platinum">Platinum</MenuItem>
+                    <MenuItem value="gold">Gold</MenuItem>
+                    <MenuItem value="silver">Silver</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Risk Level</InputLabel>
+                  <Select
+                    value={filters.riskLevel}
+                    label="Risk Level"
+                    onChange={(e) => setFilters({...filters, riskLevel: e.target.value})}
+                  >
+                    <MenuItem value="">All Levels</MenuItem>
+                    <MenuItem value="low">Low Risk</MenuItem>
+                    <MenuItem value="medium">Medium Risk</MenuItem>
+                    <MenuItem value="high">High Risk</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={5}>
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="contained"
+                    startIcon={analyzing ? <CircularProgress size={16} color="inherit" /> : <PlayArrow />}
+                    onClick={startAnalysis}
+                    disabled={analyzing || !filters.date}
+                    sx={{ minWidth: 140 }}
+                  >
+                    {analyzing ? 'Analyzing...' : 'Start Analysis'}
+                  </Button>
+                  
+                  <Button
+                    variant="outlined"
+                    startIcon={<Refresh />}
+                    onClick={loadResults}
+                    disabled={loading}
+                  >
+                    Refresh
+                  </Button>
+                  
+                  <Tooltip title="Export Results">
+                    <IconButton color="primary">
+                      <Download />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Results Section */}
+        <Card>
+          <CardContent>
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Analytics color="primary" />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Analysis Results
+              </Typography>
+              {results.length > 0 && (
+                <Chip 
+                  label={`${results.length} matches`} 
+                  color="primary" 
+                  size="small" 
+                />
               )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      </div>
-    </>
+            </Box>
+
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : results.length === 0 ? (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.
+              </Alert>
+            ) : (
+              <Box sx={{ overflowX: 'auto' }}>
+                <table 
+                  ref={tableRef}
+                  className="display responsive nowrap"
+                  style={{ width: '100%' }}
+                >
+                  <thead>
+                    <tr>
+                      <th>Home Team</th>
+                      <th>Away Team</th>
+                      <th>League</th>
+                      <th>Time</th>
+                      <th>Status</th>
+                      <th>Prediction</th>
+                      <th>Confidence</th>
+                      <th>Tier</th>
+                      <th>Risk</th>
+                      <th>BTTS</th>
+                      <th>O/U</th>
+                      <th>Expected Value</th>
+                      <th>Recommendation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((result) => (
+                      <tr key={result.id}>
+                        <td>{result.home_team}</td>
+                        <td>{result.away_team}</td>
+                        <td>{result.league_name}</td>
+                        <td>{result.match_time}</td>
+                        <td>
+                          <Chip 
+                            label={result.status} 
+                            size="small"
+                            color={result.status === 'FT' ? 'success' : 'default'}
+                          />
+                        </td>
+                        <td>
+                          <Chip 
+                            label={result.predicted_winner || 'N/A'} 
+                            size="small"
+                            color="primary"
+                          />
+                        </td>
+                        <td>{formatPercentage(result.winner_confidence || 0)}</td>
+                        <td>
+                          <Chip 
+                            label={result.confidence_tier || 'N/A'} 
+                            size="small"
+                            color={getConfidenceColor(result.confidence_tier || '')}
+                          />
+                        </td>
+                        <td>
+                          <Chip 
+                            label={result.risk_level || 'N/A'} 
+                            size="small"
+                            color={getRiskColor(result.risk_level || '')}
+                          />
+                        </td>
+                        <td>{result.btts_prediction || 'N/A'}</td>
+                        <td>{result.over_under_prediction || 'N/A'}</td>
+                        <td>{formatPercentage(result.expected_value || 0)}</td>
+                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {result.recommendation || 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+    </DashboardLayout>
   );
 }

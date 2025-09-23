@@ -5,6 +5,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
+import { Toaster as HotToaster } from 'react-hot-toast';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -69,6 +70,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster />
+            <HotToaster position="top-right" />
           </ThemeProvider>
         </ErrorBoundary>
       </body>
