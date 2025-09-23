@@ -468,7 +468,7 @@ export function MatchesDashboard() {
 
       {/* Main Content with Enhanced Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="matches">
             <CalendarDays className="w-4 h-4 mr-2" />
             Maçlar ({stats?.totalMatches ?? 0})
@@ -480,6 +480,10 @@ export function MatchesDashboard() {
           <TabsTrigger value="upcoming">
             <TrendingUp className="w-4 h-4 mr-2" />
             Tahminler ({stats?.upcomingMatches ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="bulk-analysis">
+            <ChartBar className="w-4 h-4 mr-2" />
+            Toplu Analiz
           </TabsTrigger>
           <TabsTrigger value="standings">
             <Trophy className="w-4 h-4 mr-2" />
@@ -687,6 +691,23 @@ export function MatchesDashboard() {
               showHighConfidenceOnly={false}
             />
           )}
+        </TabsContent>
+
+        {/* Bulk Analysis Tab */}
+        <TabsContent value="bulk-analysis" className="space-y-6">
+          <div className="text-center py-8">
+            <ChartBar className="w-16 h-16 mx-auto mb-6 text-primary" />
+            <div className="text-xl font-medium mb-3">Toplu Maç Analizi</div>
+            <div className="text-muted-foreground mb-6">
+              Günün tüm maçları için kapsamlı analiz yapmak için aşağıdaki linke tıklayın
+            </div>
+            <Link href="/bulk-analysis">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
+                <ChartBar className="w-4 h-4 mr-2" />
+                Analiz Sayfasına Git
+              </Button>
+            </Link>
+          </div>
         </TabsContent>
 
         {/* Standings Tab (Unchanged) */}
