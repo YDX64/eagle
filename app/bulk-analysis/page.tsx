@@ -1,39 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  Alert,
-  CircularProgress,
-  Grid,
-  Paper,
-  IconButton,
-  Tooltip,
-  Stack,
-  Divider,
-} from '@mui/material';
-import {
-  Analytics,
-  PlayArrow,
-  Refresh,
-  FilterList,
-  Download,
-  Visibility,
-  TrendingUp,
-  SportsSoccer,
-} from '@mui/icons-material';
+import { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import Script from 'next/script';
 
 declare global {
@@ -116,19 +89,19 @@ export default function BulkAnalysisPage() {
   // Helper functions
   const getConfidenceColor = (tier: string) => {
     switch (tier) {
-      case 'platinum': return 'primary';
-      case 'gold': return 'warning';
-      case 'silver': return 'info';
-      default: return 'default';
+      case 'platinum': return 'bg-purple-100 text-purple-800';
+      case 'gold': return 'bg-yellow-100 text-yellow-800';
+      case 'silver': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-blue-100 text-blue-800';
     }
   };
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'success';
-      case 'medium': return 'warning';
-      case 'high': return 'error';
-      default: return 'default';
+      case 'low': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'high': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -252,7 +225,7 @@ export default function BulkAnalysisPage() {
   }, [dataTablesLoaded, results]);
 
   return (
-    <DashboardLayout title="Bulk Match Analysis">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Load DataTables */}
       <Script
         src="https://code.jquery.com/jquery-3.7.0.min.js"
@@ -269,258 +242,213 @@ export default function BulkAnalysisPage() {
         src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"
       />
 
-      <Box sx={{ mb: 4 }}>
-        {/* Header Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
-            Bulk Match Analysis
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Comprehensive football match analysis with AI-powered predictions
-          </Typography>
-        </Box>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Bulk Match Analysis
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Comprehensive football match analysis with AI-powered predictions
+        </p>
+      </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ 
-                      bgcolor: 'primary.main', 
-                      color: 'white', 
-                      p: 1, 
-                      borderRadius: 2,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}>
-                      <SportsSoccer />
-                    </Box>
-                    <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {stats.total}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Total Matches
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Matches</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                </div>
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {Object.entries(stats.byTier).map(([tier, count]) => (
+            <Card key={tier}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                      {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{count}</p>
+                  </div>
+                  <Badge className={getConfidenceColor(tier)}>
+                    {tier}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Analysis Controls</CardTitle>
+          <CardDescription>Configure and run bulk match analysis</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium mb-2">Analysis Date</label>
+              <Input
+                type="date"
+                value={filters.date}
+                onChange={(e) => setFilters({...filters, date: e.target.value})}
+              />
+            </div>
             
-            {Object.entries(stats.byTier).map(([tier, count]) => (
-              <Grid item xs={12} sm={6} md={3} key={tier}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        bgcolor: getConfidenceColor(tier) === 'primary' ? 'primary.main' : 
-                               getConfidenceColor(tier) === 'warning' ? 'warning.main' : 'info.main',
-                        color: 'white', 
-                        p: 1, 
-                        borderRadius: 2,
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}>
-                        <TrendingUp />
-                      </Box>
-                      <Box>
-                        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                          {count}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+            <div>
+              <label className="block text-sm font-medium mb-2">Confidence Tier</label>
+              <Select value={filters.tier} onValueChange={(value) => setFilters({...filters, tier: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Tiers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Tiers</SelectItem>
+                  <SelectItem value="platinum">Platinum</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Controls */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Analysis Date"
-                  value={filters.date}
-                  onChange={(e) => setFilters({...filters, date: e.target.value})}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
+            <div>
+              <label className="block text-sm font-medium mb-2">Risk Level</label>
+              <Select value={filters.riskLevel} onValueChange={(value) => setFilters({...filters, riskLevel: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Levels</SelectItem>
+                  <SelectItem value="low">Low Risk</SelectItem>
+                  <SelectItem value="medium">Medium Risk</SelectItem>
+                  <SelectItem value="high">High Risk</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-2 flex gap-2">
+              <Button
+                onClick={startAnalysis}
+                disabled={analyzing || !filters.date}
+                className="flex-1"
+              >
+                {analyzing ? 'Analyzing...' : 'Start Analysis'}
+              </Button>
               
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Confidence Tier</InputLabel>
-                  <Select
-                    value={filters.tier}
-                    label="Confidence Tier"
-                    onChange={(e) => setFilters({...filters, tier: e.target.value})}
-                  >
-                    <MenuItem value="">All Tiers</MenuItem>
-                    <MenuItem value="platinum">Platinum</MenuItem>
-                    <MenuItem value="gold">Gold</MenuItem>
-                    <MenuItem value="silver">Silver</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+              <Button
+                variant="outline"
+                onClick={loadResults}
+                disabled={loading}
+              >
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              <Grid item xs={12} md={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Risk Level</InputLabel>
-                  <Select
-                    value={filters.riskLevel}
-                    label="Risk Level"
-                    onChange={(e) => setFilters({...filters, riskLevel: e.target.value})}
-                  >
-                    <MenuItem value="">All Levels</MenuItem>
-                    <MenuItem value="low">Low Risk</MenuItem>
-                    <MenuItem value="medium">Medium Risk</MenuItem>
-                    <MenuItem value="high">High Risk</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={5}>
-                <Stack direction="row" spacing={2}>
-                  <Button
-                    variant="contained"
-                    startIcon={analyzing ? <CircularProgress size={16} color="inherit" /> : <PlayArrow />}
-                    onClick={startAnalysis}
-                    disabled={analyzing || !filters.date}
-                    sx={{ minWidth: 140 }}
-                  >
-                    {analyzing ? 'Analyzing...' : 'Start Analysis'}
-                  </Button>
-                  
-                  <Button
-                    variant="outlined"
-                    startIcon={<Refresh />}
-                    onClick={loadResults}
-                    disabled={loading}
-                  >
-                    Refresh
-                  </Button>
-                  
-                  <Tooltip title="Export Results">
-                    <IconButton color="primary">
-                      <Download />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Results Section */}
-        <Card>
-          <CardContent>
-            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Analytics color="primary" />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Analysis Results
-              </Typography>
+      {/* Results Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Analysis Results</CardTitle>
               {results.length > 0 && (
-                <Chip 
-                  label={`${results.length} matches`} 
-                  color="primary" 
-                  size="small" 
-                />
+                <CardDescription>{results.length} matches analyzed</CardDescription>
               )}
-            </Box>
-
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : results.length === 0 ? (
-              <Alert severity="info" sx={{ mt: 2 }}>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2">Loading...</span>
+            </div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">
                 Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.
-              </Alert>
-            ) : (
-              <Box sx={{ overflowX: 'auto' }}>
-                <table 
-                  ref={tableRef}
-                  className="display responsive nowrap"
-                  style={{ width: '100%' }}
-                >
-                  <thead>
-                    <tr>
-                      <th>Home Team</th>
-                      <th>Away Team</th>
-                      <th>League</th>
-                      <th>Time</th>
-                      <th>Status</th>
-                      <th>Prediction</th>
-                      <th>Confidence</th>
-                      <th>Tier</th>
-                      <th>Risk</th>
-                      <th>BTTS</th>
-                      <th>O/U</th>
-                      <th>Expected Value</th>
-                      <th>Recommendation</th>
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table 
+                ref={tableRef}
+                className="display responsive nowrap w-full"
+                style={{ width: '100%' }}
+              >
+                <thead>
+                  <tr>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>League</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>Prediction</th>
+                    <th>Confidence</th>
+                    <th>Tier</th>
+                    <th>Risk</th>
+                    <th>BTTS</th>
+                    <th>O/U</th>
+                    <th>Expected Value</th>
+                    <th>Recommendation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((result) => (
+                    <tr key={result.id}>
+                      <td>{result.home_team}</td>
+                      <td>{result.away_team}</td>
+                      <td>{result.league_name}</td>
+                      <td>{result.match_time}</td>
+                      <td>
+                        <Badge className={result.status === 'FT' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
+                          {result.status}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {result.predicted_winner || 'N/A'}
+                        </Badge>
+                      </td>
+                      <td>{formatPercentage(result.winner_confidence || 0)}</td>
+                      <td>
+                        <Badge className={getConfidenceColor(result.confidence_tier || '')}>
+                          {result.confidence_tier || 'N/A'}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge className={getRiskColor(result.risk_level || '')}>
+                          {result.risk_level || 'N/A'}
+                        </Badge>
+                      </td>
+                      <td>{result.btts_prediction || 'N/A'}</td>
+                      <td>{result.over_under_prediction || 'N/A'}</td>
+                      <td>{formatPercentage(result.expected_value || 0)}</td>
+                      <td className="max-w-xs truncate" title={result.recommendation || 'N/A'}>
+                        {result.recommendation || 'N/A'}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((result) => (
-                      <tr key={result.id}>
-                        <td>{result.home_team}</td>
-                        <td>{result.away_team}</td>
-                        <td>{result.league_name}</td>
-                        <td>{result.match_time}</td>
-                        <td>
-                          <Chip 
-                            label={result.status} 
-                            size="small"
-                            color={result.status === 'FT' ? 'success' : 'default'}
-                          />
-                        </td>
-                        <td>
-                          <Chip 
-                            label={result.predicted_winner || 'N/A'} 
-                            size="small"
-                            color="primary"
-                          />
-                        </td>
-                        <td>{formatPercentage(result.winner_confidence || 0)}</td>
-                        <td>
-                          <Chip 
-                            label={result.confidence_tier || 'N/A'} 
-                            size="small"
-                            color={getConfidenceColor(result.confidence_tier || '')}
-                          />
-                        </td>
-                        <td>
-                          <Chip 
-                            label={result.risk_level || 'N/A'} 
-                            size="small"
-                            color={getRiskColor(result.risk_level || '')}
-                          />
-                        </td>
-                        <td>{result.btts_prediction || 'N/A'}</td>
-                        <td>{result.over_under_prediction || 'N/A'}</td>
-                        <td>{formatPercentage(result.expected_value || 0)}</td>
-                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {result.recommendation || 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
-    </DashboardLayout>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
