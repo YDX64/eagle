@@ -44,8 +44,8 @@ export default function BulkAnalysisPage() {
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
     league: '',
-    confidence_tier: '',
-    risk_level: ''
+    confidence_tier: 'all',
+    risk_level: 'all'
   });
   const tableRef = useRef<HTMLTableElement>(null);
   const { toast } = useToast();
@@ -56,8 +56,8 @@ export default function BulkAnalysisPage() {
       const params = new URLSearchParams();
       if (filters.date) params.append('date', filters.date);
       if (filters.league) params.append('league', filters.league);
-      if (filters.confidence_tier) params.append('confidence_tier', filters.confidence_tier);
-      if (filters.risk_level) params.append('risk_level', filters.risk_level);
+      if (filters.confidence_tier && filters.confidence_tier !== 'all') params.append('confidence_tier', filters.confidence_tier);
+      if (filters.risk_level && filters.risk_level !== 'all') params.append('risk_level', filters.risk_level);
 
       const response = await fetch(`/api/bulk-analysis/results?${params}`);
       const data = await response.json();
@@ -171,7 +171,7 @@ export default function BulkAnalysisPage() {
                   <SelectValue placeholder="Tumunu Sec" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tumunu Sec</SelectItem>
+                  <SelectItem value="all">Tumunu Sec</SelectItem>
                   <SelectItem value="platinum">Platinum</SelectItem>
                   <SelectItem value="gold">Gold</SelectItem>
                   <SelectItem value="silver">Silver</SelectItem>
@@ -185,7 +185,7 @@ export default function BulkAnalysisPage() {
                   <SelectValue placeholder="Tumunu Sec" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tumunu Sec</SelectItem>
+                  <SelectItem value="all">Tumunu Sec</SelectItem>
                   <SelectItem value="low">Dusuk</SelectItem>
                   <SelectItem value="medium">Orta</SelectItem>
                   <SelectItem value="high">Yuksek</SelectItem>
