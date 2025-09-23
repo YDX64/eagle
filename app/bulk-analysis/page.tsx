@@ -310,12 +310,11 @@ export default function BulkAnalysisPage() {
             
             <div>
               <label className="block text-sm font-medium mb-2">Confidence Tier</label>
-              <Select value={filters.tier} onValueChange={(value) => setFilters({...filters, tier: value})}>
+              <Select value={filters.tier || undefined} onValueChange={(value) => setFilters({...filters, tier: value || ''})}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Tiers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Tiers</SelectItem>
                   <SelectItem value="platinum">Platinum</SelectItem>
                   <SelectItem value="gold">Gold</SelectItem>
                   <SelectItem value="silver">Silver</SelectItem>
@@ -325,12 +324,11 @@ export default function BulkAnalysisPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Risk Level</label>
-              <Select value={filters.riskLevel} onValueChange={(value) => setFilters({...filters, riskLevel: value})}>
+              <Select value={filters.riskLevel || undefined} onValueChange={(value) => setFilters({...filters, riskLevel: value || ''})}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Levels" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Levels</SelectItem>
                   <SelectItem value="low">Low Risk</SelectItem>
                   <SelectItem value="medium">Medium Risk</SelectItem>
                   <SelectItem value="high">High Risk</SelectItem>
