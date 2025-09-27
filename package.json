@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@floating-ui/react": "0.26.0",
-    "@headlessui/react": "1.7.18",
+    "@headlessui/react": "2.1.1",
     "@hookform/resolvers": "3.9.0",
     "@next-auth/prisma-adapter": "1.0.7",
     "@radix-ui/react-accordion": "1.2.0",
