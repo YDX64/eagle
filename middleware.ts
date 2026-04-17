@@ -25,22 +25,11 @@ function clientIp(req: NextRequest): string {
   return req.headers.get('x-real-ip') || '0.0.0.0';
 }
 
-// Mock auth endpoints must never be reachable in production — they return
-// a hard-coded user and would bypass any real gating.
-const MOCK_AUTH_PATHS = new Set<string>([
-  '/api/auth/signin',
-  '/api/auth/signup',
-]);
-
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (process.env.NODE_ENV === 'production' && MOCK_AUTH_PATHS.has(pathname)) {
-    return NextResponse.json(
-      { success: false, error: 'Authentication endpoint disabled in production' },
-      { status: 503 }
-    );
-  }
+  // /api/auth/* is now fronted by real NextAuth handlers + our custom
+  // signup endpoint; no longer hard-blocked in production.
 
   // Only rate-limit API routes — UI navigation should not be throttled.
   if (pathname.startsWith('/api/')) {

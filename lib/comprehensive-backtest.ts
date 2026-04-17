@@ -265,49 +265,70 @@ export class ComprehensiveBacktest {
   }
 
   private static predictExactScore(homeStats: any, awayStats: any) {
-    const homeGoals = Math.round(homeStats.avgGoalsFor * 1.1); // Home advantage
-    const awayGoals = Math.round(awayStats.avgGoalsFor * 0.9);
+    // Use Poisson mode (floor of lambda) for each side — no hidden home bias.
+    // Home advantage, if present, should already be baked into avgGoalsFor
+    // by the caller via home/away split statistics.
+    const homeLambda = Math.max(0, Number(homeStats.avgGoalsFor) || 0);
+    const awayLambda = Math.max(0, Number(awayStats.avgGoalsFor) || 0);
+    const homeGoals = Math.max(0, Math.floor(homeLambda));
+    const awayGoals = Math.max(0, Math.floor(awayLambda));
+    // Confidence equals P(score=mode_home) * P(score=mode_away) — truthful
+    // low probability rather than a magic 0.15 regardless of match.
+    const homePeak = (Math.pow(homeLambda, homeGoals) * Math.exp(-homeLambda)) / this.factorial(homeGoals);
+    const awayPeak = (Math.pow(awayLambda, awayGoals) * Math.exp(-awayLambda)) / this.factorial(awayGoals);
+    const confidence = Math.max(0, Math.min(1, homePeak * awayPeak));
 
     return {
       home: homeGoals,
       away: awayGoals,
-      confidence: 0.15 // Exact score predictions are low confidence
+      confidence
     };
   }
 
   private static predictOverCorners(homeStats: any, awayStats: any, threshold: number) {
-    const expectedCorners = homeStats.avgCorners + awayStats.avgCorners;
-    const probability = expectedCorners > threshold ? 0.6 + (expectedCorners - threshold) * 0.1 : 0.4;
+    const expectedCorners = Math.max(0, (Number(homeStats.avgCorners) || 0) + (Number(awayStats.avgCorners) || 0));
+    // Poisson CDF: P(X > threshold)
+    const probability = 1 - this.poissonCDF(Math.floor(threshold), expectedCorners);
 
     return {
       prediction: probability > 0.5,
-      confidence: Math.min(probability, 0.8)
+      confidence: Math.max(0, Math.min(0.95, probability))
     };
   }
 
   private static predictTotalCorners(homeStats: any, awayStats: any) {
-    const prediction = Math.round(homeStats.avgCorners + awayStats.avgCorners);
-
+    const expected = Math.max(0, (Number(homeStats.avgCorners) || 0) + (Number(awayStats.avgCorners) || 0));
+    // Report the Poisson mode rather than naive round of the sum — avoids
+    // systematically over-counting when the sum rounds up.
+    const prediction = Math.floor(expected);
+    // Confidence = peak PMF value at the predicted mode.
+    const peak = expected > 0
+      ? (Math.pow(expected, prediction) * Math.exp(-expected)) / this.factorial(prediction)
+      : 0;
     return {
       prediction,
-      confidence: 0.45 // Corner predictions are moderate confidence
+      confidence: Math.max(0.1, Math.min(0.75, peak))
     };
   }
 
   private static predictOverCards(homeStats: any, awayStats: any, threshold: number) {
-    const expectedCards = homeStats.avgCards + awayStats.avgCards;
-    const probability = expectedCards > threshold ? 0.55 + (expectedCards - threshold) * 0.15 : 0.45;
+    const expectedCards = Math.max(0, (Number(homeStats.avgCards) || 0) + (Number(awayStats.avgCards) || 0));
+    const probability = 1 - this.poissonCDF(Math.floor(threshold), expectedCards);
 
     return {
       prediction: probability > 0.5,
-      confidence: Math.min(probability, 0.75)
+      confidence: Math.max(0, Math.min(0.9, probability))
     };
   }
 
   private static predictBothTeamsCards(homeStats: any, awayStats: any) {
-    const homeCardProb = Math.min(homeStats.avgCards / 2, 0.8);
-    const awayCardProb = Math.min(awayStats.avgCards / 2, 0.8);
-    const probability = homeCardProb * awayCardProb;
+    // Use Poisson P(X>=1) for each side, independence approximation.
+    // Guards against zero-goal teams that previously produced NaN/Infinity.
+    const homeLambda = Math.max(0, Number(homeStats.avgCards) || 0);
+    const awayLambda = Math.max(0, Number(awayStats.avgCards) || 0);
+    const homeCardProb = 1 - Math.exp(-homeLambda);
+    const awayCardProb = 1 - Math.exp(-awayLambda);
+    const probability = Math.max(0, Math.min(1, homeCardProb * awayCardProb));
 
     return {
       prediction: probability > 0.5,
@@ -336,20 +357,33 @@ export class ComprehensiveBacktest {
   }
 
   private static predictHalfTimeGoals(homeStats: any, awayStats: any, threshold: number) {
-    const htGoals = (homeStats.avgGoalsFor + awayStats.avgGoalsFor) * 0.4; // 40% of goals in first half
-    const probability = htGoals > threshold ? 0.6 : 0.4;
+    // Empirical split: ~43% of full-match goals land in the first half.
+    const firstHalfFactor = 0.43;
+    const htLambda = Math.max(
+      0,
+      ((Number(homeStats.avgGoalsFor) || 0) + (Number(awayStats.avgGoalsFor) || 0)) * firstHalfFactor
+    );
+    const probability = 1 - this.poissonCDF(Math.floor(threshold), htLambda);
 
     return {
       prediction: probability > 0.5,
-      confidence: probability
+      confidence: Math.max(0, Math.min(0.95, probability))
     };
   }
 
   private static predictBothTeamsScoreHT(homeStats: any, awayStats: any) {
-    const btts = this.predictBothTeamsScore(homeStats, awayStats);
+    // First-half BTTS ≈ product of first-half scoring probabilities with
+    // each team's lambda scaled by the empirical first-half factor. Avoids
+    // the previous 0.3× magic multiplier on full-match BTTS.
+    const firstHalfFactor = 0.43;
+    const homeLambda = Math.max(0, (Number(homeStats.avgGoalsFor) || 0) * firstHalfFactor);
+    const awayLambda = Math.max(0, (Number(awayStats.avgGoalsFor) || 0) * firstHalfFactor);
+    const homeScores = 1 - Math.exp(-homeLambda);
+    const awayScores = 1 - Math.exp(-awayLambda);
+    const probability = Math.max(0, Math.min(1, homeScores * awayScores));
     return {
-      prediction: btts.prediction,
-      confidence: btts.confidence * 0.3 // Much less likely in first half
+      prediction: probability > 0.5,
+      confidence: probability
     };
   }
 
