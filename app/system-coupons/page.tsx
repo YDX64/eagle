@@ -74,27 +74,44 @@ export default function SystemCouponsPage() {
   const [historical, setHistorical] = useState<HistoricalPerf[]>([]);
   const [availablePicks, setAvailablePicks] = useState(0);
   const [expandedCoupon, setExpandedCoupon] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchCoupons = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/system-coupons?date=${date}&budget=${budget}`);
-      const data = await res.json();
-      if (data.success) {
-        setCoupons(data.data.coupons);
-        setHistorical(data.data.historicalPerformance || []);
-        setAvailablePicks(data.data.availablePicks);
-      }
-    } catch {
-      // Silent
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchCoupons = () => setRefreshKey(k => k + 1);
 
   useEffect(() => {
-    fetchCoupons();
-  }, [date]);
+    const controller = new AbortController();
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/system-coupons?date=${encodeURIComponent(date)}&budget=${encodeURIComponent(budget)}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success) {
+          setCoupons(data.data.coupons);
+          setHistorical(data.data.historicalPerformance || []);
+          setAvailablePicks(data.data.availablePicks);
+        } else {
+          console.error('[system-coupons] API returned success=false:', data.error);
+        }
+      } catch (err) {
+        if ((err as any)?.name === 'AbortError') return;
+        console.error('[system-coupons] fetch failed:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [date, budget, refreshKey]);
 
   const riskColors: Record<string, string> = {
     low: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40',
@@ -104,17 +121,17 @@ export default function SystemCouponsPage() {
   };
 
   const riskLabels: Record<string, string> = {
-    low: 'Dusuk Risk',
+    low: 'Düşük Risk',
     medium: 'Orta Risk',
-    high: 'Yuksek Risk',
-    very_high: 'Cok Yuksek Risk',
+    high: 'Yüksek Risk',
+    very_high: 'Çok Yüksek Risk',
   };
 
   const typeLabels: Record<string, string> = {
-    match_winner: 'Mac Sonucu',
+    match_winner: 'Maç Sonucu',
     ensemble: 'Ensemble',
     both_teams_score: 'KG',
-    over_under_goals: 'Ust/Alt 2.5',
+    over_under_goals: 'Üst/Alt 2.5',
   };
 
   return (

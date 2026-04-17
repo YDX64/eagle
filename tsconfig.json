@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2021",
     "lib": [
       "dom",
       "dom.iterable",
-      "es5",
-      "es2020"
+      "es2021"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -31,12 +30,28 @@
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "scripts/**/*.ts",
+    "middleware.ts",
     ".next/types/**/*.ts",
     ".build/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "all-sports-analytics",
+    "hockey-analytics",
+    "guzel-arayuz-main",
+    "tmp",
+    ".claude",
+    ".next",
+    ".local",
+    "oran"
   ]
 }

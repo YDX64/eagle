@@ -47,8 +47,27 @@ try {
   console.warn('Database not configured, using in-memory cache');
 }
 
+function looksLikePlaceholderUrl(url: string | undefined): boolean {
+  if (!url) return true;
+  return (
+    url.includes('username:password') ||
+    url.includes('user:pass@') ||
+    url === 'file:./dev.db.placeholder'
+  );
+}
+
 export class CacheService {
-  private static useDatabase = !!prisma && process.env.DATABASE_URL !== 'postgresql://username:password@localhost:5432/database_name';
+  // Only use the database cache when we have a real Prisma client AND
+  // the model is actually present (runtime check avoids crashes on schemas
+  // that don't declare `cacheEntry`).
+  private static useDatabase: boolean = (() => {
+    if (!prisma || looksLikePlaceholderUrl(process.env.DATABASE_URL)) return false;
+    try {
+      return typeof prisma.cacheEntry?.findUnique === 'function';
+    } catch {
+      return false;
+    }
+  })();
 
   /**
    * Get cached data

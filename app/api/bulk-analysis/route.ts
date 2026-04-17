@@ -304,7 +304,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             kelly_percentage: Math.max(0.005, (confidence - 0.6) * 0.15),
 
             // === API FOOTBALL KATEGORILI VERİLER (Real where available) ===
-            // API Football Match Statistics (real data for finished matches)
+            // AwaStats Match Statistics (real data for finished matches)
             api_ms_home_shots_on_goal: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Shots on Goal')?.value || null,
             api_ms_home_shots_off_goal: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Shots off Goal')?.value || null,
             api_ms_home_total_shots: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Total Shots')?.value || null,
@@ -323,7 +323,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             api_ms_away_corner_kicks: matchStats?.find((stat: any) => stat.team.id === match.teams.away.id)?.statistics?.find((s: any) => s.type === 'Corner Kicks')?.value || null,
             api_ms_away_fouls: matchStats?.find((stat: any) => stat.team.id === match.teams.away.id)?.statistics?.find((s: any) => s.type === 'Fouls')?.value || null,
             
-            // API Football Form Data (enhanced from h2h and standings data)
+            // AwaStats Form Data (enhanced from h2h and standings data)
             api_form_home_last_5: h2hData?.slice(0, 5).map((h: any) => h.teams.home.winner ? 'W' : h.teams.away.winner ? 'L' : 'D').join('') || null,
             api_form_home_wins_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.home.winner).length || null,
             api_form_home_losses_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.away.winner).length || null,
@@ -331,14 +331,14 @@ async function bulkAnalysisHandler(request: NextRequest) {
             api_form_away_wins_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.away.winner).length || null,
             api_form_away_losses_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.home.winner).length || null,
             
-            // API Football Head to Head (real data)
+            // AwaStats Head to Head (real data)
             api_h2h_total_matches: h2hData?.length || null,
             api_h2h_home_wins: h2hData?.filter((h: any) => h.teams.home.winner === true).length || null,
             api_h2h_away_wins: h2hData?.filter((h: any) => h.teams.away.winner === true).length || null,
             api_h2h_draws: h2hData?.filter((h: any) => h.teams.home.winner === null && h.teams.away.winner === null).length || null,
             api_h2h_avg_goals_per_match: h2hData && h2hData.length > 0 ? h2hData.reduce((acc: number, h: any) => acc + ((h.goals?.home ?? 0) + (h.goals?.away ?? 0)), 0) / h2hData.length : null,
             
-            // API Football League Stats (real data from standings)
+            // AwaStats League Stats (real data from standings)
             api_league_home_position: standings?.find((s: any) => s.team.id === match.teams.home.id)?.rank || null,
             api_league_away_position: standings?.find((s: any) => s.team.id === match.teams.away.id)?.rank || null,
             api_league_home_points: standings?.find((s: any) => s.team.id === match.teams.home.id)?.points || null,

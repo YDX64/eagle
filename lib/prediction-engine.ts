@@ -62,6 +62,52 @@ export interface MatchPrediction {
     over_1_5_probability: number;
   };
   factors: PredictionFactors;
+  data_quality?: DataQuality;
+}
+
+// --- Poisson helpers (shared between basic + advanced engines) ---
+const MAX_POISSON_K = 10;
+
+function factorial(n: number): number {
+  if (n <= 1) return 1;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
+export function poissonPmf(lambda: number, k: number): number {
+  if (lambda <= 0) return k === 0 ? 1 : 0;
+  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+}
+
+/** P(X <= k) for X ~ Poisson(lambda) */
+export function poissonCdf(lambda: number, k: number): number {
+  if (lambda <= 0) return 1;
+  let acc = 0;
+  const upper = Math.min(k, MAX_POISSON_K);
+  for (let i = 0; i <= upper; i++) acc += poissonPmf(lambda, i);
+  return Math.min(1, acc);
+}
+
+/** P(total goals > threshold) for two independent Poisson teams */
+export function poissonOverProbability(lambdaHome: number, lambdaAway: number, threshold: number): number {
+  const floor = Math.floor(threshold);
+  const total = Math.max(0, lambdaHome) + Math.max(0, lambdaAway);
+  return 1 - poissonCdf(total, floor);
+}
+
+/** BTTS = (1 - P(home=0)) * (1 - P(away=0)) assuming independence */
+export function poissonBtts(lambdaHome: number, lambdaAway: number): number {
+  const homeScores = 1 - Math.exp(-Math.max(0, lambdaHome));
+  const awayScores = 1 - Math.exp(-Math.max(0, lambdaAway));
+  return Math.max(0, Math.min(1, homeScores * awayScores));
+}
+
+export interface DataQuality {
+  score: number;            // 0-1, overall data reliability
+  form_samples: number;     // total last-N matches available (home+away)
+  h2h_samples: number;
+  used_fallback: boolean;   // true when any default stat filled in
 }
 
 export class PredictionEngine {
@@ -157,30 +203,28 @@ export class PredictionEngine {
     homeForm: TeamForm,
     awayForm: TeamForm
   ) {
-    // First half typically sees ~60% of full game goals
-    const firstHalfFactor = 0.6;
+    // Empirical: first halves produce ~42-45% of full-match goals.
+    const firstHalfFactor = 0.43;
     const homeFirstHalfExpected = homeExpectedGoals * firstHalfFactor;
     const awayFirstHalfExpected = awayExpectedGoals * firstHalfFactor;
     const totalFirstHalfExpected = homeFirstHalfExpected + awayFirstHalfExpected;
-    
-    // Probability calculations using Poisson distribution approximation
-    const over_0_5_probability = 1 - Math.exp(-totalFirstHalfExpected);
-    const over_1_5_probability = 1 - Math.exp(-totalFirstHalfExpected) * (1 + totalFirstHalfExpected);
-    
-    // Individual team first half goal probabilities
-    const homeFirstHalfProb = 1 - Math.exp(-homeFirstHalfExpected);
-    const awayFirstHalfProb = 1 - Math.exp(-awayFirstHalfExpected);
-    
-    // Confidence based on form consistency
-    const homeFormConsistency = homeForm.recent_matches > 0 ? 
-      1 - (Math.abs(homeForm.wins + homeForm.draws - homeForm.recent_matches / 2) / homeForm.recent_matches) : 0.5;
-    const awayFormConsistency = awayForm.recent_matches > 0 ? 
-      1 - (Math.abs(awayForm.wins + awayForm.draws - awayForm.recent_matches / 2) / awayForm.recent_matches) : 0.5;
-    const confidence = (homeFormConsistency + awayFormConsistency) / 2;
-    
+
+    // Poisson CDF-based probabilities
+    const over_0_5_probability = 1 - poissonCdf(totalFirstHalfExpected, 0);
+    const over_1_5_probability = 1 - poissonCdf(totalFirstHalfExpected, 1);
+
+    const homeFirstHalfProb = 1 - Math.exp(-Math.max(0, homeFirstHalfExpected));
+    const awayFirstHalfProb = 1 - Math.exp(-Math.max(0, awayFirstHalfExpected));
+
+    // Confidence = gap-from-coinflip; no artificial boost.
+    const sampleSize = homeForm.recent_matches + awayForm.recent_matches;
+    const sampleWeight = Math.min(1, sampleSize / 10);
+    const edge = Math.abs(over_0_5_probability - 0.5) * 2;
+    const confidence = Math.max(0, Math.min(1, edge * sampleWeight));
+
     return {
-      prediction: over_0_5_probability > 0.6 ? 'yes' as const : 'no' as const,
-      confidence: Math.max(0.5, Math.min(0.9, confidence + 0.3)),
+      prediction: over_0_5_probability > 0.5 ? 'yes' as const : 'no' as const,
+      confidence,
       home_first_half_probability: homeFirstHalfProb,
       away_first_half_probability: awayFirstHalfProb,
       over_0_5_probability,
@@ -220,31 +264,56 @@ export class PredictionEngine {
       homeAvgFor, homeAvgAgainst, awayAvgFor, awayAvgAgainst
     );
 
-    // Weight factors for final prediction
+    // Weight factors for final prediction (must sum to 1.0)
     const weights = {
-      form: 0.3,
-      home_advantage: 0.2,
+      form: 0.30,
+      home_advantage: 0.20,
       position: 0.25,
       goals: 0.25
     };
 
-    // Calculate composite score (0 = away strong, 0.5 = even, 1 = home strong)
-    const compositeScore = 
+    // Composite score in [0,1] — 0.5 is neutral
+    const compositeScore =
       (0.5 + formDifference * 0.5) * weights.form +
       homeAdvantageScore * weights.home_advantage +
       positionScore * weights.position +
       goalsAnalysis.expected_goals_score * weights.goals;
 
-    // Convert to probabilities
-    let homeProbability = Math.max(0.15, Math.min(0.7, compositeScore));
-    let drawProbability = Math.max(0.2, 1 - Math.abs(compositeScore - 0.5) * 1.6);
-    let awayProbability = 1 - homeProbability - drawProbability;
-    
-    // Normalize probabilities
-    const total = homeProbability + drawProbability + awayProbability;
-    homeProbability /= total;
-    drawProbability /= total;
-    awayProbability /= total;
+    // Data-quality driven confidence of the composite signal.
+    const formSamples = homeForm.recent_matches + awayForm.recent_matches;
+    const h2hSamples = h2hRecord?.total_matches ?? 0;
+    const usedFallback =
+      homeForm.recent_matches === 0 ||
+      awayForm.recent_matches === 0 ||
+      !h2hRecord ||
+      h2hRecord.total_matches < 3 ||
+      !homeStanding ||
+      !awayStanding;
+    const dataQualityScore = Math.max(
+      0,
+      Math.min(
+        1,
+        Math.min(1, formSamples / 10) * 0.5 +
+        Math.min(1, h2hSamples / 5) * 0.2 +
+        (homeStanding && awayStanding ? 0.3 : 0)
+      )
+    );
+
+    // Derive 1X2 probabilities from composite + expected-goal gap.
+    // "edge" ∈ [-1,1] where 1 means strong home bias.
+    const edge = Math.max(-1, Math.min(1, (compositeScore - 0.5) * 2));
+    const sigma = 0.9; // spread — larger = fatter draw tail
+    const homeRaw = Math.exp(edge / sigma);
+    const awayRaw = Math.exp(-edge / sigma);
+    // Draw probability higher when teams are balanced AND expected goals are low.
+    const totalXg = goalsAnalysis.total_expected_goals;
+    const drawBase = 0.28 + 0.20 * Math.exp(-Math.pow(edge * 2.2, 2));
+    const drawRaw = drawBase * Math.exp(-Math.max(0, totalXg - 2.3) * 0.35);
+
+    const sum1x2 = homeRaw + awayRaw + drawRaw;
+    let homeProbability = homeRaw / sum1x2;
+    let drawProbability = drawRaw / sum1x2;
+    let awayProbability = awayRaw / sum1x2;
 
     // Determine winner prediction
     const maxProb = Math.max(homeProbability, drawProbability, awayProbability);
@@ -252,13 +321,19 @@ export class PredictionEngine {
     if (homeProbability === maxProb) winner = 'home';
     else if (awayProbability === maxProb) winner = 'away';
 
-    // Both teams to score prediction
-    const avgGoalsPerTeam = (goalsAnalysis.home_expected_goals + goalsAnalysis.away_expected_goals) / 2;
-    const bothTeamsScoreProb = Math.min(0.8, avgGoalsPerTeam * 0.35 + 0.2);
-    
-    // Over/Under prediction (typically 2.5 goals)
+    // Both teams to score — proper independent-Poisson approximation.
+    const bothTeamsScoreProb = poissonBtts(
+      goalsAnalysis.home_expected_goals,
+      goalsAnalysis.away_expected_goals
+    );
+
+    // Over/Under 2.5 — Poisson CDF over total expected goals.
     const overUnderThreshold = 2.5;
-    const overProbability = goalsAnalysis.total_expected_goals > overUnderThreshold ? 0.6 : 0.4;
+    const overProbability = poissonOverProbability(
+      goalsAnalysis.home_expected_goals,
+      goalsAnalysis.away_expected_goals,
+      overUnderThreshold
+    );
 
     // First half goals prediction
     const firstHalfGoals = this.calculateFirstHalfGoals(
@@ -268,22 +343,28 @@ export class PredictionEngine {
       awayForm
     );
 
+    // Confidence of each market = edge-from-coinflip × data-quality multiplier.
+    // Prevents showing "85%" tier when all inputs were fallback defaults.
+    const matchWinnerConfidence = maxProb * Math.max(0.3, dataQualityScore);
+    const bttsConfidence = Math.abs(bothTeamsScoreProb - 0.5) * 2 * Math.max(0.3, dataQualityScore);
+    const overConfidence = Math.abs(overProbability - 0.5) * 2 * Math.max(0.3, dataQualityScore);
+
     return {
       match_winner: {
         prediction: winner,
-        confidence: maxProb,
+        confidence: matchWinnerConfidence,
         home_probability: homeProbability,
         away_probability: awayProbability,
         draw_probability: drawProbability
       },
       both_teams_score: {
         prediction: bothTeamsScoreProb > 0.5 ? 'yes' : 'no',
-        confidence: Math.abs(bothTeamsScoreProb - 0.5) * 2
+        confidence: bttsConfidence
       },
       over_under_goals: {
         prediction: overProbability > 0.5 ? 'over' : 'under',
         threshold: overUnderThreshold,
-        confidence: Math.abs(overProbability - 0.5) * 2
+        confidence: overConfidence
       },
       first_half_goals: firstHalfGoals,
       factors: {
@@ -309,6 +390,12 @@ export class PredictionEngine {
           away_avg_goals_against: awayAvgAgainst,
           expected_goals_score: goalsAnalysis.expected_goals_score
         }
+      },
+      data_quality: {
+        score: dataQualityScore,
+        form_samples: formSamples,
+        h2h_samples: h2hSamples,
+        used_fallback: usedFallback
       }
     };
   }

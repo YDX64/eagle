@@ -7,7 +7,12 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// PostgreSQL connection will use DATABASE_URL from environment
+// Prisma schema uses SQLite. If no DATABASE_URL is provided (e.g. in scripts
+// that forget to load .env), fall back to the project-local dev.db file so
+// we never create a nested `prisma/prisma/dev.db` like earlier revisions.
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'file:./prisma/dev.db';
+}
 
 export const prisma = globalForPrisma.prisma ??
   new PrismaClient({

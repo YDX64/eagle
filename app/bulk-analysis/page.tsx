@@ -40,7 +40,7 @@ interface BulkAnalysisResult {
   home_advantage?: number;
   goals_analysis?: number;
   
-  // API Football Match Statistics
+  // AwaStats Match Statistics
   api_ms_home_shots_on_goal?: number;
   api_ms_home_shots_off_goal?: number;
   api_ms_home_total_shots?: number;
@@ -58,7 +58,7 @@ interface BulkAnalysisResult {
   api_ms_away_corner_kicks?: number;
   api_ms_away_fouls?: number;
   
-  // API Football Form Data
+  // AwaStats Form Data
   api_form_home_last_5?: string;
   api_form_home_wins_last_5?: number;
   api_form_home_losses_last_5?: number;
@@ -66,14 +66,14 @@ interface BulkAnalysisResult {
   api_form_away_wins_last_5?: number;
   api_form_away_losses_last_5?: number;
   
-  // API Football Head-to-Head
+  // AwaStats Head-to-Head
   api_h2h_total_matches?: number;
   api_h2h_home_wins?: number;
   api_h2h_away_wins?: number;
   api_h2h_draws?: number;
   api_h2h_avg_goals_per_match?: number;
   
-  // API Football League Data
+  // AwaStats League Data
   api_league_home_position?: number;
   api_league_away_position?: number;
   api_league_home_points?: number;
@@ -327,28 +327,29 @@ export default function BulkAnalysisPage() {
     return String(value);
   };
 
-  // Load analysis results  
-  const loadResults = async () => {
+  // Load analysis results. Accepts an AbortSignal so re-filters cancel
+  // the previous in-flight request and we avoid a stale-response race.
+  const loadResults = useCallback(async (signal?: AbortSignal) => {
     if (!filters.date) return;
-    
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
         date: filters.date,
-        limit: '1000', // Load more data for Excel-like experience
+        limit: '1000',
         ...(filters.tier && { tier: filters.tier }),
         ...(filters.riskLevel && { riskLevel: filters.riskLevel }),
         ...(filters.league && { league: filters.league }),
       });
 
-      const response = await fetch(`/api/bulk-analysis/results?${params}`);
+      const response = await fetch(`/api/bulk-analysis/results?${params}`, { signal });
       const data = await response.json();
 
       if (data.success) {
         setResults(data.data.results || []);
         setStats(data.data.stats || null);
         applyFilters(data.data.results || []);
-        
+
         if (data.data.results?.length === 0) {
           toast('Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.');
         } else {
@@ -357,12 +358,14 @@ export default function BulkAnalysisPage() {
       } else {
         throw new Error(data.error || 'Veriler yüklenirken hata oluştu');
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
       console.error('Error loading results:', error);
       toast.error('Veriler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
+  }, [filters.date, filters.tier, filters.riskLevel, filters.league]);
 
   const syncGoalInsights = useCallback(async (force = false) => {
     if (!filters.date) {
@@ -400,8 +403,6 @@ export default function BulkAnalysisPage() {
     }
   }, [filters.date]);
 
-  };
-
   // Start bulk analysis
   const startAnalysis = async () => {
     if (!filters.date) {
@@ -411,15 +412,16 @@ export default function BulkAnalysisPage() {
 
     setAnalyzing(true);
     try {
-      const response = await fetch(`/api/bulk-analysis?date=${filters.date}&forceRefresh=true`, {
-        method: 'POST',
-      });
-      
+      const response = await fetch(
+        `/api/bulk-analysis?date=${encodeURIComponent(filters.date)}&forceRefresh=true`,
+        { method: 'POST' }
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success(`Analiz tamamlandı: ${data.count} maç analiz edildi`);
-        loadResults();
+        await loadResults();
       } else {
         throw new Error(data.error || 'Analiz sırasında hata oluştu');
       }
@@ -521,11 +523,14 @@ export default function BulkAnalysisPage() {
 
   // Effects
   useEffect(() => {
-    loadResults();
-  }, [filters.date]);
+    const controller = new AbortController();
+    loadResults(controller.signal);
+    return () => controller.abort();
+  }, [loadResults]);
 
   useEffect(() => {
     applyFilters(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results, filters.search, columnFilters, sortConfig]);
 
   useEffect(() => {
@@ -719,7 +724,7 @@ export default function BulkAnalysisPage() {
               
               <Button
                 variant="outline"
-                onClick={loadResults}
+                onClick={() => loadResults()}
                 disabled={loading}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
