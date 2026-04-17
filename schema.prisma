@@ -408,3 +408,181 @@ model PredictionStatistics {
   @@index([team_id, success_rate])
   @@map("prediction_statistics")
 }
+
+model AnalysisRun {
+  id              String    @id @default(cuid())
+  start_time      DateTime  @default(now())
+  end_time        DateTime?
+  status          String    @default("running") // running, completed, failed
+  
+  matches_analyzed Int      @default(0)
+  high_conf_found  Int      @default(0)
+  
+  createdAt       DateTime  @default(now())
+  
+  matches         Match[]
+  
+  @@map("analysis_runs")
+}
+
+model HighConfidenceRecommendation {
+  id                    String    @id @default(cuid())
+  match_id              Int
+  confidence_tier       String    // "platinum", "gold", "silver"
+  confidence_score      Float
+  recommendation        String    // The betting recommendation
+  reasoning            String?   // Why this is recommended
+  
+  createdAt            DateTime  @default(now())
+  
+  match                Match     @relation(fields: [match_id], references: [id])
+  
+  @@index([confidence_tier, confidence_score])
+  @@map("high_confidence_recommendations")
+}
+
+model MatchConfidenceSummary {
+  id                    Int       @id @default(autoincrement())
+  match_id              Int       @unique
+  overall_confidence    Float
+  tier_classification  String?   // "platinum", "gold", "silver"
+  
+  total_factors         Int       @default(0)
+  strong_factors        Int       @default(0)
+  
+  summary_text          String?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  match                Match     @relation(fields: [match_id], references: [id])
+  
+  @@map("match_confidence_summaries")
+}
+
+model BulkAnalysisResult {
+  id                    Int       @id @default(autoincrement())
+  match_id              Int
+  date                  DateTime
+  
+  // Match info
+  home_team             String
+  away_team             String
+  league_name           String
+  match_time            String
+  status                String
+  
+  // Prediction results
+  predicted_winner      String?   // home, away, draw
+  winner_confidence     Float?
+  btts_prediction       String?   // yes, no
+  btts_confidence       Float?
+  over_under_prediction String?   // over, under
+  over_under_confidence Float?
+  
+  // Analysis factors
+  home_form_score       Float?
+  away_form_score       Float?
+  head_to_head_score    Float?
+  home_advantage        Float?
+  goals_analysis        Float?
+  
+  // Overall assessment  
+  overall_confidence    Float?
+  confidence_tier       String?   // platinum, gold, silver
+  recommendation        String?
+  risk_level           String?    // low, medium, high
+  
+  // Value betting
+  expected_value        Float?
+  kelly_percentage      Float?
+  
+  // === API FOOTBALL KATEGORILI VERİLER ===
+  // API Football Match Statistics (api_ms1, api_ms2 etc.)
+  api_ms_home_shots_on_goal     Int?
+  api_ms_home_shots_off_goal    Int?
+  api_ms_home_total_shots       Int?
+  api_ms_home_ball_possession   String?
+  api_ms_home_yellow_cards      Int?
+  api_ms_home_red_cards         Int?
+  api_ms_home_corner_kicks      Int?
+  api_ms_home_fouls             Int?
+  
+  api_ms_away_shots_on_goal     Int?
+  api_ms_away_shots_off_goal    Int?
+  api_ms_away_total_shots       Int?
+  api_ms_away_ball_possession   String?
+  api_ms_away_yellow_cards      Int?
+  api_ms_away_red_cards         Int?
+  api_ms_away_corner_kicks      Int?
+  api_ms_away_fouls             Int?
+  
+  // API Football Form Data (api_form1, api_form2 etc.)
+  api_form_home_last_5          String?
+  api_form_home_wins_last_5     Int?
+  api_form_home_losses_last_5   Int?
+  api_form_away_last_5          String?
+  api_form_away_wins_last_5     Int?
+  api_form_away_losses_last_5   Int?
+  
+  // API Football Head to Head (api_h2h1, api_h2h2 etc.)
+  api_h2h_total_matches         Int?
+  api_h2h_home_wins             Int?
+  api_h2h_away_wins             Int?
+  api_h2h_draws                 Int?
+  api_h2h_avg_goals_per_match   Float?
+  
+  // API Football League Stats (api_league1, api_league2 etc.)
+  api_league_home_position      Int?
+  api_league_away_position      Int?
+  api_league_home_points        Int?
+  api_league_away_points        Int?
+  api_league_avg_goals_home     Float?
+  api_league_avg_goals_away     Float?
+  
+  // === KENDİ ANALİZ KATEGORİLERİ ===
+  // Own Analysis Metrics (own_an1, own_an2 etc.)
+  own_an_value_score           Float?    // Değer analizi skoru
+  own_an_momentum_score        Float?    // Momentum analizi
+  own_an_injury_impact         Float?    // Sakatlık etkisi
+  own_an_weather_impact        Float?    // Hava durumu etkisi
+  own_an_referee_tendency      Float?    // Hakem eğilimi
+  own_an_crowd_factor          Float?    // Taraftar faktörü
+  
+  // Risk Analysis Categories (risk1, risk2 etc.)
+  risk_variance_score          Float?    // Varyans riski
+  risk_liquidity_score         Float?    // Likidite riski  
+  risk_odds_movement           Float?    // Oran hareketleri riski
+  risk_last_minute_changes     Float?    // Son dakika değişiklikleri
+  
+  // Performance Categories (perf1, perf2 etc.)
+  perf_historical_accuracy     Float?    // Tarihsel doğruluk
+  perf_recent_form_weight      Float?    // Son form ağırlığı
+  perf_league_specific_adj     Float?    // Liga özel ayarlama
+  perf_algorithm_confidence    Float?    // Algoritma güveni
+  
+  // Market Analysis (market1, market2 etc.)
+  market_odds_home            Float?     // Ev sahibi oranları
+  market_odds_away            Float?     // Deplasman oranları
+  market_odds_draw            Float?     // Beraberlik oranları
+  market_volume_indicator     Float?     // Hacim göstergesi
+  market_smart_money_flow     Float?     // Akıllı para akışı
+  
+  // API-Football prediction alignment
+  api_predicted_winner        String?
+  api_winner_confidence       Float?
+  api_over_under_prediction   String?
+  api_over_under_confidence   Float?
+  api_prediction_advice       String?
+  algorithms_agree_winner     Boolean   @default(false)
+  algorithms_agree_over_under Boolean   @default(false)
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  @@index([date, confidence_tier])
+  @@index([league_name, overall_confidence])
+  @@index([api_league_home_position, api_league_away_position])
+  @@index([own_an_value_score, risk_variance_score])
+  @@map("bulk_analysis_results")
+}

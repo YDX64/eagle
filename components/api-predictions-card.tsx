@@ -28,17 +28,17 @@ export function ApiPredictionsCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-600">
             <Target className="w-5 h-5" />
-            API-Football Resmi Tahminleri
+            AwaStats Resmi Tahminleri
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <div className="text-muted-foreground mb-2">
-              Bu maç için API-Football resmi tahmin verisi bulunamadı
+              Bu maç için AwaStats resmi tahmin verisi bulunamadı
             </div>
             <div className="text-sm text-muted-foreground">
-              API-Football tüm maçlar için tahmin verisi sağlamayabilir
+              AwaStats tüm maçlar için tahmin verisi sağlamayabilir
             </div>
           </div>
         </CardContent>
@@ -52,7 +52,7 @@ export function ApiPredictionsCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-600">
             <Target className="w-5 h-5" />
-            API-Football Resmi Tahminleri
+            AwaStats Resmi Tahminleri
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -302,7 +302,7 @@ export function ApiPredictionsCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-orange-600">
             <Target className="w-5 h-5" />
-            API-Football Resmi Tahminleri
+            AwaStats Resmi Tahminleri
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -409,7 +409,7 @@ export function ApiPredictionsCard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
-            Detaylı API Tahminleri
+            Detaylı AwaStats Tahminleri
           </CardTitle>
         </CardHeader>
         <CardContent>

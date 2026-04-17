@@ -1,0 +1,140 @@
+{
+  "sourceReliability": {
+    "apiFootball": 0.2,
+    "basicEngine": 0.3,
+    "advancedEngine": 0.5
+  },
+  "markets": {
+    "matchResult": {
+      "weights": {
+        "apiFootball": 0.2,
+        "basicEngine": 0.3,
+        "advancedEngine": 0.5
+      },
+      "agreementBoost": 0.15,
+      "disagreementPenalty": 0.1
+    },
+    "overUnderGoals": {
+      "weights": {
+        "apiFootball": 0.15,
+        "basicEngine": 0.25,
+        "advancedEngine": 0.6
+      },
+      "agreementBoost": 0.12,
+      "disagreementPenalty": 0.12
+    },
+    "bothTeamsToScore": {
+      "weights": {
+        "apiFootball": 0.2,
+        "basicEngine": 0.35,
+        "advancedEngine": 0.45
+      },
+      "agreementBoost": 0.1,
+      "disagreementPenalty": 0.1
+    },
+    "firstHalfResult": {
+      "weights": {
+        "apiFootball": 0.15,
+        "basicEngine": 0.3,
+        "advancedEngine": 0.55
+      },
+      "agreementBoost": 0.08,
+      "disagreementPenalty": 0.12
+    },
+    "cards": {
+      "weights": {
+        "apiFootball": 0.1,
+        "basicEngine": 0.2,
+        "advancedEngine": 0.7
+      },
+      "agreementBoost": 0.06,
+      "disagreementPenalty": 0.15
+    },
+    "corners": {
+      "weights": {
+        "apiFootball": 0.1,
+        "basicEngine": 0.2,
+        "advancedEngine": 0.7
+      },
+      "agreementBoost": 0.06,
+      "disagreementPenalty": 0.15
+    },
+    "exactScore": {
+      "weights": {
+        "apiFootball": 0.05,
+        "basicEngine": 0.15,
+        "advancedEngine": 0.8
+      },
+      "agreementBoost": 0.05,
+      "disagreementPenalty": 0.2
+    }
+  },
+  "confidenceAdjustments": {
+    "lowConfidenceThreshold": 0.5,
+    "lowConfidenceWeightPenalty": 0.25,
+    "highAgreementThreshold": 0.1,
+    "highAgreementBoost": 0.15,
+    "significantDisagreementThreshold": 0.3,
+    "significantDisagreementUncertainty": 0.2
+  },
+  "fallbacks": {
+    "minimumSources": 2,
+    "defaultRedistribution": {
+      "apiFootball": 0.2,
+      "basicEngine": 0.3,
+      "advancedEngine": 0.5
+    },
+    "whenApiFootballMissing": {
+      "basicEngine": 0.4,
+      "advancedEngine": 0.6
+    },
+    "whenAdvancedEngineMissing": {
+      "apiFootball": 0.3,
+      "basicEngine": 0.7
+    },
+    "whenBasicEngineMissing": {
+      "apiFootball": 0.2,
+      "advancedEngine": 0.8
+    }
+  },
+  "normalization": {
+    "percentageKeys": [
+      "predictions.percent.home",
+      "predictions.percent.draw",
+      "predictions.percent.away"
+    ],
+    "decimalPrecision": 4,
+    "allowPercentageStrings": true,
+    "normalizeToOne": true
+  },
+  "bankoCriteria": {
+    "minimumConfidence": 0.7,
+    "agreementWindow": 0.15,
+    "requiredSources": 2,
+    "advancedEngineMinimum": 0.65,
+    "marketOverrides": {
+      "exactScore": {
+        "minimumConfidence": 0.62,
+        "agreementWindow": 0.12
+      },
+      "cards": {
+        "minimumConfidence": 0.68,
+        "agreementWindow": 0.1
+      }
+    }
+  },
+  "riskLevels": {
+    "low": {
+      "minConfidence": 0.7,
+      "maxVariance": 0.1
+    },
+    "medium": {
+      "minConfidence": 0.55,
+      "maxVariance": 0.2
+    },
+    "high": {
+      "minConfidence": 0.4,
+      "maxVariance": 0.35
+    }
+  }
+}

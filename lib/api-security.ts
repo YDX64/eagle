@@ -43,7 +43,7 @@ export function checkRateLimit(key: string): { allowed: boolean; resetTime?: num
 // Input validation schemas
 export const matchesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(1000).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(25),
+  limit: z.coerce.number().int().min(1).max(10000).default(25),
   search: z.string().max(100).optional(),
   endedMatchesHours: z.coerce.number().int().min(0).max(168).optional(), // Max 1 week
 });
@@ -88,8 +88,8 @@ export function createErrorResponse(error: string, statusCode?: number): {
 
 // Environment validation
 export function validateApiKey(): boolean {
-  const apiKey = process.env.API_FOOTBALL_KEY;
-  return !!(apiKey && apiKey.length > 0 && apiKey !== 'your_api_football_key_here');
+  const apiKey = process.env.AWASTATS_API_KEY || process.env.API_FOOTBALL_KEY;
+  return !!(apiKey && apiKey.length > 0 && apiKey !== 'your_awastats_key_here' && apiKey !== 'your_api_football_key_here');
 }
 
 // Error sanitization for production

@@ -58,7 +58,7 @@ Copy `.env.example` to `.env` and configure:
 
 ```bash
 # Required
-API_FOOTBALL_KEY=your_api_football_key_here
+AWASTATS_API_KEY=your_awastats_key_here
 DATABASE_URL="postgresql://username:password@host:port/database"
 
 # Auto-generated (don't edit manually)
@@ -90,7 +90,7 @@ netlify deploy --prod
 1. Configure all environment variables in your deployment platform
 2. Ensure DATABASE_URL points to your production database
 3. Update NEXTAUTH_URL with your production domain
-4. Verify API_FOOTBALL_KEY has sufficient quota
+4. Verify AWASTATS_API_KEY has sufficient quota
 
 ### 3. Database Setup
 ```bash
@@ -139,7 +139,7 @@ curl http://localhost:3000/api/matches/today
 
 ## 🎯 Production Features
 
-- **Real-time Data**: Live match updates via API-Football
+- **Real-time Data**: Live match updates via AwaStats
 - **Advanced Predictions**: AI-powered match analysis
 - **Responsive Design**: Mobile-first approach
 - **Dark/Light Mode**: User preference persistence

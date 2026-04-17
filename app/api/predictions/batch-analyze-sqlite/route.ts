@@ -1,261 +1,555 @@
-import { NextResponse } from 'next/server';
-import { cache } from '@/lib/db/json-cache';
+import { NextRequest, NextResponse } from 'next/server';
+import type { Fixture, Standing } from '@/lib/api-football';
+import { ApiFootballService } from '@/lib/api-football';
+import type { AdvancedMatchPrediction } from '@/lib/advanced-prediction-engine';
+import { AdvancedPredictionEngine } from '@/lib/advanced-prediction-engine';
+import type { MatchPrediction } from '@/lib/prediction-engine';
+import { PredictionEngine } from '@/lib/prediction-engine';
+import { CacheService } from '@/lib/cache';
+import { cache, PredictionCache } from '@/lib/db/json-cache';
 
-// Mock analysis functions - replace with actual API calls
-async function analyzeMatch(matchId: number, detailed: boolean = false) {
-  // This would normally call your football API
-  // For now, return mock data
+type HeadToHeadSummary = {
+  total_matches: number;
+  team1_wins: number;
+  team2_wins: number;
+  draws: number;
+};
+
+type BatchPredictionContext = {
+  leagueFixtures: Map<string, Fixture[]>;
+  standings: Map<string, Standing[]>;
+  headToHead: Map<string, HeadToHeadSummary>;
+};
+
+type BatchAnalyzeRequest = {
+  matchIds: number[];
+  forceUpdate?: boolean;
+};
+
+const PREDICTION_TTL_SECONDS = CacheService.TTL?.PREDICTIONS ?? 1800;
+const PREDICTION_EXPIRY_MS = PREDICTION_TTL_SECONDS * 1000;
+const RATE_LIMIT_DELAY_MS = 250;
+
+let nextAvailableSlot = Date.now();
+
+function createContext(): BatchPredictionContext {
   return {
-    advancedPrediction: {
-      winner: {
-        home: Math.random() * 100,
-        draw: Math.random() * 100,
-        away: Math.random() * 100
-      },
-      goals: {
-        home: Math.random() * 3,
-        away: Math.random() * 3
-      },
-      comparison: {
-        form: {
-          home: (Math.random() * 100).toFixed(0),
-          away: (Math.random() * 100).toFixed(0)
-        }
-      }
-    },
-    statistics: {
-      homeTeam: { winRate: Math.random() * 100 },
-      awayTeam: { winRate: Math.random() * 100 }
-    }
+    leagueFixtures: new Map(),
+    standings: new Map(),
+    headToHead: new Map()
   };
 }
 
-async function getValueBets(matchId: number, minValue: number = 5) {
-  // This would normally call your football API
-  // For now, return mock data
-  return {
-    opportunities: [
-      {
-        outcome: 'Home Win',
-        value: Math.random() * 20,
-        odds: 2.1
-      }
-    ]
-  };
+async function withRateLimit<T>(operation: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const waitTime = Math.max(0, nextAvailableSlot - now);
+
+  if (waitTime > 0) {
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+
+  const result = await operation();
+  nextAvailableSlot = Date.now() + RATE_LIMIT_DELAY_MS;
+  return result;
 }
 
-export async function POST(request: Request) {
+async function safeCacheGet<T>(key: string): Promise<T | null> {
   try {
-    const { matchIds, forceUpdate = false } = await request.json();
+    return await CacheService.get<T>(key);
+  } catch (error) {
+    console.warn(`CacheService.get failed for key ${key}:`, error);
+    return null;
+  }
+}
 
-    if (!matchIds || !Array.isArray(matchIds)) {
-      return NextResponse.json({ error: 'Match IDs array required' }, { status: 400 });
+async function safeCacheSet<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+  try {
+    await CacheService.set(key, value, ttlSeconds);
+  } catch (error) {
+    console.warn(`CacheService.set failed for key ${key}:`, error);
+  }
+}
+
+async function fetchFixture(matchId: number): Promise<Fixture | null> {
+  const cacheKey = CacheService.generateApiKey('fixture', { matchId });
+  const cached = await safeCacheGet<Fixture>(cacheKey);
+  if (cached) return cached;
+
+  const fixture = await withRateLimit(() => ApiFootballService.getFixture(matchId));
+  if (fixture) {
+    await safeCacheSet(cacheKey, fixture, CacheService.TTL.FIXTURES_TODAY);
+  }
+  return fixture;
+}
+
+async function fetchLeagueFixtures(
+  leagueId: number,
+  season: number,
+  context: BatchPredictionContext
+): Promise<Fixture[]> {
+  const contextKey = `${leagueId}-${season}`;
+  const cached = context.leagueFixtures.get(contextKey);
+  if (cached) return cached;
+
+  const cacheKey = CacheService.generateApiKey('fixtures', { leagueId, season, status: 'FT' });
+  const stored = await safeCacheGet<Fixture[]>(cacheKey);
+  if (stored) {
+    context.leagueFixtures.set(contextKey, stored);
+    return stored;
+  }
+
+  const fixtures = await withRateLimit(() => ApiFootballService.getFixturesByLeague(leagueId, season, 'FT'));
+  const normalized = fixtures || [];
+  context.leagueFixtures.set(contextKey, normalized);
+  await safeCacheSet(cacheKey, normalized, CacheService.TTL.FIXTURES_PAST);
+  return normalized;
+}
+
+async function fetchStandings(
+  leagueId: number,
+  season: number,
+  context: BatchPredictionContext
+): Promise<Standing[]> {
+  const contextKey = `${leagueId}-${season}`;
+  const cached = context.standings.get(contextKey);
+  if (cached) return cached;
+
+  const cacheKey = CacheService.generateApiKey('standings', { leagueId, season });
+  const stored = await safeCacheGet<Standing[]>(cacheKey);
+  if (stored) {
+    context.standings.set(contextKey, stored);
+    return stored;
+  }
+
+  const standings = await withRateLimit(() => ApiFootballService.getStandings(leagueId, season));
+  const normalized = standings || [];
+  context.standings.set(contextKey, normalized);
+  await safeCacheSet(cacheKey, normalized, CacheService.TTL.LEAGUE_STANDINGS);
+  return normalized;
+}
+
+async function fetchHeadToHead(
+  homeTeamId: number,
+  awayTeamId: number,
+  context: BatchPredictionContext
+): Promise<HeadToHeadSummary | null> {
+  const contextKey = `${homeTeamId}-${awayTeamId}`;
+  const cached = context.headToHead.get(contextKey);
+  if (cached) return cached;
+
+  const cacheKey = CacheService.generateApiKey('headToHead', { homeTeamId, awayTeamId });
+  const stored = await safeCacheGet<HeadToHeadSummary>(cacheKey);
+  if (stored) {
+    context.headToHead.set(contextKey, stored);
+    return stored;
+  }
+
+  const fixtures = await withRateLimit(() => ApiFootballService.getHeadToHead(`${homeTeamId}-${awayTeamId}`));
+  if (!fixtures || fixtures.length === 0) {
+    return null;
+  }
+
+  let homeWins = 0;
+  let awayWins = 0;
+  let draws = 0;
+
+  fixtures.forEach(match => {
+    if (match.goals.home > match.goals.away) {
+      if (match.teams.home.id === homeTeamId) homeWins += 1;
+      else awayWins += 1;
+    } else if (match.goals.home < match.goals.away) {
+      if (match.teams.away.id === homeTeamId) homeWins += 1;
+      else awayWins += 1;
+    } else {
+      draws += 1;
     }
+  });
 
-    // Check cache first if not forcing update
-    if (!forceUpdate) {
-      const cachedPredictions = cache.getPredictionsByIds(matchIds);
+  const summary: HeadToHeadSummary = {
+    total_matches: fixtures.length,
+    team1_wins: homeWins,
+    team2_wins: awayWins,
+    draws
+  };
 
-      if (cachedPredictions.length === matchIds.length) {
-        return NextResponse.json({
-          success: true,
-          source: 'cache',
-          predictions: cachedPredictions
-        });
-      }
-    }
+  context.headToHead.set(contextKey, summary);
+  await safeCacheSet(cacheKey, summary, CacheService.TTL.HEAD_TO_HEAD);
+  return summary;
+}
 
-    // Batch analyze matches
-    const predictions = await Promise.all(
-      matchIds.map(async (matchId) => {
-        try {
-          // Check cache for individual match
-          if (!forceUpdate) {
-            const cached = cache.getPrediction(matchId);
-            if (cached) return cached;
-          }
+async function fetchApiPrediction(matchId: number): Promise<any> {
+  const cacheKey = CacheService.generateApiKey('apiPrediction', { matchId });
+  const cached = await safeCacheGet<any>(cacheKey);
+  if (cached) return cached;
 
-          // Get match analysis
-          const analysis = await analyzeMatch(matchId, true);
-          const valueBets = await getValueBets(matchId, 5.0);
+  const prediction = await withRateLimit(() => ApiFootballService.getPredictions(matchId));
+  if (prediction) {
+    await safeCacheSet(cacheKey, prediction, CacheService.TTL.PREDICTIONS);
+  }
+  return prediction;
+}
 
-          // Calculate confidence score
-          const confidence = calculateConfidenceScore(analysis, valueBets);
+function toEngineMatches(fixtures: Fixture[], teamId: number) {
+  return fixtures
+    .filter(match => match.teams.home.id === teamId || match.teams.away.id === teamId)
+    .sort((a, b) => new Date(b.fixture.date).getTime() - new Date(a.fixture.date).getTime())
+    .slice(0, 10)
+    .map(match => ({
+      id: match.fixture.id,
+      home_team_id: match.teams.home.id,
+      away_team_id: match.teams.away.id,
+      home_goals: match.goals.home,
+      away_goals: match.goals.away,
+      date: new Date(match.fixture.date)
+    }));
+}
 
-          // Determine recommended bet
-          const recommendedBet = determineRecommendedBet(analysis, valueBets, confidence);
+function calculateConfidenceScore(
+  advanced: AdvancedMatchPrediction | null,
+  fallback: MatchPrediction | null,
+  apiPrediction: any
+): number {
+  let weightedScore = 0;
+  let weight = 0;
 
-          const prediction = {
-            match_id: matchId,
-            confidence_score: confidence,
-            recommended_bet: recommendedBet,
-            prediction_data: analysis,
-            value_bets: valueBets,
-            last_updated: new Date().toISOString(),
-            expiry_time: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour expiry
-          };
-
-          // Store in cache
-          cache.savePrediction(prediction);
-
-          return prediction;
-        } catch (error) {
-          console.error(`Error analyzing match ${matchId}:`, error);
-          return null;
-        }
-      })
+  if (advanced) {
+    const confidence = advanced.match_result?.confidence ?? advanced.prediction_confidence ?? 0;
+    const peakProbability = Math.max(
+      advanced.match_result?.home_win?.probability ?? 0,
+      advanced.match_result?.draw?.probability ?? 0,
+      advanced.match_result?.away_win?.probability ?? 0
     );
 
-    const validPredictions = predictions.filter(p => p !== null);
+    if (confidence) {
+      weightedScore += confidence * 0.6;
+      weight += 0.6;
+    }
 
-    // Log the analysis
-    cache.saveAnalysisLog({
-      run_time: new Date().toISOString(),
-      matches_analyzed: validPredictions.length,
-      matches_failed: matchIds.length - validPredictions.length,
-      total_matches: matchIds.length,
-      status: 'completed'
-    });
-
-    return NextResponse.json({
-      success: true,
-      source: 'fresh',
-      predictions: validPredictions,
-      analyzed: validPredictions.length,
-      failed: matchIds.length - validPredictions.length
-    });
-
-  } catch (error) {
-    console.error('Batch analysis error:', error);
-
-    // Log error
-    cache.saveAnalysisLog({
-      run_time: new Date().toISOString(),
-      matches_analyzed: 0,
-      matches_failed: 0,
-      total_matches: 0,
-      status: 'failed',
-      error_message: error instanceof Error ? error.message : 'Unknown error'
-    });
-
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+    if (peakProbability) {
+      weightedScore += peakProbability * 0.2;
+      weight += 0.2;
+    }
   }
+
+  if (fallback) {
+    const fallbackConfidence = (fallback.match_winner?.confidence ?? 0) * 100;
+    const fallbackPeak = Math.max(
+      (fallback.match_winner?.home_probability ?? 0) * 100,
+      (fallback.match_winner?.draw_probability ?? 0) * 100,
+      (fallback.match_winner?.away_probability ?? 0) * 100
+    );
+
+    if (fallbackConfidence) {
+      weightedScore += fallbackConfidence * 0.15;
+      weight += 0.15;
+    }
+
+    if (fallbackPeak) {
+      weightedScore += fallbackPeak * 0.05;
+      weight += 0.05;
+    }
+  }
+
+  const apiConfidence = apiPrediction?.comparison?.winner?.confidence as number | undefined;
+  if (typeof apiConfidence === 'number' && Number.isFinite(apiConfidence)) {
+    weightedScore += apiConfidence * 0.15;
+    weight += 0.15;
+  }
+
+  if (weight === 0) {
+    return 0;
+  }
+
+  const score = weightedScore / weight;
+  return Math.round(Math.min(100, Math.max(0, score)));
 }
 
-function calculateConfidenceScore(analysis: any, valueBets: any): number {
-  let score = 0;
-  let factors = 0;
-
-  // Advanced prediction confidence
-  if (analysis.advancedPrediction) {
-    const pred = analysis.advancedPrediction;
-
-    // Winner confidence
-    if (pred.winner) {
-      const winnerConfidence = Math.max(
-        pred.winner.home || 0,
-        pred.winner.draw || 0,
-        pred.winner.away || 0
-      );
-      score += winnerConfidence;
-      factors++;
-    }
-
-    // Goals confidence
-    if (pred.goals?.home && pred.goals?.away) {
-      const goalConfidence = (pred.goals.home + pred.goals.away) / 2;
-      score += goalConfidence;
-      factors++;
-    }
-
-    // Form analysis
-    if (pred.comparison?.form) {
-      const formDiff = Math.abs(
-        parseInt(pred.comparison.form.home) - parseInt(pred.comparison.form.away)
-      );
-      score += Math.min(formDiff * 10, 100);
-      factors++;
-    }
-  }
-
-  // Value bet confidence
-  if (valueBets?.opportunities?.length > 0) {
-    const bestValue = Math.max(...valueBets.opportunities.map((o: any) => o.value || 0));
-    score += Math.min(bestValue * 2, 100);
-    factors++;
-  }
-
-  // Statistical confidence
-  if (analysis.statistics) {
-    const stats = analysis.statistics;
-    const homeWinRate = stats.homeTeam?.winRate || 0;
-    const awayWinRate = stats.awayTeam?.winRate || 0;
-
-    if (Math.abs(homeWinRate - awayWinRate) > 30) {
-      score += 80;
-      factors++;
-    }
-  }
-
-  return factors > 0 ? Math.min(score / factors, 100) : 0;
-}
-
-function determineRecommendedBet(analysis: any, valueBets: any, confidence: number): string {
-  // High confidence threshold
-  if (confidence < 75) {
+function determineRecommendedBet(
+  advanced: AdvancedMatchPrediction | null,
+  fallback: MatchPrediction | null,
+  apiPrediction: any,
+  confidence: number
+): string {
+  if (confidence < 60) {
     return 'Düşük Güven - Bahis Önerilmez';
   }
 
-  // Check value bets first
-  if (valueBets?.opportunities?.length > 0) {
-    const bestValue = valueBets.opportunities[0];
-    if (bestValue.value > 10) {
-      return `Değer Bahsi: ${bestValue.outcome} (${bestValue.value.toFixed(1)}% değer)`;
+  const highConfidence = advanced?.risk_analysis?.high_confidence_bets;
+  if (Array.isArray(highConfidence) && highConfidence.length > 0) {
+    const best = [...highConfidence].sort((a, b) => b.confidence - a.confidence)[0];
+    return `${best.title} - ${best.recommendation}`;
+  }
+
+  if (advanced?.match_result) {
+    const outcomes = [
+      { label: 'Ev Sahibi Kazanır', probability: advanced.match_result.home_win?.probability ?? 0 },
+      { label: 'Beraberlik', probability: advanced.match_result.draw?.probability ?? 0 },
+      { label: 'Deplasman Kazanır', probability: advanced.match_result.away_win?.probability ?? 0 }
+    ];
+
+    const best = outcomes.sort((a, b) => b.probability - a.probability)[0];
+    if (best.probability >= 45) {
+      return `${best.label} (${best.probability.toFixed(1)}% olasılık)`;
     }
   }
 
-  // Check prediction
-  if (analysis.advancedPrediction?.winner) {
-    const winner = analysis.advancedPrediction.winner;
-    if (winner.home > 60) return `Ev Sahibi Kazanır (${winner.home}% güven)`;
-    if (winner.away > 60) return `Deplasman Kazanır (${winner.away}% güven)`;
-    if (winner.draw > 40) return `Beraberlik Riski Yüksek (${winner.draw}%)`;
+  if (fallback?.match_winner) {
+    const labelMap: Record<'home' | 'draw' | 'away', string> = {
+      home: 'Ev Sahibi Kazanır',
+      draw: 'Beraberlik Seçeneği',
+      away: 'Deplasman Kazanır'
+    };
+
+    const probability = Math.max(
+      fallback.match_winner.home_probability,
+      fallback.match_winner.draw_probability,
+      fallback.match_winner.away_probability
+    );
+
+    return `${labelMap[fallback.match_winner.prediction]} (${Math.round(probability * 100)}% olasılık)`;
   }
 
-  // Goals prediction
-  if (analysis.advancedPrediction?.goals) {
-    const totalGoals = (analysis.advancedPrediction.goals.home || 0) + (analysis.advancedPrediction.goals.away || 0);
-    if (totalGoals > 2.5) return `Üst 2.5 Gol (${totalGoals.toFixed(1)} gol beklentisi)`;
-    if (totalGoals < 2.5) return `Alt 2.5 Gol (${totalGoals.toFixed(1)} gol beklentisi)`;
+  const apiRecommendation = apiPrediction?.predictions?.[0]?.advice as string | undefined;
+  if (apiRecommendation) {
+    return apiRecommendation;
   }
 
   return 'Analiz Devam Ediyor';
 }
 
-// GET endpoint to fetch cached predictions
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const matchIds = searchParams.get('matchIds')?.split(',').map(Number);
+async function buildPrediction(matchId: number, context: BatchPredictionContext): Promise<PredictionCache | null> {
+  const fixture = await fetchFixture(matchId);
+  if (!fixture) {
+    console.warn(`Fixture not found for match ${matchId}`);
+    return null;
+  }
 
-    if (!matchIds || matchIds.length === 0) {
-      return NextResponse.json({ error: 'Match IDs required' }, { status: 400 });
+  const leagueId = fixture.league.id;
+  const season = fixture.league.season;
+  const homeTeamId = fixture.teams.home.id;
+  const awayTeamId = fixture.teams.away.id;
+
+  const leagueFixtures = await fetchLeagueFixtures(leagueId, season, context);
+  const homeMatches = toEngineMatches(leagueFixtures, homeTeamId);
+  const awayMatches = toEngineMatches(leagueFixtures, awayTeamId);
+
+  const homeForm = PredictionEngine.calculateTeamForm(homeMatches as any[], homeTeamId);
+  const awayForm = PredictionEngine.calculateTeamForm(awayMatches as any[], awayTeamId);
+
+  const headToHead = await fetchHeadToHead(homeTeamId, awayTeamId, context);
+
+  const standings = await fetchStandings(leagueId, season, context);
+  const homeStanding = standings.find(entry => entry.team.id === homeTeamId);
+  const awayStanding = standings.find(entry => entry.team.id === awayTeamId);
+
+  let advancedPrediction: AdvancedMatchPrediction | null = null;
+  try {
+    advancedPrediction = await withRateLimit(() =>
+      AdvancedPredictionEngine.generateAdvancedPrediction(homeTeamId, awayTeamId, leagueId, season, matchId)
+    );
+  } catch (error) {
+    console.error(`Advanced prediction failed for match ${matchId}:`, error);
+  }
+
+  let fallbackPrediction: MatchPrediction | null = null;
+  try {
+    fallbackPrediction = await PredictionEngine.predictMatch(
+      fixture.teams.home as any,
+      fixture.teams.away as any,
+      homeForm,
+      awayForm,
+      headToHead as any,
+      homeStanding ? { rank: homeStanding.rank, points: homeStanding.points } as any : undefined,
+      awayStanding ? { rank: awayStanding.rank, points: awayStanding.points } as any : undefined
+    );
+  } catch (error) {
+    console.error(`Fallback prediction failed for match ${matchId}:`, error);
+  }
+
+  if (!advancedPrediction && !fallbackPrediction) {
+    return null;
+  }
+
+  const apiPrediction = await fetchApiPrediction(matchId);
+  const confidenceScore = calculateConfidenceScore(advancedPrediction, fallbackPrediction, apiPrediction);
+  const recommendedBet = determineRecommendedBet(advancedPrediction, fallbackPrediction, apiPrediction, confidenceScore);
+
+  return {
+    match_id: matchId,
+    confidence_score: confidenceScore,
+    recommended_bet: recommendedBet,
+    prediction_data: {
+      advanced: advancedPrediction,
+      fallback: fallbackPrediction,
+      api: apiPrediction,
+      league_id: leagueId,
+      season
+    },
+    value_bets: advancedPrediction?.risk_analysis ?? null,
+    last_updated: new Date().toISOString(),
+    expiry_time: new Date(Date.now() + PREDICTION_EXPIRY_MS).toISOString()
+  };
+}
+
+function toSummary(prediction: PredictionCache) {
+  return {
+    match_id: prediction.match_id,
+    confidence_score: prediction.confidence_score,
+    recommended_bet: prediction.recommended_bet,
+    last_updated: prediction.last_updated
+  };
+}
+
+export async function POST(request: NextRequest) {
+  let body: BatchAnalyzeRequest;
+
+  try {
+    body = await request.json();
+  } catch (error) {
+    return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const { matchIds, forceUpdate = false } = body ?? {};
+  if (!Array.isArray(matchIds) || matchIds.length === 0) {
+    return NextResponse.json({ success: false, error: 'Match IDs array required' }, { status: 400 });
+  }
+
+  const sanitizedIds = Array.from(new Set(matchIds.map(id => Number(id)).filter(id => Number.isFinite(id) && id > 0)));
+  if (sanitizedIds.length === 0) {
+    return NextResponse.json({ success: false, error: 'No valid match IDs provided' }, { status: 400 });
+  }
+
+  console.info(`Batch prediction request for ${sanitizedIds.length} matches. Force update: ${forceUpdate}`);
+
+  cache.cleanExpiredPredictions({ reason: 'batch-post-start' });
+  await CacheService.cleanExpired().catch(error => console.warn('CacheService cleanup failed:', error));
+
+  const context = createContext();
+  const now = new Date();
+  const aggregated = new Map<number, PredictionCache>();
+  const matchesToProcess: number[] = [];
+
+  for (const matchId of sanitizedIds) {
+    if (!forceUpdate) {
+      const cacheKey = CacheService.generateApiKey('prediction', { matchId });
+      const cachedPrediction = await safeCacheGet<PredictionCache>(cacheKey);
+
+      if (cachedPrediction && new Date(cachedPrediction.expiry_time) > now) {
+        aggregated.set(matchId, cachedPrediction);
+        cache.savePrediction(cachedPrediction);
+        continue;
+      }
+
+      const jsonCached = cache.getPrediction(matchId);
+      if (jsonCached) {
+        aggregated.set(matchId, jsonCached);
+        await safeCacheSet(cacheKey, jsonCached, PREDICTION_TTL_SECONDS);
+        continue;
+      }
     }
 
-    const predictions = cache.getPredictionsByIds(matchIds);
-
-    return NextResponse.json({
-      success: true,
-      predictions: predictions.map(p => ({
-        match_id: p.match_id,
-        confidence_score: p.confidence_score,
-        recommended_bet: p.recommended_bet,
-        last_updated: p.last_updated
-      }))
-    });
-
-  } catch (error) {
-    console.error('Fetch predictions error:', error);
-    return NextResponse.json({ error: 'Failed to fetch predictions' }, { status: 500 });
+    matchesToProcess.push(matchId);
   }
+
+  const freshPredictions: PredictionCache[] = [];
+  const failedMatches: number[] = [];
+
+  for (const matchId of matchesToProcess) {
+    try {
+      const prediction = await buildPrediction(matchId, context);
+      if (!prediction) {
+        failedMatches.push(matchId);
+        continue;
+      }
+
+      freshPredictions.push(prediction);
+      aggregated.set(matchId, prediction);
+
+      const cacheKey = CacheService.generateApiKey('prediction', { matchId });
+      await safeCacheSet(cacheKey, prediction, PREDICTION_TTL_SECONDS);
+    } catch (error) {
+      console.error(`Failed to build prediction for match ${matchId}:`, error);
+      failedMatches.push(matchId);
+    }
+  }
+
+  if (freshPredictions.length > 0) {
+    cache.savePredictionsBatch(freshPredictions);
+  }
+
+  const orderedPredictions = sanitizedIds
+    .map(matchId => aggregated.get(matchId))
+    .filter((prediction): prediction is PredictionCache => Boolean(prediction));
+
+  cache.saveAnalysisLog({
+    run_time: new Date().toISOString(),
+    matches_analyzed: freshPredictions.length,
+    matches_failed: failedMatches.length,
+    total_matches: sanitizedIds.length,
+    status: failedMatches.length > 0 ? 'partial' : 'completed',
+    error_message: failedMatches.length > 0 ? `Failed matches: ${failedMatches.join(', ')}` : undefined
+  });
+
+  const source = matchesToProcess.length === 0
+    ? 'cache'
+    : freshPredictions.length === matchesToProcess.length && failedMatches.length === 0
+      ? 'fresh'
+      : 'mixed';
+
+  return NextResponse.json({
+    success: true,
+    source,
+    predictions: orderedPredictions,
+    analyzed: freshPredictions.length,
+    failed: failedMatches.length
+  });
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const idsParam = searchParams.get('matchIds');
+
+  if (!idsParam) {
+    return NextResponse.json({ success: false, error: 'Match IDs required' }, { status: 400 });
+  }
+
+  const matchIds = idsParam
+    .split(',')
+    .map(raw => Number(raw.trim()))
+    .filter(id => Number.isFinite(id) && id > 0);
+
+  if (matchIds.length === 0) {
+    return NextResponse.json({ success: false, error: 'No valid match IDs provided' }, { status: 400 });
+  }
+
+  cache.cleanExpiredPredictions({ reason: 'batch-get' });
+
+  const now = new Date();
+  const summaries: PredictionCache[] = [];
+
+  for (const matchId of matchIds) {
+    const cacheKey = CacheService.generateApiKey('prediction', { matchId });
+    let prediction = await safeCacheGet<PredictionCache>(cacheKey);
+
+    if (!prediction || new Date(prediction.expiry_time) <= now) {
+      prediction = cache.getPrediction(matchId);
+      if (prediction) {
+        await safeCacheSet(cacheKey, prediction, PREDICTION_TTL_SECONDS);
+      }
+    }
+
+    if (prediction) {
+      summaries.push(prediction);
+    }
+  }
+
+  const orderedSummaries = matchIds
+    .map(matchId => summaries.find(prediction => prediction.match_id === matchId))
+    .filter((prediction): prediction is PredictionCache => Boolean(prediction))
+    .map(toSummary);
+
+  return NextResponse.json({
+    success: true,
+    predictions: orderedSummaries
+  });
 }

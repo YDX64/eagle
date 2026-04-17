@@ -20,21 +20,34 @@ prisma/dev.db
 .env
 .env.local
 .env.production
+.env*.local
 
 # OS
 .DS_Store
-Thumbs.db
+**/.DS_Store
 
-# IDE
+# IDE / Tooling
 .vscode/
 .idea/
+*.iml
 
-# Logs
+# Claude Code / Agent artefacts
+.claude/
+.local/
+tmp/
+
+# Logs / traces
 *.log
 npm-debug.log*
-
-# Testing
-coverage/
+yarn-debug.log*
+yarn-error.log*
 
 # Misc
-.cache/
+replit-agent/
+
+# Large data archives (keep locally, never commit — exceeds GitHub 100MB limit)
+oran/
+*.csv
+!docs/**/*.csv
+risk-report.json
+risk-report-high-confidence.csv

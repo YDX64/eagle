@@ -182,3 +182,117 @@
 .form-l {
   @apply bg-red-500 text-white;
 }
+
+/* DataTables Light/Dark Mode Styles */
+.dataTables_wrapper {
+  @apply text-foreground;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+  @apply bg-background border border-border text-foreground px-2 py-1 rounded;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  @apply text-foreground;
+}
+
+.dataTables_wrapper table.dataTable {
+  @apply bg-card text-card-foreground border-separate border-spacing-0;
+  border-collapse: separate !important;
+}
+
+.dataTables_wrapper table.dataTable thead th {
+  @apply bg-muted text-muted-foreground border-b border-border px-4 py-3 font-medium text-left;
+}
+
+.dataTables_wrapper table.dataTable tbody td {
+  @apply border-b border-border px-4 py-3;
+}
+
+.dataTables_wrapper table.dataTable tbody tr:hover {
+  @apply bg-muted/50;
+}
+
+.dataTables_wrapper table.dataTable tbody tr.odd {
+  @apply bg-background;
+}
+
+.dataTables_wrapper table.dataTable tbody tr.even {
+  @apply bg-muted/20;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  @apply px-3 py-1 mx-1 bg-background border border-border text-foreground rounded hover:bg-accent;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Dark mode specific DataTables adjustments */
+.dark .dataTables_wrapper table.dataTable thead th {
+  @apply bg-muted/50;
+}
+
+.dark .dataTables_wrapper table.dataTable tbody tr:hover {
+  @apply bg-accent/50;
+}
+
+.dark .dataTables_wrapper .dataTables_length select,
+.dark .dataTables_wrapper .dataTables_filter input {
+  @apply bg-muted border-border;
+}
+
+/* Custom DataTables responsive styles */
+.dataTables_wrapper .dtr-inline.collapsed tbody td.child {
+  @apply bg-muted/30;
+}
+
+.dataTables_wrapper .dtr-inline.collapsed tbody tr.child td {
+  @apply border-none;
+}
+
+/* Analysis category badges */
+.category-badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.category-api-ms {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+.category-api-form {
+  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.category-api-h2h {
+  @apply bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200;
+}
+
+.category-api-league {
+  @apply bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200;
+}
+
+.category-own-an {
+  @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200;
+}
+
+.category-risk {
+  @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+.category-perf {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.category-market {
+  @apply bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200;
+}

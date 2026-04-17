@@ -2,10 +2,14 @@
   "name": "app",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3000",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start --port 3000",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "lint": "next lint",
+    "scripts:build": "rm -rf tmp && mkdir -p tmp && npx tsc scripts/*.ts --module commonjs --target es2019 --esModuleInterop --moduleResolution node --outDir tmp --skipLibCheck",
+    "save:predictions": "npm run scripts:build && node tmp/scripts/saveDailyPredictions.js"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
@@ -32,9 +36,13 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@floating-ui/react": "0.26.0",
     "@headlessui/react": "2.1.1",
     "@hookform/resolvers": "3.9.0",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
     "@next-auth/prisma-adapter": "1.0.7",
     "@radix-ui/react-accordion": "1.2.0",
     "@radix-ui/react-alert-dialog": "1.1.1",
@@ -77,6 +85,10 @@
     "cmdk": "1.0.0",
     "cookie": "1.0.2",
     "csv": "6.3.11",
+    "datatables.net": "^2.3.4",
+    "datatables.net-dt": "^2.3.4",
+    "datatables.net-responsive": "^3.0.6",
+    "datatables.net-responsive-dt": "^3.0.6",
     "date-fns": "3.6.0",
     "dayjs": "1.11.13",
     "dotenv": "16.5.0",

@@ -1,0 +1,100 @@
+# ⚙️ Algorithm & Data Flow Reference
+
+Bu doküman, Eagle platformundaki tahmin ve risk üretimi sürecinde kullanılan tüm ana algoritmaları, veri bağımlılıklarını ve ince ayar noktalarını özetler. Ayarları kolayca değiştirebilmeniz için tablo ve mermaid şeması birlikte sunulmuştur.
+
+## 📚 Algoritma Tablosu
+
+| Modül / Metot | Konum | Amaç | Başlıca Girdiler | Çıktılar & İnce Ayar Parametreleri |
+| --- | --- | --- | --- | --- |
+| `calculateTeamForm` | `lib/prediction-engine.ts` | Son maçlardan 0-1 arası form skoru üretir | Son 5-10 maç skorları, goller | `form_score` (örnek sayısını ayarlayın) |
+| `calculateHomeAdvantage` | `lib/prediction-engine.ts` | H2H kayıtlarından ev avantaj katsayısı çıkarır | H2H galibiyetleri, maç adedi | Varsayılan boost `0.07`, min maç `3` |
+| `calculateGoalsAnalysis` | `lib/prediction-engine.ts` | Basit Poisson xG tahmini yapar | Ev/deplasman ortalama goller | `home_expected_goals`, `total_expected_goals` (ağırlık katsayıları) |
+| `calculateFirstHalfGoals` | `lib/prediction-engine.ts` | İlk yarı gol olasılıkları ve güven hesaplar | Beklenen goller, form tutarlılığı | `firstHalfFactor=0.6`, olasılık eşikleri (0.6) |
+| `predictMatch` | `lib/prediction-engine.ts` | Temel motor; form, H2H, lig pozisyonu, golleri birleştirir | Takım objeleri, form, standings | Winner, BTTS, O/U, ilk yarı tahminleri (ağırlık kombinasyonları) |
+| `getAdvancedTeamStats` | `lib/advanced-prediction-engine.ts` | Geniş istatistik seti üretir, fallback değerler sağlar | API istatistikleri, fikstürler | Form, xG, momentum, kart vb. (fallback blok değerleri) |
+| `generateExactScores` | `lib/advanced-prediction-engine.ts` | Poisson ile skor/olasılık hesaplar | Home/Away λ | Olasılık >%1 olan skorlar (`maxGoals=5`, eşik 0.01) |
+| `calculateAsianHandicap` | `lib/advanced-prediction-engine.ts` | Güç farkına göre handicap olasılık/oran | Güç/olasılık verileri | Handicap listesi (katsayı `0.1`) |
+| `generateAdvancedPrediction` | `lib/advanced-prediction-engine.ts` | Form + standings + xG + risk analizi birleştirir | Takım/lig bilgisi, sezon, API dataları | Maç sonucu dağılımı, goller, corner/kart, risk-highlights (weights `form 0.30`, `home 0.15`, `league 0.15`, `goals 0.20`, `defense 0.15`, `h2h 0.05`) |
+| Risk önerileri (`high/medium/high_risk_bets`) | `lib/advanced-prediction-engine.ts` | KG/Üst güvenli öneriler listesi | Confidence, BTTS/Over verileri | Eşikler (`>0.70` high, BTTS >0.72/<0.28, Alt/Üst 2.5 >0.68/<0.32) |
+| `syncPredictionsForDate` | `lib/services/prediction-sync.ts` | Gelişmiş tahmin + riskleri Prisma’ya yazar | Tarih, limit, `force` bayrağı | Matches, predictions, high_confidence kayıtları (`skipIfFreshMinutes`) |
+| `bulk-analysis` deterministik skorlayıcı | `app/api/bulk-analysis/route.ts` | API erişimi yoksa fallback üretir | Standings, H2H, defaults | Winner/BTTS/O/U skorları, EV & risk tier (`confidence` hesaplamaları) |
+| Backtest modülleri | `lib/backtest-engine.ts`, `lib/comprehensive-backtest.ts` | Tarihsel doğruluk ve ROI analizi | Geçmiş maç/tahmin datası | Strateji sonuçları (stake ayarları) |
+
+## 🕸️ Veri Akışı (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph DataSources
+        A[AwaStats Fixtures & Stats]
+        B[Prisma DB (historical data)]
+    end
+
+    subgraph Engines
+        C[PredictionEngine
+Temel Form/H2H]
+        D[AdvancedPredictionEngine
+Gelişmiş + Risk]
+        E[Bulk Analysis Fallback
+Deterministic]
+        F[Backtest Modülleri]
+    end
+
+    subgraph Orchestration
+        G[prediction-sync service
+(Günlük senkronizasyon)]
+        H[Cron Daily Analysis
+(Bulk + Risk sync)]
+    end
+
+    subgraph Persistence
+        I[(matches & predictions)]
+        J[(high_confidence_recommendations)]
+        K[(match_confidence_summaries)]
+        L[(bulk_analysis_results)]
+    end
+
+    subgraph UI
+        M[Matches Dashboard
+– KG & Üst 2.5 Sekmesi]
+        N[Bulk Analysis
+– Otomatik KG Paneli]
+        O[Raporsal Çıktılar
+CSV & API]
+    end
+
+    A --> C
+    A --> D
+    A --> E
+    B --> C
+    B --> D
+    B --> E
+
+    C --> G
+    D --> G
+    E --> L
+    F --> O
+
+    G --> I
+    G --> J
+    G --> K
+
+    H --> G
+    H --> L
+
+    I --> M
+    J --> M
+    J --> N
+    L --> N
+    O --> Users
+```
+
+## 🔧 İnce Ayar İpuçları
+
+- **Ağırlıklar:** `lib/advanced-prediction-engine.ts` içinde `weights` objesi (form/home/league/defans) sonuçlara doğrudan etki eder.
+- **Risk Eşikleri:** KG & Üst önerileri için `%65+` confidence; `bttsProb` >0.7 veya <0.3 durumları high confidence’e giriyor.
+- **Poisson Parametreleri:** `maxGoals`, `firstHalfFactor` ve `over_*` eşikleri toplam gol dağılımını etkiler.
+- **Senkronizasyon:** `syncPredictionsForDate`’in `skipIfFreshMinutes` paramı günlük analiz sıklığını belirler; cron’da 120 dk varsayılan.
+- **Bulk Fallback:** `app/api/bulk-analysis/route.ts` içindeki deterministic katsayılar API kısıtlarında “güncel” skorlar üretir.
+- **Çift doğrulama:** `bulk-analysis` verileri artık AwaStats tahminleriyle birlikte saklanır (`api_*` alanları). `algorithms_agree_*` bayrakları hem Eagle motoru hem de AwaStats aynı tarafı/alt-üstü işaret ettiğinde `true` olur.
+
+Bu dosya, algoritma ince ayarları yapılırken referans olarak kullanılabilir. Tüm değişiklikleri commit’lerken veya yeni stratejiler denerken ilgili parametreleri buradan takip edebilirsiniz.

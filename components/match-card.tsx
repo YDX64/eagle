@@ -3,19 +3,39 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, Users, TrendingUp, Calendar, Target, Trophy } from 'lucide-react';
+import { Clock, MapPin, Users, TrendingUp, Calendar, Target, Trophy, ArrowUpRight, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
 import { Fixture } from '@/lib/api-football';
+
+export interface PredictionOutcome {
+  predictionType: string;
+  predictedValue: string;
+  isCorrect: boolean | null;
+  actualResult: string | null;
+  confidenceScore: number;
+  confidenceTier: string | null;
+}
 
 interface MatchCardProps {
   match: Fixture;
   onViewPrediction?: (matchId: number) => void;
   showPrediction?: boolean;
+  onNavigateToPage?: (matchId: number) => void;
+  showPageNavigation?: boolean;
+  predictionOutcomes?: PredictionOutcome[];
 }
 
-export function MatchCard({ match, onViewPrediction, showPrediction = true }: MatchCardProps) {
+export function MatchCard({
+  match,
+  onViewPrediction,
+  showPrediction = true,
+  onNavigateToPage,
+  showPageNavigation = true,
+  predictionOutcomes,
+}: MatchCardProps) {
   const [imageError, setImageError] = useState<{[key: string]: boolean}>({});
   const [quickPrediction, setQuickPrediction] = useState<any>(null);
   
@@ -76,10 +96,64 @@ export function MatchCard({ match, onViewPrediction, showPrediction = true }: Ma
     return <Badge variant="outline" className="text-xs">{match.fixture.status.long}</Badge>;
   };
 
+  const getOutcomeBadges = () => {
+    if (!predictionOutcomes || predictionOutcomes.length === 0) return null;
+    if (!isFinished) return null;
+
+    const typeLabels: Record<string, string> = {
+      match_winner: 'MS',
+      ensemble: 'MS',
+      both_teams_score: 'KG',
+      over_under_goals: 'U/A',
+    };
+
+    const valueLabels: Record<string, string> = {
+      home: 'Ev',
+      away: 'Dep',
+      draw: 'Ber',
+      yes: 'Var',
+      no: 'Yok',
+      over: 'Ust',
+      under: 'Alt',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        {predictionOutcomes.map((outcome, idx) => {
+          const isWon = outcome.isCorrect === true;
+          const isLost = outcome.isCorrect === false;
+          const isPending = outcome.isCorrect === null;
+
+          const bgColor = isWon
+            ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
+            : isLost
+            ? 'bg-red-500/15 border-red-500/40 text-red-700 dark:text-red-400'
+            : 'bg-yellow-500/15 border-yellow-500/40 text-yellow-700 dark:text-yellow-400';
+
+          const Icon = isWon ? CheckCircle : isLost ? XCircle : MinusCircle;
+          const label = typeLabels[outcome.predictionType] || outcome.predictionType;
+          const value = valueLabels[outcome.predictedValue] || outcome.predictedValue;
+
+          return (
+            <Badge key={idx} className={`text-xs border ${bgColor} transition-colors`}>
+              <Icon className="w-3 h-3 mr-1" />
+              {label}: {value}
+            </Badge>
+          );
+        })}
+      </div>
+    );
+  };
+
   const getPredictionBadges = () => {
+    // Show outcome badges for finished matches
+    if (isFinished && predictionOutcomes && predictionOutcomes.length > 0) {
+      return getOutcomeBadges();
+    }
+
     // Show prediction availability indicator for upcoming matches
     if (!isUpcoming || !showPrediction) return null;
-    
+
     return (
       <div className="flex flex-wrap gap-1 mt-2">
         <Badge className="text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
@@ -194,17 +268,42 @@ export function MatchCard({ match, onViewPrediction, showPrediction = true }: Ma
 
         {/* Bottom Section - Always at bottom */}
         <div className="mt-auto">
-          {/* Action Button */}
-          {showPrediction && isUpcoming && onViewPrediction && (
-            <Button
-              onClick={() => onViewPrediction(match.fixture.id)}
-              className="w-full mb-2 h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200"
-              size="sm"
-            >
-              <TrendingUp className="w-3 h-3 mr-1" />
-              Detaylı Tahmin
-            </Button>
-          )}
+          <div className="flex flex-col gap-2">
+            {showPageNavigation && (
+              <Link
+                href={`/predictions/${match.fixture.id}`}
+                prefetch
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onNavigateToPage?.(match.fixture.id);
+                }}
+                className="w-full"
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-8 text-xs flex items-center justify-center gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <ArrowUpRight className="w-3 h-3" />
+                  Detaylı Analiz
+                </Button>
+              </Link>
+            )}
+
+            {showPrediction && isUpcoming && onViewPrediction && (
+              <Button
+                onClick={() => {
+                  onViewPrediction(match.fixture.id);
+                }}
+                className="w-full h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200"
+                size="sm"
+              >
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Hızlı Önizleme
+              </Button>
+            )}
+          </div>
 
           {/* Venue Info */}
           {match.fixture.venue && (

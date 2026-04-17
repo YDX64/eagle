@@ -138,8 +138,8 @@ export interface MatchStatistics {
   }[];
 }
 
-const API_KEY = process.env.API_FOOTBALL_KEY;
-const BASE_URL = 'https://v3.football.api-sports.io';
+const API_KEY = process.env.AWASTATS_API_KEY || process.env.API_FOOTBALL_KEY;
+const BASE_URL = process.env.AWASTATS_BASE_URL || 'https://v3.football.api-sports.io';
 
 const headers = {
   'x-apisports-key': API_KEY!,
@@ -244,7 +244,7 @@ export class ApiFootballService {
   }
 
   /**
-   * Get predictions from API-Football for a specific fixture
+   * Get predictions from AwaStats for a specific fixture
    */
   static async getPredictions(fixtureId: number): Promise<any> {
     try {

@@ -126,7 +126,7 @@ export function usePaginatedData<T>(data: T[], pageSize: number = 25) {
 export function optimizeImageUrl(url: string, size: 'small' | 'medium' | 'large' = 'medium'): string {
   if (!url) return '';
   
-  // For API-Sports images, we can add size parameters
+  // Upstream provider image sizing support
   if (url.includes('api-sports.io')) {
     const sizeParam = {
       small: '?w=40&h=40',

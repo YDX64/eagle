@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,8 +12,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PredictionCard } from './prediction-card';
-import { AdvancedPredictionCard } from './advanced-prediction-card';
 import { ApiPredictionsCard } from './api-predictions-card';
+import { PredictionDetailedView } from './prediction-detailed-view';
 import { MatchCard } from './match-card';
 import { MatchPrediction } from '@/lib/prediction-engine';
 import { AdvancedMatchPrediction } from '@/lib/advanced-prediction-engine';
@@ -32,6 +32,43 @@ export function PredictionModal({ match, children }: PredictionModalProps) {
   const [apiPredictions, setApiPredictions] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const parseApiForm = (value?: string | null) => {
+    if (!value) return undefined;
+    const normalized = value.replace(/[^WLD]/gi, '').toUpperCase();
+    if (!normalized) return undefined;
+    return Array.from(normalized).map((char) => {
+      switch (char) {
+        case 'W':
+          return 'win';
+        case 'L':
+          return 'loss';
+        case 'D':
+          return 'draw';
+        default:
+          return 'neutral';
+      }
+    });
+  };
+
+  const matchMeta = useMemo(() => {
+    const fixtureDate = new Date(match.fixture.date);
+    return {
+      league: match.league?.name ?? 'Unknown League',
+      date: fixtureDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: fixtureDate.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      homeTeam: {
+        name: match.teams.home.name,
+        logo: match.teams.home.logo ?? undefined,
+        form: parseApiForm(apiPredictions?.comparison?.form?.home ?? null),
+      },
+      awayTeam: {
+        name: match.teams.away.name,
+        logo: match.teams.away.logo ?? undefined,
+        form: parseApiForm(apiPredictions?.comparison?.form?.away ?? null),
+      },
+    };
+  }, [match, apiPredictions]);
 
   const fetchPrediction = async () => {
     if (prediction || loading) return; // Don't fetch if already loaded or loading
@@ -114,15 +151,15 @@ export function PredictionModal({ match, children }: PredictionModalProps) {
             <Tabs defaultValue="advanced" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="advanced">Gelişmiş Analiz</TabsTrigger>
-                <TabsTrigger value="api">API-Football Resmi</TabsTrigger>
+                <TabsTrigger value="api">AwaStats Resmi</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="advanced" className="space-y-4">
                 {advancedPrediction ? (
-                  <AdvancedPredictionCard
-                    prediction={advancedPrediction}
-                    homeTeamName={match.teams.home.name}
-                    awayTeamName={match.teams.away.name}
+                  <PredictionDetailedView
+                    match={matchMeta}
+                    advancedPrediction={advancedPrediction}
+                    apiPrediction={apiPredictions}
                   />
                 ) : prediction ? (
                   <PredictionCard
@@ -136,7 +173,7 @@ export function PredictionModal({ match, children }: PredictionModalProps) {
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="api" className="space-y-4">
                 <ApiPredictionsCard
                   apiPredictions={apiPredictions}

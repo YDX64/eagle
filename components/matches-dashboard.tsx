@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { MatchCard } from './match-card';
-import { MatchCardEnhanced } from './match-card-enhanced';
+import { HighConfidenceGoalsTable } from './high-confidence-goals-table';
 import { PredictionModal } from './prediction-modal';
-import { LeagueStandings } from './league-standings';
 import { OptimizedMatchListEnhanced } from './optimized-match-list-enhanced';
 import { ThemeToggle } from './theme-toggle';
 import { Pagination } from './pagination';
@@ -33,13 +33,15 @@ import {
   ChartBar
 } from 'lucide-react';
 import Link from 'next/link';
-import { Fixture, MAJOR_LEAGUES } from '@/lib/api-football';
-import { 
-  formatToStockholmTime, 
-  formatToStockholmDate, 
+import { Fixture } from '@/lib/api-football';
+import { PredictionOutcome } from './match-card';
+import {
+  formatToStockholmTime,
+  formatToStockholmDate,
   formatToStockholmDateTime,
   PaginationResult
 } from '@/lib/utils';
+import { Settings } from 'lucide-react';
 
 interface ApiStats {
   totalMatches: number;
@@ -58,6 +60,7 @@ interface ApiPagination {
 }
 
 export function MatchesDashboard() {
+  const router = useRouter();
   // Core state
   const [matches, setMatches] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,10 +76,14 @@ export function MatchesDashboard() {
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'upcoming' | 'finished'>('all');
   const [leagueFilter, setLeagueFilter] = useState<string>('all');
-  
+  const [lowRiskOnly, setLowRiskOnly] = useState(false);
+
   // Ended matches functionality
   const [endedMatchesHours, setEndedMatchesHours] = useState(0);
   const [showEndedMatches, setShowEndedMatches] = useState(false);
+
+  // Prediction outcomes for finished matches
+  const [predictionOutcomes, setPredictionOutcomes] = useState<Record<number, PredictionOutcome[]>>({});
 
   const fetchMatches = async (
     date: string, 
@@ -91,7 +98,7 @@ export function MatchesDashboard() {
       const params = new URLSearchParams({
         date,
         page: page.toString(),
-        limit: '100', // Increased for better performance
+        limit: '10000', // No limit - show all matches
         search,
         endedMatchesHours: endedHours.toString()
       });
@@ -173,6 +180,43 @@ export function MatchesDashboard() {
     }
   };
 
+  // Fetch prediction outcomes for finished matches
+  const fetchPredictionOutcomes = async (finishedMatchIds: number[]) => {
+    if (finishedMatchIds.length === 0) return;
+    try {
+      const response = await fetch(`/api/predictions/history?matchIds=${finishedMatchIds.join(',')}&limit=500`);
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.success && data.data?.predictions) {
+        const outcomeMap: Record<number, PredictionOutcome[]> = {};
+        for (const p of data.data.predictions) {
+          if (!outcomeMap[p.matchId]) outcomeMap[p.matchId] = [];
+          outcomeMap[p.matchId].push({
+            predictionType: p.predictionType,
+            predictedValue: p.predictedValue,
+            isCorrect: p.isCorrect,
+            actualResult: p.actualResult,
+            confidenceScore: p.confidenceScore,
+            confidenceTier: p.confidenceTier,
+          });
+        }
+        setPredictionOutcomes(prev => ({ ...prev, ...outcomeMap }));
+      }
+    } catch {
+      // Silent fail - badge'ler gösterilmez
+    }
+  };
+
+  // When matches change, fetch prediction outcomes for finished ones
+  useEffect(() => {
+    const finishedIds = safeMatches
+      .filter(m => m?.fixture?.status?.short === 'FT')
+      .map(m => m.fixture.id);
+    if (finishedIds.length > 0) {
+      fetchPredictionOutcomes(finishedIds);
+    }
+  }, [matches]);
+
   // Initial load and date changes
   useEffect(() => {
     fetchMatches(selectedDate, currentPage, searchTerm, endedMatchesHours);
@@ -238,13 +282,25 @@ export function MatchesDashboard() {
     return Array.from(leagues, ([id, name]) => ({ id, name }));
   }, [sortedMatches]);
 
-  // Filter by league
+  // Filter by league and risk level
   const filteredMatches = useMemo(() => {
-    if (leagueFilter === 'all') {
-      return filteredByStatus;
+    let filtered = filteredByStatus;
+
+    // Apply league filter
+    if (leagueFilter !== 'all') {
+      filtered = filtered.filter(m => m?.league?.id?.toString() === leagueFilter);
     }
-    return filteredByStatus.filter(m => m?.league?.id?.toString() === leagueFilter);
-  }, [filteredByStatus, leagueFilter]);
+
+    // Apply low risk filter (show only major leagues)
+    if (lowRiskOnly) {
+      const majorLeagueIds = [39, 140, 78, 135, 61, 2, 3, 203, 88, 94]; // Major leagues
+      filtered = filtered.filter(m =>
+        m?.league?.id && majorLeagueIds.includes(m.league.id)
+      );
+    }
+
+    return filtered;
+  }, [filteredByStatus, leagueFilter, lowRiskOnly]);
 
   // Paginate filtered matches
   const paginatedMatches = useMemo(() => {
@@ -318,10 +374,22 @@ export function MatchesDashboard() {
             <h1 className="text-3xl font-bold">Football Prediction System</h1>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/prediction-history">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Tahmin Gecmisi
+              </Button>
+            </Link>
+            <Link href="/system-coupons">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Sistem Kupon
+              </Button>
+            </Link>
             <Link href="/statistics">
               <Button variant="outline" size="sm" className="flex items-center gap-2">
                 <ChartBar className="w-4 h-4" />
-                İstatistikler
+                Istatistikler
               </Button>
             </Link>
             <ThemeToggle />
@@ -404,6 +472,16 @@ export function MatchesDashboard() {
             >
               Biten ({finishedMatches.length})
             </Button>
+            <Button
+              onClick={() => setLowRiskOnly(!lowRiskOnly)}
+              variant={lowRiskOnly ? 'default' : 'outline'}
+              size="sm"
+              className={lowRiskOnly ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              title="Sadece düşük riskli ve güvenilir tahminleri göster"
+            >
+              <Target className="w-4 h-4 mr-1" />
+              Güvenilir Tahminler
+            </Button>
           </div>
 
           {uniqueLeagues.length > 0 && (
@@ -468,7 +546,7 @@ export function MatchesDashboard() {
 
       {/* Main Content with Enhanced Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="matches">
             <CalendarDays className="w-4 h-4 mr-2" />
             Maçlar ({stats?.totalMatches ?? 0})
@@ -481,9 +559,13 @@ export function MatchesDashboard() {
             <TrendingUp className="w-4 h-4 mr-2" />
             Tahminler ({stats?.upcomingMatches ?? 0})
           </TabsTrigger>
-          <TabsTrigger value="standings">
-            <Trophy className="w-4 h-4 mr-2" />
-            Sıralamar
+          <TabsTrigger value="bulk-analysis">
+            <ChartBar className="w-4 h-4 mr-2" />
+            Toplu Analiz
+          </TabsTrigger>
+          <TabsTrigger value="goal-insights">
+            <Target className="w-4 h-4 mr-2" />
+            KG & Üst 2.5
           </TabsTrigger>
         </TabsList>
 
@@ -547,13 +629,15 @@ export function MatchesDashboard() {
                 
                 {/* Responsive grid with chronological sorting - Using paginated matches */}
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                  {paginatedMatches?.map((match) => (
+                 {paginatedMatches?.map((match) => (
                     <PredictionModal key={match?.fixture?.id} match={match}>
                       <div className="cursor-pointer h-full">
                         <MatchCard
                           match={match}
                           onViewPrediction={(matchId) => {}}
                           showPrediction={true}
+                          onNavigateToPage={(matchId) => router.push(`/predictions/${matchId}`)}
+                          predictionOutcomes={predictionOutcomes[match?.fixture?.id]}
                         />
                       </div>
                     </PredictionModal>
@@ -656,6 +740,7 @@ export function MatchesDashboard() {
                         match={match}
                         onViewPrediction={(matchId) => {}}
                         showPrediction={true}
+                        onNavigateToPage={(matchId) => router.push(`/predictions/${matchId}`)}
                       />
                     </div>
                   </PredictionModal>
@@ -667,7 +752,15 @@ export function MatchesDashboard() {
 
         {/* Enhanced Predictions Tab with High Confidence Indicators */}
         <TabsContent value="upcoming" className="space-y-4">
-          {(stats?.upcomingMatches ?? 0) === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+              <div className="text-lg font-medium">Tahminler yükleniyor...</div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Yaklaşan maçlar için model verileri hazırlanıyor
+              </div>
+            </div>
+          ) : upcomingMatches.length === 0 ? (
             <div className="text-center py-12">
               <TrendingUp className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
               <div className="text-xl font-medium mb-3">Tahmin edilecek maç yok</div>
@@ -689,34 +782,34 @@ export function MatchesDashboard() {
           )}
         </TabsContent>
 
-        {/* Standings Tab (Unchanged) */}
-        <TabsContent value="standings" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.PREMIER_LEAGUE}
-              leagueName="Premier League"
-            />
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.LA_LIGA}
-              leagueName="La Liga"
-            />
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.BUNDESLIGA}
-              leagueName="Bundesliga"
-            />
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.SERIE_A}
-              leagueName="Serie A"
-            />
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.LIGUE_1}
-              leagueName="Ligue 1"
-            />
-            <LeagueStandings
-              leagueId={MAJOR_LEAGUES.SUPER_LIG}
-              leagueName="Süper Lig"
-            />
+        {/* Bulk Analysis Tab */}
+        <TabsContent value="bulk-analysis" className="space-y-6">
+          <div className="text-center py-8">
+            <ChartBar className="w-16 h-16 mx-auto mb-6 text-primary" />
+            <div className="text-xl font-medium mb-3">Toplu Maç Analizi</div>
+            <div className="text-muted-foreground mb-6">
+              Günün tüm maçları için kapsamlı analiz yapmak için aşağıdaki linke tıklayın
+            </div>
+            <div className="flex gap-4 justify-center">
+              <Link href="/bulk-analysis">
+                <Button size="lg" className="bg-primary hover:bg-primary/90">
+                  <ChartBar className="w-4 h-4 mr-2" />
+                  Analiz Sayfasına Git
+                </Button>
+              </Link>
+              <Link href="/settings">
+                <Button size="lg" variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Ayarlar
+                </Button>
+              </Link>
+            </div>
           </div>
+        </TabsContent>
+
+        {/* Goals & KG High Confidence Tab */}
+        <TabsContent value="goal-insights" className="space-y-4">
+          <HighConfidenceGoalsTable />
         </TabsContent>
       </Tabs>
     </div>

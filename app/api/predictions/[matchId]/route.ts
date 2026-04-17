@@ -1,10 +1,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiFootballService, CURRENT_SEASON } from '@/lib/api-football';
+import { ApiFootballService } from '@/lib/api-football';
 import { PredictionEngine } from '@/lib/prediction-engine';
 import { AdvancedPredictionEngine } from '@/lib/advanced-prediction-engine';
 import { CacheService } from '@/lib/cache';
-import { prisma } from '@/lib/db';
+import { PredictionEnsemble } from '@/lib/prediction-ensemble';
+import type { PredictionApiData } from '@/lib/types';
+import type { EnsemblePrediction, EnsembleWeights } from '@/lib/types/ensemble-types';
+import { buildEnsembleInput, buildPredictionMetadata, buildSourceSnapshots } from '@/lib/utils/prediction-ensemble-utils';
+import weightsConfig from '@/lib/config/prediction-ensemble-weights.json';
+import { prisma, saveEnsemblePrediction } from '@/lib/db';
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +20,7 @@ export async function GET(
   const { matchId: matchIdStr } = await params;
   try {
     const matchId = parseInt(matchIdStr);
-    
+
     if (isNaN(matchId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid match ID' },
@@ -24,8 +29,8 @@ export async function GET(
     }
 
     const cacheKey = CacheService.generateApiKey('prediction', { matchId });
-    
-    const predictionResult = await CacheService.cacheApiResponse(
+
+    const predictionResult = await CacheService.cacheApiResponse<PredictionApiData>(
       cacheKey,
       async () => {
         // Get match details
@@ -90,7 +95,7 @@ export async function GET(
                 draws++;
               }
             });
-            
+
             h2hRecord = {
               total_matches: h2hData.length,
               team1_wins: homeWins,
@@ -110,9 +115,9 @@ export async function GET(
         } catch (error) {
         }
 
-        // Get API-Football predictions
+        // Get AwaStats predictions
         const apiPredictions = await ApiFootballService.getPredictions(matchId);
-        
+
         // Generate advanced prediction
         const advancedPrediction = await AdvancedPredictionEngine.generateAdvancedPrediction(
           homeTeamId,
@@ -121,7 +126,7 @@ export async function GET(
           season,
           matchId
         );
-        
+
         // Also generate basic prediction for backward compatibility
         const basicPrediction = await PredictionEngine.predictMatch(
           match.teams.home as any,
@@ -138,6 +143,29 @@ export async function GET(
             points: awayStanding.points
           } as any : undefined
         );
+
+        const ensemble = new PredictionEnsemble(weightsConfig as EnsembleWeights);
+        const ensembleInput = buildEnsembleInput({
+          apiFootballPrediction: apiPredictions,
+          basicPrediction,
+          advancedPrediction,
+        });
+
+        const ensemblePrediction: EnsemblePrediction = ensemble.combine(ensembleInput);
+
+        const sourceSnapshots = buildSourceSnapshots({
+          apiPredictions,
+          basicPrediction,
+          advancedPrediction,
+        });
+
+        const metadata = buildPredictionMetadata({
+          homeForm,
+          awayForm,
+          h2hRecord,
+          homeStanding,
+          awayStanding,
+        });
 
         // Save match data first to ensure foreign keys exist
         try {
@@ -248,53 +276,24 @@ export async function GET(
             }
           });
 
-          // Now save prediction - check if it already exists first
-          const existingPrediction = await prisma.prediction.findFirst({
-            where: {
-              match_id: matchId,
-              prediction_type: 'match_winner',
-              algorithm_version: '2.0'
-            }
+          await saveEnsemblePrediction({
+            matchId,
+            ensemblePrediction,
+            metadata,
+            sourceSnapshots,
           });
-
-          if (!existingPrediction) {
-            await prisma.prediction.create({
-              data: {
-                match_id: matchId,
-                prediction_type: 'match_winner',
-                predicted_value: advancedPrediction.match_result.home_win.probability > advancedPrediction.match_result.away_win.probability
-                  ? (advancedPrediction.match_result.home_win.probability > advancedPrediction.match_result.draw.probability ? 'home' : 'draw')
-                  : (advancedPrediction.match_result.away_win.probability > advancedPrediction.match_result.draw.probability ? 'away' : 'draw'),
-                confidence_score: advancedPrediction.prediction_confidence / 100,
-                home_form_score: homeForm.form_score,
-                away_form_score: awayForm.form_score,
-                head_to_head_score: advancedPrediction.analysis_factors.head_to_head_weight,
-                home_advantage_score: advancedPrediction.analysis_factors.home_advantage_weight,
-                goals_analysis_score: advancedPrediction.analysis_factors.recent_performance_weight,
-                factors_used: advancedPrediction.analysis_factors as any,
-                algorithm_version: '2.0'
-              }
-            });
-            console.log(`[PREDICTION] Successfully saved prediction for match ${matchId}`);
-          } else {
-            console.log(`[PREDICTION] Prediction already exists for match ${matchId}`);
-          }
         } catch (dbError) {
           console.error('[PREDICTION] Database error:', dbError);
         }
 
         return {
           match,
-          prediction: basicPrediction, // For backward compatibility
-          advancedPrediction, // New comprehensive predictions
-          apiPredictions, // API-Football predictions
-          metadata: {
-            homeForm,
-            awayForm,
-            h2hRecord,
-            homeStanding,
-            awayStanding
-          }
+          ensemblePrediction,
+          sourceDiagnostics: ensemblePrediction.diagnostics,
+          bankoSelections: ensemblePrediction.bankoSelections,
+          confidenceSummary: ensemblePrediction.confidence,
+          sourceSnapshots,
+          metadata,
         };
       },
       CacheService.TTL.PREDICTIONS

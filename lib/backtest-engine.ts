@@ -20,6 +20,15 @@ export interface BacktestResult {
     awayWin: { count: number; correct: number; rate: number };
     draw: { count: number; correct: number; rate: number };
   };
+  predictionTypeMetrics?: {
+    matchWinner: { count: number; correct: number; rate: number };
+    bothTeamsScore: { count: number; correct: number; rate: number };
+    overUnderGoals: { count: number; correct: number; rate: number };
+    btsYes: { count: number; correct: number; rate: number };
+    btsNo: { count: number; correct: number; rate: number };
+    goalsOver: { count: number; correct: number; rate: number };
+    goalsUnder: { count: number; correct: number; rate: number };
+  };
   confidenceMetrics: {
     high: { count: number; correct: number; rate: number };
     medium: { count: number; correct: number; rate: number };
@@ -124,14 +133,40 @@ export class BacktestEngine {
 
       const homeGoals = match.home_goals || 0;
       const awayGoals = match.away_goals || 0;
+      const totalGoals = homeGoals + awayGoals;
 
-      // Determine actual result
-      let actualResult = 'draw';
-      if (homeGoals > awayGoals) actualResult = 'home';
-      else if (awayGoals > homeGoals) actualResult = 'away';
+      // Determine actual match result (home/away/draw)
+      let matchActualResult = 'draw';
+      if (homeGoals > awayGoals) matchActualResult = 'home';
+      else if (awayGoals > homeGoals) matchActualResult = 'away';
 
-      // Check if prediction was correct
-      const isCorrect = prediction.predicted_value === actualResult;
+      // Evaluate correctness based on prediction type
+      let isCorrect: boolean;
+      let actualResult: string;
+
+      switch (prediction.prediction_type) {
+        case 'match_winner':
+        case 'ensemble':
+          actualResult = matchActualResult;
+          isCorrect = prediction.predicted_value === matchActualResult;
+          break;
+
+        case 'both_teams_score':
+          actualResult = (homeGoals > 0 && awayGoals > 0) ? 'yes' : 'no';
+          isCorrect = prediction.predicted_value === actualResult;
+          break;
+
+        case 'over_under_goals':
+          // Default threshold 2.5; system stores 'over'/'under' as predicted_value
+          actualResult = totalGoals > 2.5 ? 'over' : 'under';
+          isCorrect = prediction.predicted_value === actualResult;
+          break;
+
+        default:
+          // Generic fallback: compare against match result
+          actualResult = matchActualResult;
+          isCorrect = prediction.predicted_value === matchActualResult;
+      }
 
       // Update prediction in database
       await prisma.prediction.update({
@@ -157,10 +192,22 @@ export class BacktestEngine {
     const correctPredictions = predictions.filter(p => p.is_correct).length;
     const successRate = totalPredictions > 0 ? (correctPredictions / totalPredictions) * 100 : 0;
 
-    // Calculate detailed metrics by prediction type
-    const homeWinPredictions = predictions.filter(p => p.predicted_value === 'home');
-    const awayWinPredictions = predictions.filter(p => p.predicted_value === 'away');
-    const drawPredictions = predictions.filter(p => p.predicted_value === 'draw');
+    // Calculate detailed metrics by match_winner sub-types
+    const homeWinPredictions = predictions.filter(p => p.prediction_type === 'match_winner' && p.predicted_value === 'home');
+    const awayWinPredictions = predictions.filter(p => p.prediction_type === 'match_winner' && p.predicted_value === 'away');
+    const drawPredictions = predictions.filter(p => p.prediction_type === 'match_winner' && p.predicted_value === 'draw');
+
+    // Calculate metrics by prediction type
+    const matchWinnerPreds = predictions.filter(p => p.prediction_type === 'match_winner' || p.prediction_type === 'ensemble');
+    const btsPreds = predictions.filter(p => p.prediction_type === 'both_teams_score');
+    const ouPreds = predictions.filter(p => p.prediction_type === 'over_under_goals');
+    const btsYesPreds = btsPreds.filter(p => p.predicted_value === 'yes');
+    const btsNoPreds = btsPreds.filter(p => p.predicted_value === 'no');
+    const goalsOverPreds = ouPreds.filter(p => p.predicted_value === 'over');
+    const goalsUnderPreds = ouPreds.filter(p => p.predicted_value === 'under');
+
+    const calcRate = (arr: any[]) =>
+      arr.length > 0 ? (arr.filter(p => p.is_correct).length / arr.length) * 100 : 0;
 
     // Calculate confidence metrics
     const highConfidence = predictions.filter(p => p.confidence_score >= 0.7);
@@ -175,46 +222,71 @@ export class BacktestEngine {
         homeWin: {
           count: homeWinPredictions.length,
           correct: homeWinPredictions.filter(p => p.is_correct).length,
-          rate: homeWinPredictions.length > 0
-            ? (homeWinPredictions.filter(p => p.is_correct).length / homeWinPredictions.length) * 100
-            : 0,
+          rate: calcRate(homeWinPredictions),
         },
         awayWin: {
           count: awayWinPredictions.length,
           correct: awayWinPredictions.filter(p => p.is_correct).length,
-          rate: awayWinPredictions.length > 0
-            ? (awayWinPredictions.filter(p => p.is_correct).length / awayWinPredictions.length) * 100
-            : 0,
+          rate: calcRate(awayWinPredictions),
         },
         draw: {
           count: drawPredictions.length,
           correct: drawPredictions.filter(p => p.is_correct).length,
-          rate: drawPredictions.length > 0
-            ? (drawPredictions.filter(p => p.is_correct).length / drawPredictions.length) * 100
-            : 0,
+          rate: calcRate(drawPredictions),
+        },
+      },
+      predictionTypeMetrics: {
+        matchWinner: {
+          count: matchWinnerPreds.length,
+          correct: matchWinnerPreds.filter(p => p.is_correct).length,
+          rate: calcRate(matchWinnerPreds),
+        },
+        bothTeamsScore: {
+          count: btsPreds.length,
+          correct: btsPreds.filter(p => p.is_correct).length,
+          rate: calcRate(btsPreds),
+        },
+        overUnderGoals: {
+          count: ouPreds.length,
+          correct: ouPreds.filter(p => p.is_correct).length,
+          rate: calcRate(ouPreds),
+        },
+        btsYes: {
+          count: btsYesPreds.length,
+          correct: btsYesPreds.filter(p => p.is_correct).length,
+          rate: calcRate(btsYesPreds),
+        },
+        btsNo: {
+          count: btsNoPreds.length,
+          correct: btsNoPreds.filter(p => p.is_correct).length,
+          rate: calcRate(btsNoPreds),
+        },
+        goalsOver: {
+          count: goalsOverPreds.length,
+          correct: goalsOverPreds.filter(p => p.is_correct).length,
+          rate: calcRate(goalsOverPreds),
+        },
+        goalsUnder: {
+          count: goalsUnderPreds.length,
+          correct: goalsUnderPreds.filter(p => p.is_correct).length,
+          rate: calcRate(goalsUnderPreds),
         },
       },
       confidenceMetrics: {
         high: {
           count: highConfidence.length,
           correct: highConfidence.filter(p => p.is_correct).length,
-          rate: highConfidence.length > 0
-            ? (highConfidence.filter(p => p.is_correct).length / highConfidence.length) * 100
-            : 0,
+          rate: calcRate(highConfidence),
         },
         medium: {
           count: mediumConfidence.length,
           correct: mediumConfidence.filter(p => p.is_correct).length,
-          rate: mediumConfidence.length > 0
-            ? (mediumConfidence.filter(p => p.is_correct).length / mediumConfidence.length) * 100
-            : 0,
+          rate: calcRate(mediumConfidence),
         },
         low: {
           count: lowConfidence.length,
           correct: lowConfidence.filter(p => p.is_correct).length,
-          rate: lowConfidence.length > 0
-            ? (lowConfidence.filter(p => p.is_correct).length / lowConfidence.length) * 100
-            : 0,
+          rate: calcRate(lowConfidence),
         },
       },
       roiMetrics: this.calculateROI(predictions),

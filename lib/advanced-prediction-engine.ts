@@ -471,14 +471,14 @@ export class AdvancedPredictionEngine {
     awayProbability /= total;
     
     // Expected goals calculation
-    const homeExpectedGoals = Math.max(0.5, Math.min(4.0, 
-      (homeStats.goals_per_game.home + awayStats.goals_against_per_game.away) / 2 + 
-      (homeFactor * 0.3)
+    const homeExpectedGoals = Math.max(0.5, Math.min(3.8, 
+      (homeStats.goals_per_game.home * 0.55 + awayStats.goals_against_per_game.away * 0.45) +
+      (combinedFactor > 0 ? combinedFactor * 0.6 : combinedFactor * 0.3)
     ));
-    
-    const awayExpectedGoals = Math.max(0.5, Math.min(4.0,
-      (awayStats.goals_per_game.away + homeStats.goals_against_per_game.home) / 2 -
-      (homeFactor * 0.2)
+
+    const awayExpectedGoals = Math.max(0.5, Math.min(3.5,
+      (awayStats.goals_per_game.away * 0.55 + homeStats.goals_against_per_game.home * 0.45) -
+      (combinedFactor > 0 ? combinedFactor * 0.25 : combinedFactor * 0.5)
     ));
     
     const totalExpectedGoals = homeExpectedGoals + awayExpectedGoals;
@@ -531,7 +531,7 @@ export class AdvancedPredictionEngine {
     }> = [];
     
     // Match Winner Analysis
-    if (confidence > 0.65) {
+    if (confidence > 0.7) {
       const winnerType = homeProbability > drawProbability && homeProbability > awayProbability ? 'Ev Sahibi' :
                         awayProbability > homeProbability && awayProbability > drawProbability ? 'Deplasman' : 'Beraberlik';
       const winnerProb = Math.max(homeProbability, drawProbability, awayProbability);
@@ -546,7 +546,7 @@ export class AdvancedPredictionEngine {
     }
     
     // Both Teams Score Analysis  
-    if (btsProb > 0.7) {
+    if (btsProb > 0.72) {
       highConfidenceBets.push({
         title: 'Her İki Takım Gol - EVET',
         description: 'Her iki takımın da gol atması çok muhtemel',
@@ -554,7 +554,7 @@ export class AdvancedPredictionEngine {
         reason: `Her iki takım da ofansif güçlü, savunma zafiyetleri var`,
         recommendation: `'Her İki Takım Gol - EVET' güvenli seçim olabilir`
       });
-    } else if (btsProb < 0.3) {
+    } else if (btsProb < 0.28) {
       highConfidenceBets.push({
         title: 'Her İki Takım Gol - HAYIR',
         description: 'En az bir takımın gol atmaması muhtemel',
@@ -565,7 +565,7 @@ export class AdvancedPredictionEngine {
     }
     
     // Goals Over/Under Analysis
-    if (under_2_5 > 0.65) {
+    if (under_2_5 > 0.68) {
       highConfidenceBets.push({
         title: 'Alt 2.5 Gol',
         description: 'Maçta 2 veya daha az gol bekleniyor',
@@ -573,7 +573,7 @@ export class AdvancedPredictionEngine {
         reason: `Düşük gol ortalamaları ve güçlü savunma performansları`,
         recommendation: `Alt 2.5 gol güvenli bir seçim görünüyor`
       });
-    } else if (under_2_5 < 0.35) {
+    } else if (under_2_5 < 0.32) {
       highConfidenceBets.push({
         title: 'Üst 2.5 Gol',
         description: 'Maçta 3 veya daha fazla gol bekleniyor',
@@ -584,7 +584,7 @@ export class AdvancedPredictionEngine {
     }
     
     // Medium Risk Bets
-    if (totalExpectedGoals > 3.2) {
+    if (totalExpectedGoals > 3.4) {
       mediumRiskBets.push({
         title: 'Üst 3.5 Gol',
         description: 'Yüksek gol potansiyeli var',
@@ -594,7 +594,7 @@ export class AdvancedPredictionEngine {
       });
     }
     
-    if (homeExpectedGoals > 2.0) {
+    if (homeExpectedGoals > 2.2) {
       mediumRiskBets.push({
         title: 'Ev Sahibi Üst 1.5 Gol',
         description: 'Ev sahibi takımın 2+ gol atması',
@@ -604,7 +604,7 @@ export class AdvancedPredictionEngine {
       });
     }
     
-    if (awayExpectedGoals > 1.8) {
+    if (awayExpectedGoals > 2.0) {
       mediumRiskBets.push({
         title: 'Deplasman Üst 1.5 Gol',
         description: 'Deplasman takımın 2+ gol atması',
