@@ -49,17 +49,17 @@ The system uses two complementary prediction engines:
    - Head-to-head historical data
    - League position impact
    - Home advantage calculation
-   - Simple Poisson-based goal expectancy
+   - Simple GoalFlux-based goal expectancy
    - First-half predictions
 
 2. **Advanced Engine** (`lib/advanced-prediction-engine.ts`)
    - Extended statistics with fallback values
-   - Poisson distribution for exact score probabilities
+   - GoalFlux-based exact score probabilities
    - Asian Handicap calculations
    - Corner & cards predictions
    - Risk tier classification (Platinum/Gold/Silver)
    - Momentum analysis with decay factors
-   - Expected Goals (xG) calculations
+   - Beklenen Gol Skoru (BGS) calculations
    - Turkish betting recommendations (KG/Karşılıklı Gol, Üst/Alt 2.5)
 
 ### Core Services (`/lib`)
@@ -111,7 +111,7 @@ SQLite database at `./prisma/dev.db` with comprehensive schema:
 - `predictions`: Generated predictions with confidence tiers and factors
 - `teams`, `leagues`: Reference data with relationships
 - `standings`: League table data
-- `match_statistics`: In-game stats (shots, possession, xG, cards)
+- `match_statistics`: In-game stats (shots, possession, BGS, cards)
 - `match_events`: Goals, cards, substitutions
 
 **Analysis Tables:**
@@ -192,11 +192,11 @@ weights: {
 2. **Head-to-Head**: Historical matchups, minimum 3 matches required
 3. **League Position**: Current standings with home/away splits
 4. **Home Advantage**: Boost factor (default 0.07), calculated from H2H
-5. **Goal Analysis**: Poisson-based xG with `firstHalfFactor=0.6`
+5. **Goal Analysis**: GoalFlux-based BGS with `firstHalfFactor=0.43`
 
 **Advanced Engine Additional Factors:**
 6. **Momentum Analysis**: Weighted recent form with decay factor
-7. **Expected Goals (xG)**: Poisson distribution for exact scores (`maxGoals=5`)
+7. **Beklenen Gol Skoru (BGS)**: GoalFlux distribution for exact scores (`maxGoals=5`)
 8. **Asian Handicap**: Power differential-based handicap lines
 9. **Corner & Cards**: Statistical predictions based on averages
 10. **Risk Classification**: Multi-factor risk assessment for bet recommendations
@@ -356,14 +356,14 @@ Turkish strings are embedded in:
 For detailed algorithm parameters and tuning, see `ALGORITHMS.md`:
 - Weight configurations for prediction engines
 - Risk tier thresholds
-- Poisson distribution parameters
+- GoalFlux distribution parameters
 - Confidence calculation formulas
 - Data flow diagrams
 
 Key tunable parameters:
 - `form: 0.30` in advanced engine weights
 - `firstHalfFactor: 0.6` for first-half predictions
-- `maxGoals: 5` for Poisson exact score calculations
+- `maxGoals: 5` for GoalFlux exact score calculations
 - High confidence thresholds: >0.70 (BTTS), >0.68 (O/U 2.5)
 - `skipIfFreshMinutes: 120` in prediction-sync
 

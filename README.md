@@ -1,6 +1,8 @@
-# 🦅 Eagle - Football Prediction System
+# 🦅 Eagle — AwaStats Prediction Platform
 
-An AI-powered football prediction system with advanced statistical modeling for real-money betting operations.
+An AI-powered football prediction system built on the **AwaStats Nexus**
+stack. Designed for real-money betting operations with rigorous
+risk tiering and full historical validation.
 
 ## 🚀 Quick Start
 
@@ -22,12 +24,21 @@ npm run dev
 
 ## 🎯 Features
 
-- **Real-Time Match Data**: Live integration with AwaStats data service
-- **Advanced Prediction Algorithms**: Dual-engine system with Poisson distribution
-- **High-Confidence System**: Three-tier confidence scoring (Platinum/Gold/Silver)
-- **Comprehensive Backtesting**: Historical performance validation with ROI
-- **Smart Caching**: Dual-layer caching for optimal performance
+- **Real-Time Match Data**: Live integration with the AwaStats data service.
+- **Dual-Layer Prediction Stack**: GoalFlux Kernel (probabilistic goal model
+  with Beklenen Gol Skoru integration) + NeuroStack Ensemble (multi-model
+  boosted decision stack) + deterministic AwaCore fallback.
+- **Per-League ChronoFold Validation**: Each league is trained on its own
+  time-ordered history — no future-data leakage.
+- **High-Confidence System**: Three-tier confidence scoring
+  (Platinum / Gold / Silver) with market-specific thresholds.
+- **Comprehensive Backtesting**: Historical accuracy + ROI, bias-free
+  exact-score modelling, automated stake/Kelly analytics.
+- **AwaPulse Momentum**: Recency-weighted form signal used by all engines.
+- **Smart Caching**: Dual-layer cache (database + in-memory) with
+  per-endpoint TTL and token-bucket rate-limit.
 - **Turkish Language Support**: Localized betting recommendations
+  (KG/Karşılıklı Gol, Üst 2.5, Alt 2.5, Handikap).
 
 ## 🛠️ Tech Stack
 
@@ -36,119 +47,44 @@ npm run dev
 - **Database**: SQLite with Prisma ORM
 - **State**: Zustand, Tanstack Query
 - **Charts**: Chart.js, Recharts, Plotly.js
+- **Auth**: NextAuth.js (Credentials + Prisma adapter + bcrypt)
+- **Security**: CSP, HSTS, COOP/CORP, per-IP tiered rate limiting, CSRF-lite
 
-## 📊 Prediction Algorithms
+## 📊 Prediction Engines
 
-### Basic Engine
-- Team form analysis (last 5-10 matches)
+### AwaCore (base)
+- Team form analysis (last 5–10 matches)
 - Head-to-head historical data
-- League position impact
-- Home advantage factor
-- Goal expectancy modeling
+- League-position impact
+- Home-advantage factor
+- Goal-expectancy modelling (GoalFlux)
 
-### Advanced Engine
-- Poisson distribution for goal probability
-- Momentum analysis with decay factor
-- Expected Goals (xG) calculations
-- Asian Handicap analysis
-- Risk tier classification
+### AwaCore Advanced
+- GoalFlux probabilistic model for goal markets and exact scores
+- AwaPulse momentum (recency-weighted)
+- Beklenen Gol Skoru (BGS) calculations
+- Asian Handicap derivation
+- Risk-tier classification
 
-
-## 🧠 Algorithm Reference
-
-| Module | Location | Purpose | Key Inputs | Key Outputs & Tuneables |
-| --- | --- | --- | --- | --- |
-| `calculateTeamForm` | `lib/prediction-engine.ts` | Converts recent results into a 0-1 strength score | Last 5-10 fixtures, goals for/against | `form_score` (tune: sample window)
-| `calculateHomeAdvantage` | `lib/prediction-engine.ts` | Quantifies H2H-driven home bias | Head-to-head totals, wins | Advantage boost (`0.07`), min matches (`3`)
-| `calculateGoalsAnalysis` | `lib/prediction-engine.ts` | Poisson-based xG approximation | Avg goals for/against (home/away) | `home_expected_goals`, total xG (tune: averaging weights)
-| `calculateFirstHalfGoals` | `lib/prediction-engine.ts` | First-half goal odds & BTTS confidence | Expected goals, form consistency | `firstHalfFactor=0.6`, probability thresholds
-| `generateAdvancedPrediction` | `lib/advanced-prediction-engine.ts` | Master engine blending form, standings, xG, risk tabs | Team IDs, league season, API stats | Weight map (`form 0.25`, `home 0.2`, etc.), risk confidence cut-offs
-| Risk Builders (`high/medium/high_risk_bets`) | `lib/advanced-prediction-engine.ts` | Produces KG/Üst güvenli öneriler | Confidence scores, BTTS/OU probabilities | Thresholds (`>0.65` high), bet titles/descriptions
-| `syncPredictionsForDate` | `lib/services/prediction-sync.ts` | Automates advanced prediction + risk persistence | Tarih, limit, force flag | Match/prediction/high-confidence rows (tune: `skipIfFreshMinutes`)
-| `bulk-analysis` deterministic scorer | `app/api/bulk-analysis/route.ts` | Fallback analiz (standings + H2H) | Standings, H2H, defaults | Winner/BTTS/O-U scores (tune: risk tiers, EV formülleri)
-
-### Veri Akışı (Mermaid)
-
-```mermaid
-flowchart TD
-    subgraph DataSources
-        A[AwaStats Fixtures/Stats]
-        B[Prisma DB]
-    end
-
-    subgraph Engines
-        C[PredictionEngine
-Temel form & H2H]
-        D[AdvancedPredictionEngine
-Gelişmiş + Risk]
-        E[Bulk Analysis Fallback
-Deterministic]
-        F[Backtest Modülleri]
-    end
-
-    subgraph Orchestration
-        G[prediction-sync
-(Günlük senk.)]
-        H[Cron Daily Analysis
-(Bulk + Goal Sync)]
-    end
-
-    subgraph Persistence
-        I[(matches
-predictions)]
-        J[(high_confidence_recommendations)]
-        K[(match_confidence_summaries)]
-        L[(bulk_analysis_results)]
-    end
-
-    subgraph UI
-        M[Matches Dashboard
-KG & Üst 2.5 Sekmesi]
-        N[Bulk Analysis
-Otomatik KG Paneli]
-        O[Raporsal Çıktılar
-CSV & API]
-    end
-
-    A --> C
-    A --> D
-    A --> E
-    B --> C
-    B --> D
-    B --> E
-
-    C --> G
-    D --> G
-    E --> L
-    F --> O
-
-    G --> I
-    G --> J
-    G --> K
-
-    H --> G
-    H --> L
-
-    I --> M
-    J --> M
-    J --> N
-    L --> N
-    O --> Users
-```
+### AwaStats Nexus (ensemble)
+- GoalFlux Kernel + NeuroStack Ensemble blend
+- ChronoFold Validation per league
+- Consensus anchor from the AwaStats data service
 
 ## 📈 Confidence Tiers
 
 - **🏆 Platinum** (85%+): Ultra-high confidence
-- **🥇 Gold** (75-84%): High confidence
-- **🥈 Silver** (65-74%): Good confidence
+- **🥇 Gold** (75–84%): High confidence
+- **🥈 Silver** (65–74%): Good confidence
 
 ## 🔒 Security
 
-- Environment variable protection
-- API key validation
-- Rate limiting
-- Input sanitization with Zod
-- CORS configuration
+- Environment variable protection + restricted file permissions
+- NextAuth credentials with bcrypt hashing
+- Tiered per-IP rate limiting (10 rpm on auth, 120 rpm general)
+- CSRF-lite origin validation on write endpoints
+- Content-Security-Policy + HSTS + COOP/CORP baseline
+- Docker: non-root runtime, `cap_drop: ALL`, tmpfs /tmp+/run
 
 ## 📄 License
 
@@ -156,4 +92,6 @@ MIT License
 
 ## ⚠️ Disclaimer
 
-This system is for educational purposes. Please gamble responsibly and be aware of local laws regarding sports betting. Predictions are based on statistical analysis and do not guarantee winning outcomes.
+This system is intended for educational and research purposes.
+Gamble responsibly and follow local laws regarding sports betting.
+Predictions reflect statistical modelling, not guarantees.

@@ -103,7 +103,7 @@ interface BacktestResults {
   algorithmComparison: {
     basic: { accuracy: number; markets: string[] };
     advanced: { accuracy: number; markets: string[] };
-    poisson: { accuracy: number; markets: string[] };
+    goalflux: { accuracy: number; markets: string[] };
     momentum: { accuracy: number; markets: string[] };
   };
 }
@@ -265,7 +265,7 @@ export class ComprehensiveBacktest {
   }
 
   private static predictExactScore(homeStats: any, awayStats: any) {
-    // Use Poisson mode (floor of lambda) for each side — no hidden home bias.
+    // Use GoalFlux mode (floor of lambda) for each side — no hidden home bias.
     // Home advantage, if present, should already be baked into avgGoalsFor
     // by the caller via home/away split statistics.
     const homeLambda = Math.max(0, Number(homeStats.avgGoalsFor) || 0);
@@ -287,7 +287,7 @@ export class ComprehensiveBacktest {
 
   private static predictOverCorners(homeStats: any, awayStats: any, threshold: number) {
     const expectedCorners = Math.max(0, (Number(homeStats.avgCorners) || 0) + (Number(awayStats.avgCorners) || 0));
-    // Poisson CDF: P(X > threshold)
+    // GoalFlux CDF: P(X > threshold)
     const probability = 1 - this.poissonCDF(Math.floor(threshold), expectedCorners);
 
     return {
@@ -298,7 +298,7 @@ export class ComprehensiveBacktest {
 
   private static predictTotalCorners(homeStats: any, awayStats: any) {
     const expected = Math.max(0, (Number(homeStats.avgCorners) || 0) + (Number(awayStats.avgCorners) || 0));
-    // Report the Poisson mode rather than naive round of the sum — avoids
+    // Report the GoalFlux mode rather than naive round of the sum — avoids
     // systematically over-counting when the sum rounds up.
     const prediction = Math.floor(expected);
     // Confidence = peak PMF value at the predicted mode.
@@ -322,7 +322,7 @@ export class ComprehensiveBacktest {
   }
 
   private static predictBothTeamsCards(homeStats: any, awayStats: any) {
-    // Use Poisson P(X>=1) for each side, independence approximation.
+    // Use GoalFlux P(X>=1) for each side, independence approximation.
     // Guards against zero-goal teams that previously produced NaN/Infinity.
     const homeLambda = Math.max(0, Number(homeStats.avgCards) || 0);
     const awayLambda = Math.max(0, Number(awayStats.avgCards) || 0);
@@ -441,7 +441,7 @@ export class ComprehensiveBacktest {
       algorithmComparison: {
         basic: { accuracy: 0, markets: [] },
         advanced: { accuracy: 0, markets: [] },
-        poisson: { accuracy: 0, markets: [] },
+        goalflux: { accuracy: 0, markets: [] },
         momentum: { accuracy: 0, markets: [] }
       }
     };

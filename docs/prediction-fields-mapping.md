@@ -10,8 +10,8 @@ This reference consolidates the probability and metadata fields returned by each
 | `predictions.percent.draw` | string | `"27%"` | Draw probability; same formatting caveats as home win. |
 | `predictions.percent.away` | string | `"31%"` | Away win probability string. |
 | `predictions.under_over` | string | `"Under 3.5"` | Recommended goal band derived from bookmaker odds. |
-| `predictions.goals.home` | number | `1.4` | Expected home goals (Poisson mean). |
-| `predictions.goals.away` | number | `1.1` | Expected away goals. |
+| `predictions.goals.home` | number | `1.4` | Beklenen ev gol sayısı (BGS — AwaStats GoalFlux ortalaması). |
+| `predictions.goals.away` | number | `1.1` | Beklenen deplasman gol sayısı (BGS). |
 | `predictions.advice` | string | `"Double chance : draw or away"` | Textual recommendation distilled from API consensus. |
 | `comparison.form` | number | `62` | Recent form delta (0-100). |
 | `comparison.att` | number | `58` | Attacking strength comparison. |

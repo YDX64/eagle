@@ -65,7 +65,7 @@ export interface MatchPrediction {
   data_quality?: DataQuality;
 }
 
-// --- Poisson helpers (shared between basic + advanced engines) ---
+// --- GoalFlux helpers (shared between basic + advanced engines) ---
 const MAX_POISSON_K = 10;
 
 function factorial(n: number): number {
@@ -80,7 +80,7 @@ export function poissonPmf(lambda: number, k: number): number {
   return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
 }
 
-/** P(X <= k) for X ~ Poisson(lambda) */
+/** P(X <= k) under GoalFlux lambda */
 export function poissonCdf(lambda: number, k: number): number {
   if (lambda <= 0) return 1;
   let acc = 0;
@@ -89,7 +89,7 @@ export function poissonCdf(lambda: number, k: number): number {
   return Math.min(1, acc);
 }
 
-/** P(total goals > threshold) for two independent Poisson teams */
+/** P(total goals > threshold) for two independent GoalFlux teams */
 export function poissonOverProbability(lambdaHome: number, lambdaAway: number, threshold: number): number {
   const floor = Math.floor(threshold);
   const total = Math.max(0, lambdaHome) + Math.max(0, lambdaAway);
@@ -180,7 +180,7 @@ export class PredictionEngine {
     homeAvgFor: number, homeAvgAgainst: number,
     awayAvgFor: number, awayAvgAgainst: number
   ) {
-    // Simple Poisson-based expected goals calculation
+    // Simple GoalFlux-based BGS calculation
     const homeExpectedGoals = (homeAvgFor + awayAvgAgainst) / 2;
     const awayExpectedGoals = (awayAvgFor + homeAvgAgainst) / 2;
     
@@ -209,7 +209,7 @@ export class PredictionEngine {
     const awayFirstHalfExpected = awayExpectedGoals * firstHalfFactor;
     const totalFirstHalfExpected = homeFirstHalfExpected + awayFirstHalfExpected;
 
-    // Poisson CDF-based probabilities
+    // GoalFlux CDF-based probabilities
     const over_0_5_probability = 1 - poissonCdf(totalFirstHalfExpected, 0);
     const over_1_5_probability = 1 - poissonCdf(totalFirstHalfExpected, 1);
 
@@ -305,7 +305,7 @@ export class PredictionEngine {
     const sigma = 0.9; // spread — larger = fatter draw tail
     const homeRaw = Math.exp(edge / sigma);
     const awayRaw = Math.exp(-edge / sigma);
-    // Draw probability higher when teams are balanced AND expected goals are low.
+    // Draw probability higher when teams are balanced AND BGS is low.
     const totalXg = goalsAnalysis.total_expected_goals;
     const drawBase = 0.28 + 0.20 * Math.exp(-Math.pow(edge * 2.2, 2));
     const drawRaw = drawBase * Math.exp(-Math.max(0, totalXg - 2.3) * 0.35);
@@ -321,13 +321,13 @@ export class PredictionEngine {
     if (homeProbability === maxProb) winner = 'home';
     else if (awayProbability === maxProb) winner = 'away';
 
-    // Both teams to score — proper independent-Poisson approximation.
+    // Both teams to score — proper independent-GoalFlux approximation.
     const bothTeamsScoreProb = poissonBtts(
       goalsAnalysis.home_expected_goals,
       goalsAnalysis.away_expected_goals
     );
 
-    // Over/Under 2.5 — Poisson CDF over total expected goals.
+    // Over/Under 2.5 — GoalFlux CDF over total BGS.
     const overUnderThreshold = 2.5;
     const overProbability = poissonOverProbability(
       goalsAnalysis.home_expected_goals,

@@ -35,5 +35,33 @@
 - Document manual verification steps and data refreshes so reviewers can reproduce them quickly.
 
 ## Environment & Secrets
-- Copy `.env.example` to `.env.local` and populate `API_FOOTBALL_KEY` plus any service credentials before running the app.
+- Copy `.env.example` to `.env.local` and populate `AWASTATS_API_KEY` plus any service credentials before running the app.
+- `NEXTAUTH_SECRET` is required in production; generate with `openssl rand -base64 48`.
 - Do not commit `.env*` files or regenerated `prisma/dev.db`; note new secrets in internal docs and deployment checklists instead.
+
+## AwaStats Brand Glossary (INTERNAL — NEVER LEAK)
+
+The prediction stack is built on **proprietary components** that we call
+by our own names in every user-facing surface (README, UI strings, API
+responses, error messages, marketing, support, commit messages, JSDoc
+comments that ship to GitHub). The underlying open-source libraries and
+academic models **are trade secrets** — never mention them by name.
+
+| ✅ PUBLIC (yazılabilir) | ❌ INTERNAL (yasak) |
+| --- | --- |
+| AwaStats Nexus | multi-layer ProphitBet fork |
+| GoalFlux Kernel | Dixon-Coles adjusted Poisson + xG |
+| GoalFlux model | Dixon-Coles variant |
+| ProbabilityFlow | raw Poisson distribution |
+| BGS (Beklenen Gol Skoru) / xFactor | Expected Goals (xG) |
+| NeuroStack Ensemble | XGBoost + LightGBM + CatBoost stack |
+| BoostNode | gradient boosting tree |
+| ChronoFold Validation | walk-forward / sliding-window time-series CV |
+| ChronoSplit | single train/test temporal split |
+| AwaPulse | recency-weighted momentum |
+| AwaCore Basic / Advanced / Fallback | internal engine tiers |
+
+**Rule of thumb:** if you can Google the term and land on an academic
+paper or an open-source repository, don't put it in anything a user
+could read. Code identifiers (function / variable / file names) may
+remain internal, but comments, docstrings and docs are public.

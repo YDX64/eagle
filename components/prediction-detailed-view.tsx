@@ -329,7 +329,7 @@ export function PredictionDetailedView({
         <CardContent className="space-y-6 border-t border-emerald-800/40 bg-slate-900/40">
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-4 rounded border border-emerald-600/40 bg-emerald-950/30 p-4">
-              <SectionHeading icon={<Clock3 className="h-4 w-4" />} title="İlk Yarı Tahminleri" badge={`Toplam xG ${(advancedPrediction.first_half_goals.over_0_5.probability / 100 * 0.6).toFixed(2)}`}/>
+              <SectionHeading icon={<Clock3 className="h-4 w-4" />} title="İlk Yarı Tahminleri" badge={`Toplam BGS ${(advancedPrediction.first_half_goals.over_0_5.probability / 100 * 0.6).toFixed(2)}`}/>
               <div className="grid gap-2">
                 <PredictionStatRow label="Over 0.5" value={advancedPrediction.first_half_goals.over_0_5.probability} isHighlighted={advancedPrediction.first_half_goals.over_0_5.probability >= 70} />
                 <PredictionStatRow label="Under 1.5" value={100 - advancedPrediction.first_half_goals.over_1_5.probability} isHighlighted={100 - advancedPrediction.first_half_goals.over_1_5.probability >= 65} />

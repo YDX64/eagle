@@ -49,7 +49,7 @@ interface ValueBet {
  * 1. Gol marketleri (alt/üst, BTTS): lambda'ya göre kalibre edilmiş gerçekçi piyasa oranları
  * 2. Maç sonucu: tahmin yüzdelerinden türetilen "ev taraftarlığı düzeltilmiş" oranlar
  *
- * Değer bahsi = bizim olasılığımız (API/Poisson) > bookmaker implied olasılığı (1/oran)
+ * Değer bahsi = bizim olasılığımız (AwaStats GoalFlux) > bookmaker implied olasılığı (1/oran)
  */
 function estimateMarketOdds(
   market: 'home' | 'away' | 'draw' | 'btts_yes' | 'btts_no' | 'over' | 'under',
@@ -269,16 +269,16 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Poisson: gol piyasaları için
+        // GoalFlux: gol piyasaları için olasılıksal model
         const lambda = homeGoalsAvg + awayGoalsAvg;
         const p0 = Math.exp(-lambda);
         const p1 = lambda * p0;
         const p2 = (lambda ** 2 / 2) * p0;
-        const poissonOver = 1 - p0 - p1 - p2;
-        const poissonUnder = 1 - poissonOver;
+        const goalFluxOver = 1 - p0 - p1 - p2;
+        const goalFluxUnder = 1 - goalFluxOver;
         const probHomeScores = 1 - Math.exp(-homeGoalsAvg);
         const probAwayScores = 1 - Math.exp(-awayGoalsAvg);
-        const poissonBTTS = probHomeScores * probAwayScores;
+        const goalFluxBTTS = probHomeScores * probAwayScores;
 
         const matchTime = new Date(fixture.fixture.date).toLocaleTimeString('tr-TR', {
           hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Istanbul',
@@ -287,7 +287,7 @@ export async function GET(request: NextRequest) {
         type BetKey = 'home' | 'away' | 'draw' | 'btts_yes' | 'btts_no' | 'over' | 'under';
 
         /**
-         * Aday bahisler — olasılık DOĞRUDAN API/Poisson'dan.
+         * Aday bahisler — olasılık doğrudan AwaStats GoalFlux çıktısından.
          * Tarihsel doğruluk ile karıştırma YOK (bu hatayı düzelttik).
          * EV = doğrudan_olasılık × bookmaker_oranı − 1
          */
@@ -304,10 +304,10 @@ export async function GET(request: NextRequest) {
             market: 'Alt/Üst 2.5',
             prediction: 'Alt 2.5 Gol',
             betKey: 'under',
-            prob: poissonUnder,
+            prob: goalFluxUnder,
             minProb: 0.55,
             modelAcc: MODEL_ACCURACY.over_under_under,
-            reasoning: `Poisson λ=${lambda.toFixed(2)} (ev=${homeGoalsAvg.toFixed(1)} + dep=${awayGoalsAvg.toFixed(1)}) → Alt %${(poissonUnder*100).toFixed(0)} | Tarihsel doğruluk %75.6 | Veri: ${dataQuality}`,
+            reasoning: `GoalFlux λ=${lambda.toFixed(2)} (ev=${homeGoalsAvg.toFixed(1)} + dep=${awayGoalsAvg.toFixed(1)}) → Alt %${(goalFluxUnder*100).toFixed(0)} | Tarihsel doğruluk %75.6 | Veri: ${dataQuality}`,
           },
           {
             market: 'Maç Sonucu',
@@ -322,28 +322,28 @@ export async function GET(request: NextRequest) {
             market: 'Alt/Üst 2.5',
             prediction: 'Üst 2.5 Gol',
             betKey: 'over',
-            prob: poissonOver,
+            prob: goalFluxOver,
             minProb: 0.55,
             modelAcc: MODEL_ACCURACY.over_under_over,
-            reasoning: `Poisson λ=${lambda.toFixed(2)} (ev=${homeGoalsAvg.toFixed(1)} + dep=${awayGoalsAvg.toFixed(1)}) → Üst %${(poissonOver*100).toFixed(0)} | Tarihsel doğruluk %70.0 | Veri: ${dataQuality}`,
+            reasoning: `GoalFlux λ=${lambda.toFixed(2)} (ev=${homeGoalsAvg.toFixed(1)} + dep=${awayGoalsAvg.toFixed(1)}) → Üst %${(goalFluxOver*100).toFixed(0)} | Tarihsel doğruluk %70.0 | Veri: ${dataQuality}`,
           },
           {
             market: 'KG VAR/YOK',
             prediction: 'Karşılıklı Gol VAR',
             betKey: 'btts_yes',
-            prob: poissonBTTS,
+            prob: goalFluxBTTS,
             minProb: 0.55,
             modelAcc: MODEL_ACCURACY.both_teams_score_yes,
-            reasoning: `P(ev gol)=%${(probHomeScores*100).toFixed(0)} × P(dep gol)=%${(probAwayScores*100).toFixed(0)} = BTTS %${(poissonBTTS*100).toFixed(0)} | λ=${lambda.toFixed(2)}`,
+            reasoning: `P(ev gol)=%${(probHomeScores*100).toFixed(0)} × P(dep gol)=%${(probAwayScores*100).toFixed(0)} = BTTS %${(goalFluxBTTS*100).toFixed(0)} | λ=${lambda.toFixed(2)}`,
           },
           {
             market: 'KG VAR/YOK',
             prediction: 'Karşılıklı Gol YOK',
             betKey: 'btts_no',
-            prob: 1 - poissonBTTS,
+            prob: 1 - goalFluxBTTS,
             minProb: 0.52,
             modelAcc: MODEL_ACCURACY.both_teams_score_no,
-            reasoning: `En az bir takım gol atamaz %${((1-poissonBTTS)*100).toFixed(0)} | λ=${lambda.toFixed(2)}`,
+            reasoning: `En az bir takım gol atamaz %${((1-goalFluxBTTS)*100).toFixed(0)} | λ=${lambda.toFixed(2)}`,
           },
           {
             market: 'Maç Sonucu',
@@ -359,7 +359,7 @@ export async function GET(request: NextRequest) {
         for (const c of candidates) {
           if (c.prob < c.minProb) continue; // Yeterince yüksek olasılık yok
 
-          // Oranlar API win% + lambda'dan — Poisson/API olasılığımızdan bağımsız hesaplanır
+          // Oranlar AwaStats win% + lambda'dan — GoalFlux olasılığımızdan bağımsız hesaplanır
           const odds = estimateMarketOdds(
             c.betKey, homeWinProb, awayWinProb,
             homeFormScore, awayFormScore, lambda
@@ -426,9 +426,9 @@ export async function GET(request: NextRequest) {
           fix: 'v3: Tarihsel doğruluk EV hesabında kullanılmıyor — sadece kalite göstergesi. Bu, v2\'deki yapay +166% EV hatasını düzeltti.',
           modelAccuracy: MODEL_ACCURACY,
           marketEdge: {
-            under25: 'Poisson modeli %55+ alt tahminlediğinde piyasa ~1.88 (imp.%53) → EV+',
+            under25: 'GoalFlux modeli %55+ alt tahminlediğinde piyasa ~1.88 (imp.%53) → EV+',
             awayWin: 'Bookmakerlar ev sahibi önyargısıyla deplasmanı pahalı gösterir → dep. güçlüyse EV+',
-            over25: 'λ > 2.8 maçlarda Poisson üst olasılığı %55+ → piyasa genellikle 2.00 önerir',
+            over25: 'λ > 2.8 maçlarda GoalFlux üst olasılığı %55+ → piyasa genellikle 2.00 önerir',
           },
         },
       },
