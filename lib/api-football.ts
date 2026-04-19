@@ -231,11 +231,11 @@ export class ApiFootballService {
             await sleep(backoff);
             continue;
           }
-          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          throw new Error(`AwaStats veri servisi şu an yanıt vermedi (kod ${response.status})`);
         }
 
         if (!response.ok) {
-          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+          throw new Error(`AwaStats veri servisi şu an yanıt vermedi (kod ${response.status})`);
         }
 
         const data = (await response.json()) as ApiFootballResponse<T>;
