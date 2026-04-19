@@ -38,7 +38,7 @@ export const mmaConfig: SportConfig = {
   displayName: 'MMA',
   displayNameTR: 'MMA',
   apiBase: 'https://v1.mma.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   // Fight sport: skor yok. avgScoreHome/Away burada "dövüşçü başına beklenen
   // galibiyet oranı" olarak yorumlanır — çekişmeli eşleşmede 0.5'e yakın.
   avgScoreHome: 0.5,

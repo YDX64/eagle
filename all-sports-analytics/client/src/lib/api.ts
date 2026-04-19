@@ -7,7 +7,7 @@
  */
 
 const API_BASE = 'https://v1.hockey.api-sports.io';
-const API_KEY = 'b9ccb3be380b9f990745280ac95b4763';
+const API_KEY = (import.meta as any).env?.VITE_AWASTATS_API_KEY || '';
 
 interface ApiResponse<T> {
   get: string;

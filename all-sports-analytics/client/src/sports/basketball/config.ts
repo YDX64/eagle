@@ -20,7 +20,7 @@ export const basketballConfig: SportConfig = {
   displayName: 'Basketball',
   displayNameTR: 'Basketbol',
   apiBase: 'https://v1.basketball.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 80,
   avgScoreAway: 78,
   homeAdvantage: 1.05,

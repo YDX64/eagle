@@ -17,7 +17,7 @@ export const hockeyConfig: SportConfig = {
   displayName: 'Hockey',
   displayNameTR: 'Buz Hokeyi',
   apiBase: 'https://v1.hockey.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 3.0,
   avgScoreAway: 2.7,
   homeAdvantage: 1.08,

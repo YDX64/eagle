@@ -5,7 +5,7 @@ export const footballConfig: SportConfig = {
   displayName: 'Football',
   displayNameTR: 'Futbol',
   apiBase: 'https://v3.football.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 1.50,
   avgScoreAway: 1.10,
   homeAdvantage: 1.10,

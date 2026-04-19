@@ -22,7 +22,7 @@ export const americanFootballConfig: SportConfig = {
   displayName: 'American Football',
   displayNameTR: 'Amerikan Futbolu',
   apiBase: 'https://v1.american-football.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 24,
   avgScoreAway: 21,
   homeAdvantage: 1.06,

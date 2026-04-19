@@ -8,7 +8,7 @@
  * Cache: In-memory + 5 dakika TTL default
  */
 
-const STATSVAULT_KEY = 'b9ccb3be380b9f990745280ac95b4763';
+const STATSVAULT_KEY = (import.meta as any).env?.VITE_AWASTATS_API_KEY || '';
 
 const DEFAULT_TTL = 5 * 60 * 1000;
 

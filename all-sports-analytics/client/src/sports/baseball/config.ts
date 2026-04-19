@@ -29,7 +29,7 @@ export const baseballConfig: SportConfig = {
   displayName: 'Baseball',
   displayNameTR: 'Beyzbol',
   apiBase: 'https://v1.baseball.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 4.4,
   avgScoreAway: 4.2,
   homeAdvantage: 1.04,

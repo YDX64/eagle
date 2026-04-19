@@ -21,7 +21,7 @@ export const volleyballConfig: SportConfig = {
   displayName: 'Volleyball',
   displayNameTR: 'Voleybol',
   apiBase: 'https://v1.volleyball.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   // Baseline expected sets won per team (best-of-5 @ p=0.55 → home~2.26, away~1.74)
   avgScoreHome: 2.26,
   avgScoreAway: 1.74,

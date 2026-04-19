@@ -23,7 +23,7 @@ export const rugbyConfig: SportConfig = {
   displayName: 'Rugby',
   displayNameTR: 'Ragbi',
   apiBase: 'https://v1.rugby.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 25,
   avgScoreAway: 22,
   homeAdvantage: 1.08,

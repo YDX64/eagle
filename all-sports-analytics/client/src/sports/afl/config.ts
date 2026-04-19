@@ -23,7 +23,7 @@ export const aflConfig: SportConfig = {
   displayName: 'Australian Football',
   displayNameTR: 'Avustralya Futbolu (AFL)',
   apiBase: 'https://v1.afl.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 90,
   avgScoreAway: 82,
   homeAdvantage: 1.07,

@@ -18,7 +18,7 @@ export const handballConfig: SportConfig = {
   displayName: 'Handball',
   displayNameTR: 'Hentbol',
   apiBase: 'https://v1.handball.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 28,
   avgScoreAway: 27,
   homeAdvantage: 1.08,

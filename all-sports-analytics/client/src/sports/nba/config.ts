@@ -16,7 +16,7 @@ export const nbaConfig: SportConfig = {
   displayName: 'NBA',
   displayNameTR: 'NBA',
   apiBase: 'https://v2.nba.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   avgScoreHome: 115,
   avgScoreAway: 112,
   homeAdvantage: 1.04,

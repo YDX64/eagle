@@ -27,7 +27,7 @@ export const formula1Config: SportConfig = {
   displayName: 'Formula 1',
   displayNameTR: 'Formula 1',
   apiBase: 'https://v1.formula-1.api-sports.io',
-  apiKey: 'b9ccb3be380b9f990745280ac95b4763',
+  apiKey: '',
   // Pozisyon-tabanlı olduğundan avg score alanları placeholder 0'dır.
   avgScoreHome: 0,
   avgScoreAway: 0,
