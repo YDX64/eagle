@@ -3,6 +3,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Velocity Glass: hide scrollbar on tab switcher */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Material Symbols Outlined base settings */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -41,14 +41,18 @@ class InMemoryCache {
 // Try to import prisma, but don't fail if database is not configured
 let prisma: any = null;
 try {
-  const db = require('./db');
-  prisma = db.prisma;
+  const dbUrl = process.env.DATABASE_URL || '';
+  // Only use database if it's a valid PostgreSQL URL
+  if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
+    const db = require('./db');
+    prisma = db.prisma;
+  }
 } catch (error) {
-  console.warn('Database not configured, using in-memory cache');
+  // Silently fall back to in-memory cache
 }
 
 export class CacheService {
-  private static useDatabase = !!prisma && process.env.DATABASE_URL !== 'postgresql://username:password@localhost:5432/database_name';
+  private static useDatabase = !!prisma;
 
   /**
    * Get cached data

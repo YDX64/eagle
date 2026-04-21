@@ -129,18 +129,15 @@ export async function GET(
           homeForm,
           awayForm,
           h2hRecord as any,
-          homeStanding ? {
-            rank: homeStanding.rank,
-            points: homeStanding.points
-          } as any : undefined,
-          awayStanding ? {
-            rank: awayStanding.rank,
-            points: awayStanding.points
-          } as any : undefined
+          homeStanding as any,
+          awayStanding as any
         );
 
-        // Save match data first to ensure foreign keys exist
+        // Save match data to database (only if PostgreSQL is configured)
+        const dbUrl = process.env.DATABASE_URL || '';
+        const useDb = dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://');
         try {
+          if (!useDb) throw new Error('skip-db');
           // Save league - check if exists first
           const existingLeague = await prisma.league.findFirst({
             where: {
@@ -280,7 +277,7 @@ export async function GET(
             console.log(`[PREDICTION] Prediction already exists for match ${matchId}`);
           }
         } catch (dbError) {
-          console.error('[PREDICTION] Database error:', dbError);
+          // Silently skip DB errors when PostgreSQL is not configured
         }
 
         return {

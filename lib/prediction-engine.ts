@@ -1,5 +1,6 @@
 
-import { Match, Team, Standing, MatchStatistic, HeadToHead } from '@prisma/client';
+import { Match, Team, MatchStatistic, HeadToHead } from '@prisma/client';
+import type { Standing } from '@/lib/api-football';
 
 export interface TeamForm {
   recent_matches: number;
@@ -66,29 +67,54 @@ export interface MatchPrediction {
 
 export class PredictionEngine {
   /**
+   * Poisson probability P(X=k) for given lambda
+   */
+  static poissonProbability(k: number, lambda: number): number {
+    if (lambda <= 0) return k === 0 ? 1 : 0;
+    let logP = -lambda + k * Math.log(lambda);
+    for (let i = 2; i <= k; i++) logP -= Math.log(i);
+    return Math.exp(logP);
+  }
+
+  /**
    * Calculate team form based on recent matches
+   * Uses exponential weighting: weight = 0.84^(games_ago)
+   * Most recent match has ~2x the weight of the 5th most recent
    */
   static calculateTeamForm(recentMatches: Match[], teamId: number): TeamForm {
     let wins = 0, draws = 0, losses = 0, goals_for = 0, goals_against = 0;
-    
-    recentMatches.forEach(match => {
+    let weightedPoints = 0, totalWeight = 0;
+
+    // Matches should be sorted most recent first
+    recentMatches.forEach((match, idx) => {
       const isHome = match.home_team_id === teamId;
       const teamGoals = isHome ? (match.home_goals || 0) : (match.away_goals || 0);
       const opponentGoals = isHome ? (match.away_goals || 0) : (match.home_goals || 0);
-      
+
       goals_for += teamGoals;
       goals_against += opponentGoals;
-      
-      if (teamGoals > opponentGoals) wins++;
-      else if (teamGoals === opponentGoals) draws++;
-      else losses++;
+
+      // Exponential weight: 0.84^idx => game 0=1.0, game 4=0.498 (~2x ratio)
+      const weight = Math.pow(0.84, idx);
+      totalWeight += weight;
+
+      if (teamGoals > opponentGoals) {
+        wins++;
+        weightedPoints += 3 * weight;
+      } else if (teamGoals === opponentGoals) {
+        draws++;
+        weightedPoints += 1 * weight;
+      } else {
+        losses++;
+        // 0 points
+      }
     });
-    
+
     const total_matches = recentMatches.length;
-    const points = (wins * 3) + draws;
-    const max_points = total_matches * 3;
-    const form_score = max_points > 0 ? points / max_points : 0.5;
-    
+    // Weighted form score: normalize to 0-1 (max possible = 3 * totalWeight)
+    const maxWeightedPoints = totalWeight * 3;
+    const form_score = maxWeightedPoints > 0 ? weightedPoints / maxWeightedPoints : 0.5;
+
     return {
       recent_matches: total_matches,
       wins,
@@ -101,55 +127,130 @@ export class PredictionEngine {
   }
 
   /**
-   * Calculate home advantage score based on head-to-head records
+   * Calculate home advantage score based on head-to-head records and standings
+   * Uses actual home/away win rates when available, not flat multipliers
+   * Typical home win rate in most leagues: 45-50%
    */
-  static calculateHomeAdvantage(h2hRecord: HeadToHead | null): number {
-    if (!h2hRecord || h2hRecord.total_matches < 3) {
-      return 0.55; // Default slight home advantage
+  static calculateHomeAdvantage(
+    h2hRecord: HeadToHead | null,
+    homeStanding?: Standing,
+    awayStanding?: Standing
+  ): number {
+    // Data-driven: use actual home/away win rates from standings
+    let dataHomeAdvantage = 0.47; // League-typical default (~47% home win rate)
+    if (homeStanding && awayStanding) {
+      const hPlayed = homeStanding.home?.played || 0;
+      const aPlayed = awayStanding.away?.played || 0;
+      if (hPlayed > 0 && aPlayed > 0) {
+        const homeWinRateAtHome = homeStanding.home.win / hPlayed;
+        const awayWinRateAway = awayStanding.away.win / aPlayed;
+        // Blend: how strong this home team is at home vs how weak the away team is away
+        dataHomeAdvantage = (homeWinRateAtHome + (1 - awayWinRateAway)) / 2;
+      }
     }
-    
-    const homeWinRate = h2hRecord.team1_wins / h2hRecord.total_matches;
-    const awayWinRate = h2hRecord.team2_wins / h2hRecord.total_matches;
-    
-    // Adjust for general home advantage (typically 5-10% boost)
-    const homeAdvantageBoost = 0.07;
-    return Math.min(0.8, Math.max(0.2, homeWinRate + homeAdvantageBoost));
+
+    // H2H adjustment with sample-size-dependent blending
+    if (h2hRecord && h2hRecord.total_matches > 0) {
+      const h2hHomeRate = h2hRecord.team1_wins / h2hRecord.total_matches;
+      // Blend: <3 matches -> 30% H2H / 70% data, 5+ -> 50/50
+      const h2hBlend = h2hRecord.total_matches < 3 ? 0.30
+        : h2hRecord.total_matches < 5 ? 0.30 + (h2hRecord.total_matches - 2) * 0.067
+        : 0.50;
+      dataHomeAdvantage = dataHomeAdvantage * (1 - h2hBlend) + h2hHomeRate * h2hBlend;
+    }
+
+    return Math.min(0.75, Math.max(0.25, dataHomeAdvantage));
   }
 
   /**
    * Calculate position-based score from league standings
+   * Uses points-per-game rather than raw position for accuracy
+   * (3rd place with 2.1 PPG is very different from 3rd with 1.5 PPG)
    */
-  static calculatePositionScore(homeRank: number, awayRank: number, totalTeams: number = 20): number {
+  static calculatePositionScore(
+    homeRank: number,
+    awayRank: number,
+    totalTeams: number = 20,
+    homeStanding?: Standing,
+    awayStanding?: Standing
+  ): number {
+    // Prefer PPG-based calculation when standings data is available
+    if (homeStanding && awayStanding) {
+      const homePPG = homeStanding.all.played > 0
+        ? homeStanding.points / homeStanding.all.played : 1.0;
+      const awayPPG = awayStanding.all.played > 0
+        ? awayStanding.points / awayStanding.all.played : 1.0;
+      // Convert PPG to relative strength (0-1, 0.5 = equal)
+      // Max PPG is 3.0, typical range 0.5-2.5
+      const homeStrength = homePPG / 3.0;
+      const awayStrength = awayPPG / 3.0;
+      const total = homeStrength + awayStrength;
+      return total > 0 ? homeStrength / total : 0.5;
+    }
+
+    // Fallback: rank-based
     const homeStrength = (totalTeams - homeRank + 1) / totalTeams;
     const awayStrength = (totalTeams - awayRank + 1) / totalTeams;
-    
-    // Return relative strength (0.5 = equal, >0.5 = home stronger)
     return homeStrength / (homeStrength + awayStrength);
   }
 
   /**
-   * Calculate expected goals and scoring probability
+   * Calculate expected goals using actual team data and Poisson probabilities
+   * Goal expectations derived from attack/defense interaction, not hardcoded averages
    */
   static calculateGoalsAnalysis(
     homeAvgFor: number, homeAvgAgainst: number,
-    awayAvgFor: number, awayAvgAgainst: number
+    awayAvgFor: number, awayAvgAgainst: number,
+    leagueAvgGoals: number = 2.65 // Will be computed from data when available
   ) {
-    // Simple Poisson-based expected goals calculation
-    const homeExpectedGoals = (homeAvgFor + awayAvgAgainst) / 2;
-    const awayExpectedGoals = (awayAvgFor + homeAvgAgainst) / 2;
-    
+    // Attack-defense interaction model
+    // Home xG = (home attack strength * away defense weakness) adjusted to league mean
+    const leagueAvgPerTeam = leagueAvgGoals / 2;
+    const homeAttackStrength = leagueAvgPerTeam > 0 ? homeAvgFor / leagueAvgPerTeam : 1.0;
+    const awayDefenseWeakness = leagueAvgPerTeam > 0 ? awayAvgAgainst / leagueAvgPerTeam : 1.0;
+    const awayAttackStrength = leagueAvgPerTeam > 0 ? awayAvgFor / leagueAvgPerTeam : 1.0;
+    const homeDefenseWeakness = leagueAvgPerTeam > 0 ? homeAvgAgainst / leagueAvgPerTeam : 1.0;
+
+    const homeExpectedGoals = Math.max(0.2, homeAttackStrength * awayDefenseWeakness * leagueAvgPerTeam);
+    const awayExpectedGoals = Math.max(0.15, awayAttackStrength * homeDefenseWeakness * leagueAvgPerTeam);
     const totalExpectedGoals = homeExpectedGoals + awayExpectedGoals;
-    
+
+    // Poisson-based probabilities for over/under thresholds
+    const MAX_GOALS = 8;
+    let overProbs: Record<string, number> = {};
+    let bttsProbability = 0;
+
+    // Build goal probability matrix
+    for (let h = 0; h <= MAX_GOALS; h++) {
+      for (let a = 0; a <= MAX_GOALS; a++) {
+        const prob = this.poissonProbability(h, homeExpectedGoals) *
+                     this.poissonProbability(a, awayExpectedGoals);
+        const total = h + a;
+        for (const threshold of [0.5, 1.5, 2.5, 3.5]) {
+          if (total > threshold) {
+            overProbs[`over_${threshold}`] = (overProbs[`over_${threshold}`] || 0) + prob;
+          }
+        }
+        if (h > 0 && a > 0) bttsProbability += prob;
+      }
+    }
+
     return {
       home_expected_goals: homeExpectedGoals,
       away_expected_goals: awayExpectedGoals,
       total_expected_goals: totalExpectedGoals,
-      expected_goals_score: homeExpectedGoals / (homeExpectedGoals + awayExpectedGoals)
+      expected_goals_score: homeExpectedGoals / (homeExpectedGoals + awayExpectedGoals),
+      over_0_5: overProbs['over_0.5'] || 0,
+      over_1_5: overProbs['over_1.5'] || 0,
+      over_2_5: overProbs['over_2.5'] || 0,
+      over_3_5: overProbs['over_3.5'] || 0,
+      btts_probability: bttsProbability,
     };
   }
 
   /**
-   * Calculate first half goals prediction
+   * Calculate first half goals prediction using proper Poisson distribution
+   * First half typically sees ~43% of total goals (not 60%)
    */
   static calculateFirstHalfGoals(
     homeExpectedGoals: number,
@@ -157,30 +258,33 @@ export class PredictionEngine {
     homeForm: TeamForm,
     awayForm: TeamForm
   ) {
-    // First half typically sees ~60% of full game goals
-    const firstHalfFactor = 0.6;
+    // First half typically sees ~43% of full game goals (empirical across top leagues)
+    const firstHalfFactor = 0.43;
     const homeFirstHalfExpected = homeExpectedGoals * firstHalfFactor;
     const awayFirstHalfExpected = awayExpectedGoals * firstHalfFactor;
     const totalFirstHalfExpected = homeFirstHalfExpected + awayFirstHalfExpected;
-    
-    // Probability calculations using Poisson distribution approximation
-    const over_0_5_probability = 1 - Math.exp(-totalFirstHalfExpected);
-    const over_1_5_probability = 1 - Math.exp(-totalFirstHalfExpected) * (1 + totalFirstHalfExpected);
-    
-    // Individual team first half goal probabilities
-    const homeFirstHalfProb = 1 - Math.exp(-homeFirstHalfExpected);
-    const awayFirstHalfProb = 1 - Math.exp(-awayFirstHalfExpected);
-    
-    // Confidence based on form consistency
-    const homeFormConsistency = homeForm.recent_matches > 0 ? 
-      1 - (Math.abs(homeForm.wins + homeForm.draws - homeForm.recent_matches / 2) / homeForm.recent_matches) : 0.5;
-    const awayFormConsistency = awayForm.recent_matches > 0 ? 
-      1 - (Math.abs(awayForm.wins + awayForm.draws - awayForm.recent_matches / 2) / awayForm.recent_matches) : 0.5;
-    const confidence = (homeFormConsistency + awayFormConsistency) / 2;
-    
+
+    // Proper Poisson-based probability calculations
+    // P(total >= 1) = 1 - P(total = 0)
+    const p0 = this.poissonProbability(0, totalFirstHalfExpected);
+    const p1 = this.poissonProbability(1, totalFirstHalfExpected);
+    const over_0_5_probability = 1 - p0;
+    const over_1_5_probability = 1 - p0 - p1;
+
+    // Individual team first half goal probabilities (P(team scores >= 1))
+    const homeFirstHalfProb = 1 - this.poissonProbability(0, homeFirstHalfExpected);
+    const awayFirstHalfProb = 1 - this.poissonProbability(0, awayFirstHalfExpected);
+
+    // Confidence based on how far the probability is from 50/50
+    // Strong signal (e.g., 80% over) = high confidence; 50/50 = low confidence
+    const signalStrength = Math.abs(over_0_5_probability - 0.5) * 2;
+    // Also factor in form data availability
+    const dataQuality = Math.min(1, (homeForm.recent_matches + awayForm.recent_matches) / 10);
+    const confidence = Math.max(0.35, Math.min(0.90, 0.4 + signalStrength * 0.3 + dataQuality * 0.2));
+
     return {
-      prediction: over_0_5_probability > 0.6 ? 'yes' as const : 'no' as const,
-      confidence: Math.max(0.5, Math.min(0.9, confidence + 0.3)),
+      prediction: over_0_5_probability > 0.55 ? 'yes' as const : 'no' as const,
+      confidence,
       home_first_half_probability: homeFirstHalfProb,
       away_first_half_probability: awayFirstHalfProb,
       over_0_5_probability,
@@ -190,6 +294,8 @@ export class PredictionEngine {
 
   /**
    * Main prediction function
+   * Uses proper Poisson distribution for 1X2, BTTS, and Over/Under
+   * All probabilities are data-driven from actual team statistics
    */
   static async predictMatch(
     homeTeam: Team,
@@ -200,51 +306,71 @@ export class PredictionEngine {
     homeStanding?: Standing,
     awayStanding?: Standing
   ): Promise<MatchPrediction> {
-    
-    // Calculate individual factor scores
-    const homeAdvantageScore = this.calculateHomeAdvantage(h2hRecord);
+
+    // Calculate individual factor scores — now data-driven
+    const homeAdvantageScore = this.calculateHomeAdvantage(h2hRecord, homeStanding, awayStanding);
     const formDifference = homeForm.form_score - awayForm.form_score;
-    
+
     let positionScore = 0.5;
     if (homeStanding && awayStanding) {
-      positionScore = this.calculatePositionScore(homeStanding.rank, awayStanding.rank);
+      positionScore = this.calculatePositionScore(
+        homeStanding.rank, awayStanding.rank, 20, homeStanding, awayStanding
+      );
     }
-    
-    // Goal analysis
-    const homeAvgFor = homeForm.recent_matches > 0 ? homeForm.goals_for / homeForm.recent_matches : 1.5;
-    const homeAvgAgainst = homeForm.recent_matches > 0 ? homeForm.goals_against / homeForm.recent_matches : 1.5;
-    const awayAvgFor = awayForm.recent_matches > 0 ? awayForm.goals_for / awayForm.recent_matches : 1.5;
-    const awayAvgAgainst = awayForm.recent_matches > 0 ? awayForm.goals_against / awayForm.recent_matches : 1.5;
-    
+
+    // Goal analysis from actual data
+    const homeAvgFor = homeForm.recent_matches > 0 ? homeForm.goals_for / homeForm.recent_matches : 1.3;
+    const homeAvgAgainst = homeForm.recent_matches > 0 ? homeForm.goals_against / homeForm.recent_matches : 1.2;
+    const awayAvgFor = awayForm.recent_matches > 0 ? awayForm.goals_for / awayForm.recent_matches : 1.1;
+    const awayAvgAgainst = awayForm.recent_matches > 0 ? awayForm.goals_against / awayForm.recent_matches : 1.4;
+
+    // Compute league average goals from standings if available
+    let leagueAvgGoals = 2.65;
+    if (homeStanding && awayStanding) {
+      const hPlayed = homeStanding.all.played || 1;
+      const aPlayed = awayStanding.all.played || 1;
+      const avgFor = ((homeStanding.all.goals.for / hPlayed) + (awayStanding.all.goals.for / aPlayed)) / 2;
+      const avgAg = ((homeStanding.all.goals.against / hPlayed) + (awayStanding.all.goals.against / aPlayed)) / 2;
+      leagueAvgGoals = avgFor + avgAg;
+      if (leagueAvgGoals < 1.5 || leagueAvgGoals > 4.0) leagueAvgGoals = 2.65; // Sanity
+    }
+
     const goalsAnalysis = this.calculateGoalsAnalysis(
-      homeAvgFor, homeAvgAgainst, awayAvgFor, awayAvgAgainst
+      homeAvgFor, homeAvgAgainst, awayAvgFor, awayAvgAgainst, leagueAvgGoals
     );
 
-    // Weight factors for final prediction
-    const weights = {
-      form: 0.3,
-      home_advantage: 0.2,
-      position: 0.25,
-      goals: 0.25
-    };
+    // ── Poisson-based 1X2 probabilities ──
+    // Adjust expected goals for home advantage and form
+    const homeAdvXGBoost = (homeAdvantageScore - 0.5) * 0.3; // Positive if home is favored
+    const formXGBoost = formDifference * 0.15; // Form impact on xG
+    const homeXG = Math.max(0.3, goalsAnalysis.home_expected_goals + homeAdvXGBoost + formXGBoost);
+    const awayXG = Math.max(0.2, goalsAnalysis.away_expected_goals - homeAdvXGBoost * 0.5 - formXGBoost * 0.5);
 
-    // Calculate composite score (0 = away strong, 0.5 = even, 1 = home strong)
-    const compositeScore = 
-      (0.5 + formDifference * 0.5) * weights.form +
-      homeAdvantageScore * weights.home_advantage +
-      positionScore * weights.position +
-      goalsAnalysis.expected_goals_score * weights.goals;
+    const MAX_GOALS = 8;
+    let rawHome = 0, rawDraw = 0, rawAway = 0;
+    for (let h = 0; h <= MAX_GOALS; h++) {
+      for (let a = 0; a <= MAX_GOALS; a++) {
+        const prob = this.poissonProbability(h, homeXG) * this.poissonProbability(a, awayXG);
+        if (h > a) rawHome += prob;
+        else if (h === a) rawDraw += prob;
+        else rawAway += prob;
+      }
+    }
+    // Normalize to ensure probabilities sum to exactly 100%
+    const totalProb = rawHome + rawDraw + rawAway;
+    let homeProbability = rawHome / totalProb;
+    let drawProbability = rawDraw / totalProb;
+    let awayProbability = rawAway / totalProb;
 
-    // Convert to probabilities
-    let homeProbability = Math.max(0.15, Math.min(0.7, compositeScore));
-    let drawProbability = Math.max(0.2, 1 - Math.abs(compositeScore - 0.5) * 1.6);
-    let awayProbability = 1 - homeProbability - drawProbability;
-    
-    // Normalize probabilities
-    const total = homeProbability + drawProbability + awayProbability;
-    homeProbability /= total;
-    drawProbability /= total;
-    awayProbability /= total;
+    // Position score fine-tuning (small adjustment, not dominant)
+    const posAdj = (positionScore - 0.5) * 0.04; // Max +/- 2% shift
+    homeProbability += posAdj;
+    awayProbability -= posAdj;
+    // Re-normalize
+    const reTotal = homeProbability + drawProbability + awayProbability;
+    homeProbability /= reTotal;
+    drawProbability /= reTotal;
+    awayProbability /= reTotal;
 
     // Determine winner prediction
     const maxProb = Math.max(homeProbability, drawProbability, awayProbability);
@@ -252,13 +378,12 @@ export class PredictionEngine {
     if (homeProbability === maxProb) winner = 'home';
     else if (awayProbability === maxProb) winner = 'away';
 
-    // Both teams to score prediction
-    const avgGoalsPerTeam = (goalsAnalysis.home_expected_goals + goalsAnalysis.away_expected_goals) / 2;
-    const bothTeamsScoreProb = Math.min(0.8, avgGoalsPerTeam * 0.35 + 0.2);
-    
-    // Over/Under prediction (typically 2.5 goals)
+    // Both teams to score — Poisson-derived (already computed in goalsAnalysis)
+    const bothTeamsScoreProb = goalsAnalysis.btts_probability;
+
+    // Over/Under 2.5 — Poisson-derived
     const overUnderThreshold = 2.5;
-    const overProbability = goalsAnalysis.total_expected_goals > overUnderThreshold ? 0.6 : 0.4;
+    const overProbability = goalsAnalysis.over_2_5;
 
     // First half goals prediction
     const firstHalfGoals = this.calculateFirstHalfGoals(

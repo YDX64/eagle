@@ -335,6 +335,14 @@ export class AdvancedPredictionEngine {
     if (n <= 1) return 1;
     return n * this.factorial(n - 1);
   }
+
+  static poissonCumulativeBelow(k: number, lambda: number): number {
+    let sum = 0;
+    for (let i = 0; i < k; i++) {
+      sum += this.poissonProbability(i, lambda);
+    }
+    return sum;
+  }
   
   /**
    * Generate exact score predictions using Poisson distribution
@@ -583,32 +591,45 @@ export class AdvancedPredictionEngine {
       });
     }
     
-    // Medium Risk Bets
-    if (totalExpectedGoals > 3.2) {
+    // Medium Risk Bets - use REAL calculated probabilities, never hardcoded
+    const over_3_5_prob = 1 - under_3_5;
+    if (over_3_5_prob > 0.40) {
       mediumRiskBets.push({
         title: 'Üst 3.5 Gol',
         description: 'Yüksek gol potansiyeli var',
-        confidence: 65,
-        reason: `Yüksek beklenen gol sayısı (${totalExpectedGoals.toFixed(1)})`,
+        confidence: Math.round(over_3_5_prob * 100),
+        reason: `Beklenen toplam gol: ${totalExpectedGoals.toFixed(1)}, Üst 3.5 olasılığı: %${Math.round(over_3_5_prob * 100)}`,
         recommendation: `Dikkatli değerlendirme gerekiyor, orta risk seviyesi`
       });
+    } else if (under_3_5 > 0.65) {
+      mediumRiskBets.push({
+        title: 'Alt 3.5 Gol',
+        description: 'Düşük gol beklentisi',
+        confidence: Math.round(under_3_5 * 100),
+        reason: `Beklenen toplam gol: ${totalExpectedGoals.toFixed(1)}, Alt 3.5 olasılığı: %${Math.round(under_3_5 * 100)}`,
+        recommendation: `Düşük skorlu maç beklentisi`
+      });
     }
-    
-    if (homeExpectedGoals > 2.0) {
+
+    // Home team over 1.5 - calculate from Poisson
+    const homeOver1_5 = 1 - (this.poissonProbability(0, homeExpectedGoals) + this.poissonProbability(1, homeExpectedGoals));
+    if (homeOver1_5 > 0.45) {
       mediumRiskBets.push({
         title: 'Ev Sahibi Üst 1.5 Gol',
         description: 'Ev sahibi takımın 2+ gol atması',
-        confidence: 60,
+        confidence: Math.round(homeOver1_5 * 100),
         reason: `Güçlü ev sahibi hücum performansı (Beklenen: ${homeExpectedGoals.toFixed(1)} gol)`,
         recommendation: `Ev avantajı dikkate alınarak değerlendirilebilir`
       });
     }
-    
-    if (awayExpectedGoals > 1.8) {
+
+    // Away team over 1.5 - calculate from Poisson
+    const awayOver1_5 = 1 - (this.poissonProbability(0, awayExpectedGoals) + this.poissonProbability(1, awayExpectedGoals));
+    if (awayOver1_5 > 0.40) {
       mediumRiskBets.push({
         title: 'Deplasman Üst 1.5 Gol',
         description: 'Deplasman takımın 2+ gol atması',
-        confidence: 58,
+        confidence: Math.round(awayOver1_5 * 100),
         reason: `İyi deplasman hücum performansı (Beklenen: ${awayExpectedGoals.toFixed(1)} gol)`,
         recommendation: `Deplasman gücü göz önünde bulundurularak değerlendirilebilir`
       });

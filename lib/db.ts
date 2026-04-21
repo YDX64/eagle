@@ -12,7 +12,10 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// Gracefully handle connection
-prisma.$connect().catch((error: any) => {
-  console.error('Failed to connect to database:', error);
-});
+// Only connect if DATABASE_URL is a valid PostgreSQL URL
+const dbUrl = process.env.DATABASE_URL || '';
+if (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) {
+  prisma.$connect().catch((error: any) => {
+    console.error('Failed to connect to database:', error);
+  });
+}

@@ -577,3 +577,208 @@ model BulkAnalysisResult {
   @@index([own_an_value_score, risk_variance_score])
   @@map("bulk_analysis_results")
 }
+
+// ==========================================
+// MULTI-SPORT MODELS
+// ==========================================
+
+enum Sport {
+  football
+  basketball
+  hockey
+  volleyball
+  handball
+}
+
+model BasketballGame {
+  id              Int       @id
+  date            DateTime
+  timestamp       Int
+  timezone        String?
+  week            String?
+  status_long     String
+  status_short    String
+  league_id       Int
+  league_name     String
+  league_season   String
+  league_logo     String?
+  country_name    String?
+  country_flag    String?
+  home_team_id    Int
+  away_team_id    Int
+  home_team_name  String
+  away_team_name  String
+  home_team_logo  String?
+  away_team_logo  String?
+  home_q1         Int?
+  home_q2         Int?
+  home_q3         Int?
+  home_q4         Int?
+  home_ot         Int?
+  home_total      Int?
+  away_q1         Int?
+  away_q2         Int?
+  away_q3         Int?
+  away_q4         Int?
+  away_ot         Int?
+  away_total      Int?
+  score_details   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([league_id, date])
+  @@index([home_team_id])
+  @@index([away_team_id])
+  @@map("basketball_games")
+}
+
+model HockeyGame {
+  id              Int       @id
+  date            DateTime
+  timestamp       Int
+  timezone        String?
+  week            String?
+  status_long     String
+  status_short    String
+  league_id       Int
+  league_name     String
+  league_season   String
+  league_logo     String?
+  country_name    String?
+  country_flag    String?
+  home_team_id    Int
+  away_team_id    Int
+  home_team_name  String
+  away_team_name  String
+  home_team_logo  String?
+  away_team_logo  String?
+  home_p1         Int?
+  home_p2         Int?
+  home_p3         Int?
+  home_ot         Int?
+  home_pen        Int?
+  home_total      Int?
+  away_p1         Int?
+  away_p2         Int?
+  away_p3         Int?
+  away_ot         Int?
+  away_pen        Int?
+  away_total      Int?
+  score_details   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([league_id, date])
+  @@map("hockey_games")
+}
+
+model HandballGame {
+  id              Int       @id
+  date            DateTime
+  timestamp       Int
+  timezone        String?
+  week            String?
+  status_long     String
+  status_short    String
+  league_id       Int
+  league_name     String
+  league_season   String
+  league_logo     String?
+  country_name    String?
+  country_flag    String?
+  home_team_id    Int
+  away_team_id    Int
+  home_team_name  String
+  away_team_name  String
+  home_team_logo  String?
+  away_team_logo  String?
+  home_h1         Int?
+  home_h2         Int?
+  home_et         Int?
+  home_pen        Int?
+  home_total      Int?
+  away_h1         Int?
+  away_h2         Int?
+  away_et         Int?
+  away_pen        Int?
+  away_total      Int?
+  score_details   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([league_id, date])
+  @@map("handball_games")
+}
+
+model VolleyballGame {
+  id              Int       @id
+  date            DateTime
+  timestamp       Int
+  timezone        String?
+  week            String?
+  status_long     String
+  status_short    String
+  league_id       Int
+  league_name     String
+  league_season   String
+  league_logo     String?
+  country_name    String?
+  country_flag    String?
+  home_team_id    Int
+  away_team_id    Int
+  home_team_name  String
+  away_team_name  String
+  home_team_logo  String?
+  away_team_logo  String?
+  home_s1         Int?
+  home_s2         Int?
+  home_s3         Int?
+  home_s4         Int?
+  home_s5         Int?
+  home_total      Int?
+  away_s1         Int?
+  away_s2         Int?
+  away_s3         Int?
+  away_s4         Int?
+  away_s5         Int?
+  away_total      Int?
+  score_details   Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([league_id, date])
+  @@map("volleyball_games")
+}
+
+model SportPrediction {
+  id                    Int       @id @default(autoincrement())
+  sport                 Sport
+  game_id               Int
+  prediction_type       String
+  predicted_value       String
+  confidence_score      Float
+  is_high_confidence    Boolean   @default(false)
+  confidence_tier       String?
+  expected_value        Float?
+  kelly_percentage      Float?
+  market_odds           Float?
+  implied_probability   Float?
+  our_probability       Float?
+  value_edge            Float?
+  algorithm_version     String    @default("1.0")
+  factors_used          Json?
+  is_correct            Boolean?
+  actual_result         String?
+  reasoning             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([sport, is_high_confidence, confidence_score])
+  @@index([sport, confidence_tier, createdAt])
+  @@index([sport, game_id])
+  @@map("sport_predictions")
+}

@@ -182,7 +182,7 @@ const formatMatchDate = (fixture?: Fixture['fixture']): { date: string; time: st
       month: '2-digit',
       year: 'numeric'
     })
-    .replaceAll('/', '-');
+    .split('/').join('-');
 
   const timeStr = date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
@@ -424,30 +424,43 @@ export const mapPredictionData = (
 export const mapBankerPrediction = (
   prediction: AdvancedMatchPrediction
 ): BettingPredictionData['predictions']['banko'] => {
-  const pools = [
-    { entries: prediction.risk_analysis?.high_confidence_bets ?? [], priority: 3 },
-    { entries: prediction.risk_analysis?.medium_risk_bets ?? [], priority: 2 },
-    { entries: prediction.risk_analysis?.high_risk_bets ?? [], priority: 1 }
-  ];
+  // Only use HIGH CONFIDENCE bets for banker - not medium/high risk
+  const highConfBets = prediction.risk_analysis?.high_confidence_bets ?? [];
 
-  const best = pools
-    .flatMap(({ entries, priority }) =>
-      entries.map((entry) => ({ ...entry, priority }))
-    )
-    .sort((a, b) => {
-      const diff = (b.confidence ?? 0) - (a.confidence ?? 0);
-      if (diff !== 0) {
-        return diff;
-      }
-      return (b.priority ?? 0) - (a.priority ?? 0);
-    })[0];
+  // Sort by confidence, but cap at realistic levels
+  const best = highConfBets
+    .filter((b) => (b.confidence ?? 0) > 0)
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))[0];
 
-  const fallbackConfidence = roundPercentage(prediction.prediction_confidence ?? prediction.match_result?.confidence);
+  // If no high confidence bet, use match result confidence as banker
+  const matchConfidence = roundPercentage(
+    prediction.prediction_confidence ?? prediction.match_result?.confidence
+  );
+
+  if (best && (best.confidence ?? 0) >= 55) {
+    return {
+      value: roundPercentage(best.confidence),
+      prediction: best.title ?? 'Model Confidence',
+      source: 'risk analysis'
+    };
+  }
+
+  // Fallback: use the strongest match result prediction
+  const mr = prediction.match_result;
+  const homeProb = mr?.home_win?.probability ?? 0;
+  const drawProb = mr?.draw?.probability ?? 0;
+  const awayProb = mr?.away_win?.probability ?? 0;
+  const maxProb = Math.max(homeProb, drawProb, awayProb);
+
+  let bankerLabel = 'Mac Sonucu Tahmini';
+  if (maxProb === homeProb) bankerLabel = 'Ev Sahibi Kazanir';
+  else if (maxProb === awayProb) bankerLabel = 'Deplasman Kazanir';
+  else bankerLabel = 'Beraberlik';
 
   return {
-    value: roundPercentage(best?.confidence ?? fallbackConfidence),
-    prediction: best?.title ?? 'Model Confidence',
-    source: best?.recommendation ? 'risk analysis' : 'ava-football.ai'
+    value: roundPercentage(maxProb),
+    prediction: bankerLabel,
+    source: 'match analysis'
   };
 };
 
@@ -491,12 +504,16 @@ export const mapCardCornerPredictions = (
 export const transformApiResponseToMuiData = (
   response: PredictionApiResponse
 ): BettingPredictionData => {
-  const advancedPrediction = response.sourceSnapshots?.advancedPrediction;
-  
+  // Try multiple locations for advanced prediction data
+  const advancedPrediction =
+    response.sourceSnapshots?.advancedPrediction ||
+    response.advancedPrediction ||
+    response.prediction;
+
   if (!advancedPrediction) {
     throw new Error('Advanced prediction data is not available in the response');
   }
-  
+
   return {
     matchData: mapMatchHeader(response),
     predictions: mapPredictionData(advancedPrediction)

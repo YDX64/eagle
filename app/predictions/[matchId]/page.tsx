@@ -1,42 +1,18 @@
 'use client';
 
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Typography,
-} from '@mui/material';
-import { ChevronLeft } from 'lucide-react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { use, useEffect, useMemo, useState } from 'react';
-
-import BettingPrediction from '@/components/mui-analysis/betting-prediction';
-import MuiAnalysisThemeProvider from '@/components/mui-analysis/mui-theme-provider';
-import {
-  transformApiResponseToMuiData,
-  type BettingPredictionData,
-  type PredictionApiResponse,
-} from '@/lib/mui-data-mapper';
-import type { PredictionApiData } from '@/lib/types';
-
-type PredictionEnvelope = {
-  success: boolean;
-  data: PredictionApiData;
-  error?: string;
-  message?: string;
-};
+import VelocityGlassPrediction from '@/components/velocity-glass-prediction';
+import type { EnhancedPredictionResult } from '@/lib/enhanced-prediction-engine';
 
 type PredictionsPageProps = {
-  params: Promise<{
-    matchId: string;
-  }>;
+  params: Promise<{ matchId: string }>;
 };
 
 export default function PredictionsPage({ params }: PredictionsPageProps) {
   const { matchId } = use(params);
   const router = useRouter();
-  const [data, setData] = useState<PredictionApiData | null>(null);
+  const [data, setData] = useState<EnhancedPredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,148 +25,115 @@ export default function PredictionsPage({ params }: PredictionsPageProps) {
 
     const load = async () => {
       try {
-        const response = await fetch(`/api/predictions/${matchId}`, {
+        // Try enhanced endpoint first
+        let response = await fetch(`/api/predictions/${matchId}/enhanced`, {
           signal: controller.signal,
         });
 
+        // Fall back to standard endpoint if enhanced isn't available
         if (!response.ok) {
-          throw new Error('Unable to retrieve prediction data.');
+          response = await fetch(`/api/predictions/${matchId}`, {
+            signal: controller.signal,
+          });
         }
 
-        const payload = (await response.json()) as PredictionEnvelope;
+        if (!response.ok) {
+          throw new Error('Tahmin verileri alınamadı.');
+        }
+
+        const payload = await response.json();
 
         if (!payload.success) {
-          throw new Error(
-            payload.error ||
-              payload.message ||
-              'Unable to retrieve prediction data.',
-          );
+          throw new Error(payload.error || payload.message || 'Tahmin verileri alınamadı.');
         }
 
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         setData(payload.data);
       } catch (fetchError) {
-        if (!active || (fetchError as Error).name === 'AbortError') {
-          return;
-        }
-
-        setError(
-          (fetchError as Error).message ||
-            'An unexpected error prevented loading predictions.',
-        );
+        if (!active || (fetchError as Error).name === 'AbortError') return;
+        setError((fetchError as Error).message || 'Beklenmeyen bir hata oluştu.');
       } finally {
-        if (active) {
-          setIsLoading(false);
-        }
+        if (active) setIsLoading(false);
       }
     };
 
     void load();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
+    return () => { active = false; controller.abort(); };
   }, [matchId]);
 
-  const mappedData = useMemo<BettingPredictionData | null>(() => {
-    if (!data) {
-      return null;
-    }
-
-    try {
-      return transformApiResponseToMuiData(data);
-    } catch (mappingError) {
-      console.error('[PredictionsPage] Failed to map prediction data', mappingError);
-      return null;
-    }
-  }, [data]);
-
-  return (
-    <MuiAnalysisThemeProvider>
-      <Box
-        sx={{
-          minHeight: '100vh',
-          backgroundColor: 'background.default',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingY: { xs: 6, md: 8 },
-          paddingX: { xs: 2, md: 4 },
-          width: '100%',
+  // Loading state with Velocity Glass style
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#090e1c] flex items-center justify-center"
+        style={{
+          background: `
+            radial-gradient(at 0% 0%, rgba(0,245,255,0.05) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(47,248,1,0.03) 0px, transparent 50%),
+            #090e1c
+          `
         }}
       >
-        {isLoading && (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2,
-            }}
-          >
-            <CircularProgress color="primary" />
-            <Typography variant="body2" color="text.secondary">
-              Loading prediction data…
-            </Typography>
-          </Box>
-        )}
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-[#a1faff]/30 border-t-[#a1faff] rounded-full animate-spin" />
+          <p className="font-label text-sm text-[#a6aabf] tracking-wider">Analiz yapılıyor...</p>
+          <p className="font-label text-[10px] text-[#434759]">4 farklı motor çalışıyor</p>
+        </div>
+      </div>
+    );
+  }
 
-        {!isLoading && error && (
-          <Alert
-            severity="error"
-            variant="outlined"
-            sx={{ maxWidth: 520, width: '100%' }}
-          >
-            {error}
-          </Alert>
-        )}
-
-        {!isLoading && !error && mappedData && (
-          <Box sx={{ width: '100%' }}>
-            <Box
-              sx={{
-                position: 'fixed',
-                top: { xs: 16, md: 24 },
-                left: { xs: 16, md: 32 },
-                zIndex: (theme) => theme.zIndex.appBar + 1,
-              }}
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#090e1c] flex items-center justify-center p-4"
+        style={{
+          background: `
+            radial-gradient(at 0% 0%, rgba(0,245,255,0.05) 0px, transparent 50%),
+            #090e1c
+          `
+        }}
+      >
+        <div className="max-w-md w-full bg-[rgba(30,37,59,0.4)] backdrop-blur-2xl border border-[#ff716c]/20 rounded-3xl p-8 text-center">
+          <span className="material-symbols-outlined text-[#ff716c] text-4xl mb-4">error</span>
+          <p className="font-headline font-bold text-lg text-[#e1e4fa] mb-2">Hata</p>
+          <p className="font-body text-sm text-[#a6aabf] mb-6">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-[#a1faff]/10 text-[#a1faff] rounded-full font-label text-sm hover:bg-[#a1faff]/20 transition-colors"
             >
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<ChevronLeft size={18} />}
-                onClick={() => router.push('/')}
-                sx={{
-                  borderRadius: 999,
-                  boxShadow: '0 10px 30px rgba(15, 118, 110, 0.35)',
-                }}
-              >
-                Back to Dashboard
-              </Button>
-            </Box>
+              Tekrar Dene
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="px-6 py-2 bg-[#1e253b] text-[#a6aabf] rounded-full font-label text-sm hover:bg-[#242b43] transition-colors"
+            >
+              Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-            <BettingPrediction
-              matchData={mappedData.matchData}
-              predictions={mappedData.predictions}
-            />
-          </Box>
-        )}
-
-        {!isLoading && !error && !mappedData && (
-          <Alert
-            severity="warning"
-            variant="outlined"
-            sx={{ maxWidth: 520, width: '100%' }}
+  // Render prediction
+  if (data) {
+    return (
+      <>
+        {/* Back button */}
+        <div className="fixed top-4 left-4 z-50 lg:top-6 lg:left-8">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 px-4 py-2 bg-[rgba(30,37,59,0.6)] backdrop-blur-xl text-[#a1faff] rounded-full font-label text-xs hover:bg-[rgba(30,37,59,0.8)] transition-colors shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
           >
-            Prediction data is available but could not be displayed.
-          </Alert>
-        )}
-      </Box>
-    </MuiAnalysisThemeProvider>
-  );
-}
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Dashboard
+          </button>
+        </div>
+        <VelocityGlassPrediction data={data} />
+      </>
+    );
+  }
 
+  return null;
+}

@@ -91,7 +91,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             }
             
             // Try to get head to head
-            h2hData = await ApiFootballService.getHeadToHead(match.teams.home.id, match.teams.away.id);
+            h2hData = await ApiFootballService.getHeadToHead(`${match.teams.home.id}-${match.teams.away.id}`);
             
             // Try to get standings
             standings = await ApiFootballService.getStandings(match.league.id, match.league.season);
@@ -179,7 +179,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             winner_confidence: confidence,
             btts_prediction: (homeFormScore + awayFormScore) > 1.2 ? 'yes' : 'no',
             btts_confidence: Math.min(0.9, 0.5 + Math.abs(homeFormScore + awayFormScore - 1.0) * 0.4),
-            over_under_prediction: (homeFormScore + awayFormScore + (h2hData?.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / (h2hData?.length || 1) / 3 || 0.5)) > 1.3 ? 'over' : 'under',
+            over_under_prediction: (homeFormScore + awayFormScore + ((h2hData && h2hData.length > 0 ? h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length / 3 : 0.5))) > 1.3 ? 'over' : 'under',
             over_under_confidence: Math.min(0.9, 0.5 + confidence * 0.35),
             
             // Real analysis factors
@@ -187,7 +187,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             away_form_score: awayFormScore,
             head_to_head_score: h2hScore,
             home_advantage: homeAdvantage,
-            goals_analysis: h2hData?.length > 0 ? Math.min(0.9, 0.3 + (h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length) * 0.15) : 0.5,
+            goals_analysis: (h2hData && h2hData.length > 0) ? Math.min(0.9, 0.3 + (h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length) * 0.15) : 0.5,
             
             // Overall assessment
             overall_confidence: confidence,
@@ -232,15 +232,15 @@ async function bulkAnalysisHandler(request: NextRequest) {
             api_h2h_home_wins: h2hData?.filter((h: any) => h.teams.home.winner === true).length || null,
             api_h2h_away_wins: h2hData?.filter((h: any) => h.teams.away.winner === true).length || null,
             api_h2h_draws: h2hData?.filter((h: any) => h.teams.home.winner === null && h.teams.away.winner === null).length || null,
-            api_h2h_avg_goals_per_match: h2hData?.length > 0 ? h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length : null,
+            api_h2h_avg_goals_per_match: (h2hData && h2hData.length > 0) ? h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length : null,
             
             // API Football League Stats (real data from standings)
             api_league_home_position: standings?.find((s: any) => s.team.id === match.teams.home.id)?.rank || null,
             api_league_away_position: standings?.find((s: any) => s.team.id === match.teams.away.id)?.rank || null,
             api_league_home_points: standings?.find((s: any) => s.team.id === match.teams.home.id)?.points || null,
             api_league_away_points: standings?.find((s: any) => s.team.id === match.teams.away.id)?.points || null,
-            api_league_avg_goals_home: standings?.find((s: any) => s.team.id === match.teams.home.id)?.all?.goals?.for && standings?.find((s: any) => s.team.id === match.teams.home.id)?.all?.played ? standings.find((s: any) => s.team.id === match.teams.home.id).all.goals.for / standings.find((s: any) => s.team.id === match.teams.home.id).all.played : null,
-            api_league_avg_goals_away: standings?.find((s: any) => s.team.id === match.teams.away.id)?.all?.goals?.for && standings?.find((s: any) => s.team.id === match.teams.away.id)?.all?.played ? standings.find((s: any) => s.team.id === match.teams.away.id).all.goals.for / standings.find((s: any) => s.team.id === match.teams.away.id).all.played : null,
+            api_league_avg_goals_home: (() => { const s = standings?.find((s: any) => s.team.id === match.teams.home.id); return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null; })(),
+            api_league_avg_goals_away: (() => { const s = standings?.find((s: any) => s.team.id === match.teams.away.id); return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null; })(),
             
             // === DETERMINISTIC CUSTOM ANALYSIS CATEGORIES ===
             // Own Analysis Metrics (derived from real API data)

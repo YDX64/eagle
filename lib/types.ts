@@ -26,3 +26,15 @@ export type DateRange = {
   from: Date | undefined
   to: Date | undefined
 }
+
+export type PredictionApiData = {
+  match: any;
+  prediction: any;
+  advancedPrediction: any;
+  apiPredictions: any;
+  metadata: any;
+  sourceSnapshots?: {
+    advancedPrediction?: any;
+    [key: string]: any;
+  };
+}
