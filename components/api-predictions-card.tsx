@@ -1,13 +1,14 @@
-
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { 
-  TrendingUp, Target, Trophy, Shield, BarChart3, 
-  CheckCircle, AlertCircle, Users, Clock, Zap
+import {
+  Target, Trophy, Shield, BarChart3,
+  AlertCircle, Users, Clock, ChevronDown, ChevronUp,
+  Info, HelpCircle, Flame,
 } from 'lucide-react';
 
 interface ApiPredictionsCardProps {
@@ -16,12 +17,138 @@ interface ApiPredictionsCardProps {
   awayTeamName: string;
 }
 
-export function ApiPredictionsCard({ 
-  apiPredictions, 
-  homeTeamName, 
-  awayTeamName 
+type ConfidenceLabel = 'Çok Yüksek' | 'Yüksek' | 'Orta' | 'Düşük';
+
+function confidenceFromPercent(p: number): ConfidenceLabel {
+  if (p >= 70) return 'Çok Yüksek';
+  if (p >= 58) return 'Yüksek';
+  if (p >= 45) return 'Orta';
+  return 'Düşük';
+}
+
+function confidenceStyle(c: ConfidenceLabel): string {
+  switch (c) {
+    case 'Çok Yüksek':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    case 'Yüksek':
+      return 'bg-blue-100 text-blue-800 border-blue-300';
+    case 'Orta':
+      return 'bg-amber-100 text-amber-800 border-amber-300';
+    default:
+      return 'bg-rose-100 text-rose-800 border-rose-300';
+  }
+}
+
+function translateWinnerComment(
+  comment: string | undefined | null,
+  winnerName?: string,
+): string {
+  if (!comment) return '';
+  const c = comment.toLowerCase().trim();
+  const winner = winnerName || '';
+  if (c === 'win or draw' || c.includes('win or draw')) {
+    return `${winner || 'Favori takım'} kazanır veya berabere kalır`;
+  }
+  if (c === 'win' || c === 'winner') return `${winner || 'Favori takım'} kazanır`;
+  if (c === 'draw') return 'Berabere biter';
+  if (c.includes('lose')) return `${winner || 'Takım'} kaybeder`;
+  if (c.includes('no prediction')) return 'Tahmin yapılamıyor';
+  return comment;
+}
+
+function interpretGoalLine(raw: string | number | null | undefined): {
+  type: 'under' | 'over' | 'unknown';
+  threshold: number;
+  label: string;
+} {
+  if (raw === null || raw === undefined || raw === '') {
+    return { type: 'unknown', threshold: 0, label: 'Veri yok' };
+  }
+  const s = String(raw).trim();
+  const num = parseFloat(s);
+  if (isNaN(num)) return { type: 'unknown', threshold: 0, label: 'Veri yok' };
+  if (s.startsWith('-')) {
+    const t = Math.abs(num);
+    return { type: 'under', threshold: t, label: `Alt ${t}` };
+  }
+  return { type: 'over', threshold: num, label: `Üst ${num}` };
+}
+
+function getTeamAvgGoals(
+  apiPredictions: any,
+  side: 'home' | 'away',
+): { scored: number; conceded: number } {
+  const team = apiPredictions?.teams?.[side];
+  const scored =
+    parseFloat(team?.league?.goals?.for?.average?.total) ||
+    parseFloat(team?.last_5?.goals?.for?.average) ||
+    0;
+  const conceded =
+    parseFloat(team?.league?.goals?.against?.average?.total) ||
+    parseFloat(team?.last_5?.goals?.against?.average) ||
+    0;
+  return { scored, conceded };
+}
+
+function computeExpectedGoals(apiPredictions: any): {
+  home: number;
+  away: number;
+  total: number;
+  hasData: boolean;
+} {
+  const homeStats = getTeamAvgGoals(apiPredictions, 'home');
+  const awayStats = getTeamAvgGoals(apiPredictions, 'away');
+  const hasData =
+    homeStats.scored > 0 || homeStats.conceded > 0 || awayStats.scored > 0 || awayStats.conceded > 0;
+
+  const expHome =
+    homeStats.scored > 0 && awayStats.conceded > 0
+      ? (homeStats.scored + awayStats.conceded) / 2
+      : homeStats.scored || 0;
+  const expAway =
+    awayStats.scored > 0 && homeStats.conceded > 0
+      ? (awayStats.scored + homeStats.conceded) / 2
+      : awayStats.scored || 0;
+
+  const h = Math.max(0, Math.round(expHome * 10) / 10);
+  const a = Math.max(0, Math.round(expAway * 10) / 10);
+  return { home: h, away: a, total: Math.round((h + a) * 10) / 10, hasData };
+}
+
+function computeH2HStats(h2h: any[] | undefined): {
+  over25Percent: number;
+  bttsPercent: number;
+  avgGoals: number;
+  sampleSize: number;
+} {
+  if (!h2h || h2h.length === 0) {
+    return { over25Percent: 0, bttsPercent: 0, avgGoals: 0, sampleSize: 0 };
+  }
+  const sample = h2h.slice(0, 10);
+  let over25 = 0;
+  let btts = 0;
+  let totalGoals = 0;
+  sample.forEach((m: any) => {
+    const tg = (m.goals?.home || 0) + (m.goals?.away || 0);
+    totalGoals += tg;
+    if (tg > 2.5) over25++;
+    if ((m.goals?.home || 0) > 0 && (m.goals?.away || 0) > 0) btts++;
+  });
+  return {
+    over25Percent: Math.round((over25 / sample.length) * 100),
+    bttsPercent: Math.round((btts / sample.length) * 100),
+    avgGoals: Math.round((totalGoals / sample.length) * 10) / 10,
+    sampleSize: sample.length,
+  };
+}
+
+export function ApiPredictionsCard({
+  apiPredictions,
+  homeTeamName,
+  awayTeamName,
 }: ApiPredictionsCardProps) {
-  
+  const [showDetails, setShowDetails] = useState(false);
+
   if (!apiPredictions) {
     return (
       <Card>
@@ -58,783 +185,475 @@ export function ApiPredictionsCard({
         <CardContent>
           <div className="text-center py-8">
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <div className="text-muted-foreground">
-              Bu maç için tahmin verisi mevcut değil
-            </div>
+            <div className="text-muted-foreground">Bu maç için tahmin verisi mevcut değil</div>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Enhanced prediction analysis functions
-  const getConfidenceLevel = (percentage: string): { level: string; color: string; icon: React.ReactNode } => {
-    const percent = parseInt(percentage?.replace('%', '') || '0');
-    if (percent >= 70) return { level: 'Çok Yüksek', color: 'text-green-600', icon: <CheckCircle className="w-4 h-4" /> };
-    if (percent >= 60) return { level: 'Yüksek', color: 'text-blue-600', icon: <TrendingUp className="w-4 h-4" /> };
-    if (percent >= 50) return { level: 'Orta', color: 'text-yellow-600', icon: <BarChart3 className="w-4 h-4" /> };
-    return { level: 'Düşük', color: 'text-red-600', icon: <AlertCircle className="w-4 h-4" /> };
-  };
-
-  const generateEnhancedGoalPredictions = () => {
-    const predictions = apiPredictions.predictions;
-    const comparison = apiPredictions.comparison;
-    const h2h = apiPredictions.h2h;
-    const enhancedPredictions = [];
-
-    // Ana gol tahminleri - Geliştirilmiş algoritma
-    const calculateGoalPredictions = () => {
-      const homeGoals = parseFloat(predictions?.goals?.home) || 1.2;
-      const awayGoals = parseFloat(predictions?.goals?.away) || 1.0;
-      const totalGoals = homeGoals + awayGoals;
-      
-      // Form analizi
-      const homeForm = parseFloat(comparison?.form?.home) || 50;
-      const awayForm = parseFloat(comparison?.form?.away) || 50;
-      const formFactor = (homeForm + awayForm) / 100;
-      
-      // Atak/Defans güç analizi
-      const homeAttack = parseFloat(comparison?.att?.home) || 50;
-      const awayAttack = parseFloat(comparison?.att?.away) || 50;
-      const homeDef = parseFloat(comparison?.def?.home) || 50;
-      const awayDef = parseFloat(comparison?.def?.away) || 50;
-      
-      const adjustedTotal = totalGoals * formFactor;
-      
-      return {
-        total: Math.round(adjustedTotal * 10) / 10,
-        home: Math.round((homeGoals * (homeAttack / 50) * (1 - awayDef / 100)) * 10) / 10,
-        away: Math.round((awayGoals * (awayAttack / 50) * (1 - homeDef / 100)) * 10) / 10,
-        confidence: totalGoals > 2.5 ? 'Yüksek' : 'Orta'
-      };
-    };
-
-    const goalAnalysis = calculateGoalPredictions();
-    
-    enhancedPredictions.push({
-      category: 'Gelişmiş Gol Analizi',
-      items: [
-        { 
-          label: 'Toplam Gol Tahmini', 
-          value: `${goalAnalysis.total} (${goalAnalysis.total < 2.5 ? 'Alt' : 'Üst'} 2.5)`, 
-          confidence: goalAnalysis.confidence 
-        },
-        { 
-          label: `${homeTeamName} Beklenen Gol`, 
-          value: goalAnalysis.home.toString(), 
-          confidence: goalAnalysis.home > 1.5 ? 'Yüksek' : 'Orta' 
-        },
-        { 
-          label: `${awayTeamName} Beklenen Gol`, 
-          value: goalAnalysis.away.toString(), 
-          confidence: goalAnalysis.away > 1.5 ? 'Yüksek' : 'Orta' 
-        },
-        {
-          label: 'İki Takım Gol',
-          value: goalAnalysis.home >= 1 && goalAnalysis.away >= 1 ? 'Evet' : 'Hayır',
-          confidence: goalAnalysis.home >= 1 && goalAnalysis.away >= 1 ? 'Yüksek' : 'Düşük'
-        }
-      ]
-    });
-
-    // İlk yarı tahminleri - Geliştirilmiş algoritma
-    const calculateFirstHalfPredictions = () => {
-      const homeAttack = parseFloat(comparison?.att?.home) || 50;
-      const awayAttack = parseFloat(comparison?.att?.away) || 50;
-      const avgAttack = (homeAttack + awayAttack) / 2;
-      
-      // İlk yarı genellikle toplam golün %40-45'i
-      const firstHalfGoals = goalAnalysis.total * 0.425;
-      const firstHalfHome = goalAnalysis.home * 0.4;
-      const firstHalfAway = goalAnalysis.away * 0.4;
-      
-      return {
-        total: Math.round(firstHalfGoals * 10) / 10,
-        home: Math.round(firstHalfHome * 10) / 10,
-        away: Math.round(firstHalfAway * 10) / 10,
-        probability: avgAttack > 60 ? 'Yüksek' : avgAttack > 45 ? 'Orta' : 'Düşük'
-      };
-    };
-
-    const firstHalfAnalysis = calculateFirstHalfPredictions();
-    
-    enhancedPredictions.push({
-      category: 'İlk Yarı Detaylı Analiz',
-      items: [
-        { 
-          label: 'İlk Yarı Toplam Gol', 
-          value: `${firstHalfAnalysis.total} (${firstHalfAnalysis.total > 1.5 ? 'Üst' : 'Alt'} 1.5)`, 
-          confidence: firstHalfAnalysis.probability 
-        },
-        { 
-          label: 'İlk Yarı İlk Gol', 
-          value: firstHalfAnalysis.home > firstHalfAnalysis.away ? homeTeamName : 
-                 firstHalfAnalysis.away > firstHalfAnalysis.home ? awayTeamName : 'Eşit Şans', 
-          confidence: Math.abs(firstHalfAnalysis.home - firstHalfAnalysis.away) > 0.3 ? 'Yüksek' : 'Orta' 
-        },
-        {
-          label: 'İlk 15 Dk Gol',
-          value: firstHalfAnalysis.total > 1.2 ? 'Var' : 'Yok',
-          confidence: firstHalfAnalysis.total > 1.2 ? 'Yüksek' : 'Düşük'
-        }
-      ]
-    });
-
-    // Korner ve kart tahminleri - Gelişmiş algoritma
-    const calculateSpecialEvents = () => {
-      const homeAttack = parseFloat(comparison?.att?.home) || 50;
-      const awayAttack = parseFloat(comparison?.att?.away) || 50;
-      const totalAttack = homeAttack + awayAttack;
-      
-      // Korner tahmini
-      const expectedCorners = Math.round((totalAttack / 10) + (goalAnalysis.total * 2));
-      
-      // Kart tahmini - daha agresif takımlar daha fazla kart alır
-      const homeAggression = 100 - parseFloat(comparison?.def?.home || 70);
-      const awayAggression = 100 - parseFloat(comparison?.def?.away || 70);
-      const expectedCards = Math.round(((homeAggression + awayAggression) / 25) + 2);
-      
-      return {
-        corners: expectedCorners,
-        cards: expectedCards,
-        cornerConfidence: totalAttack > 80 ? 'Yüksek' : 'Orta',
-        cardConfidence: expectedCards > 4 ? 'Yüksek' : 'Orta'
-      };
-    };
-
-    const specialEvents = calculateSpecialEvents();
-    
-    enhancedPredictions.push({
-      category: 'Korner & Kart Analizi',
-      items: [
-        { 
-          label: 'Toplam Korner', 
-          value: `${specialEvents.corners}-${specialEvents.corners + 2}`, 
-          confidence: specialEvents.cornerConfidence 
-        },
-        { 
-          label: 'İlk Korner', 
-          value: 'İlk 8 dk', 
-          confidence: 'Yüksek' 
-        },
-        { 
-          label: 'Toplam Kart', 
-          value: `${specialEvents.cards}-${specialEvents.cards + 1}`, 
-          confidence: specialEvents.cardConfidence 
-        },
-        {
-          label: 'Her Takım Kart',
-          value: specialEvents.cards > 3 ? 'Evet' : 'Hayır',
-          confidence: specialEvents.cards > 3 ? 'Yüksek' : 'Orta'
-        }
-      ]
-    });
-
-    // Risk analizi ve öneriler
-    const calculateRiskAnalysis = () => {
-      const homeWinProb = parseInt(predictions?.percent?.home?.replace('%', '') || '33');
-      const awayWinProb = parseInt(predictions?.percent?.away?.replace('%', '') || '33');
-      const drawProb = parseInt(predictions?.percent?.draw?.replace('%', '') || '33');
-      
-      const recommendations = [];
-      
-      if (homeWinProb > 60) {
-        recommendations.push({ 
-          label: `${homeTeamName} Kazanır`, 
-          value: 'ÖNERİLİR', 
-          confidence: 'Yüksek' 
-        });
-      }
-      
-      if (goalAnalysis.total > 2.5) {
-        recommendations.push({ 
-          label: 'Üst 2.5 Gol', 
-          value: 'ÖNERİLİR', 
-          confidence: 'Yüksek' 
-        });
-      }
-      
-      if (goalAnalysis.home >= 1 && goalAnalysis.away >= 1) {
-        recommendations.push({ 
-          label: 'İki Takım Gol Atar', 
-          value: 'ÖNERİLİR', 
-          confidence: 'Yüksek' 
-        });
-      }
-      
-      return recommendations;
-    };
-
-    const riskRecommendations = calculateRiskAnalysis();
-    
-    if (riskRecommendations.length > 0) {
-      enhancedPredictions.push({
-        category: 'Akıllı Bahis Önerileri',
-        items: riskRecommendations
-      });
-    }
-
-    return enhancedPredictions;
-  };
-
-  const getPercentageFromFraction = (fraction: string): number => {
-    if (!fraction || fraction === 'N/A') return 0;
-    try {
-      const [numerator, denominator] = fraction.split('/').map(Number);
-      return Math.round((numerator / denominator) * 100);
-    } catch {
-      return 0;
-    }
-  };
-
   const predictions = apiPredictions.predictions;
-  const teams = apiPredictions.teams;
   const comparison = apiPredictions.comparison;
-  const h2h = apiPredictions.h2h;
+  const h2h = apiPredictions.h2h as any[] | undefined;
 
-  // Get enhanced predictions
-  const enhancedPredictions = generateEnhancedGoalPredictions();
+  const homePct = parseInt((predictions.percent?.home || '0').replace('%', ''), 10) || 0;
+  const drawPct = parseInt((predictions.percent?.draw || '0').replace('%', ''), 10) || 0;
+  const awayPct = parseInt((predictions.percent?.away || '0').replace('%', ''), 10) || 0;
+
+  const winnerIsHome = predictions.winner?.name === homeTeamName;
+  const winnerIsAway = predictions.winner?.name === awayTeamName;
+  const winnerName = winnerIsHome ? homeTeamName : winnerIsAway ? awayTeamName : null;
+  const winnerPct = winnerIsHome ? homePct : winnerIsAway ? awayPct : Math.max(homePct, awayPct);
+  const winnerConfidence = confidenceFromPercent(winnerPct);
+  const winnerCommentTr = translateWinnerComment(
+    predictions.winner?.comment,
+    winnerName || undefined,
+  );
+
+  const exp = computeExpectedGoals(apiPredictions);
+  const overUnder = interpretGoalLine(predictions.under_over);
+
+  // Ana Üst/Alt kararı: önce API'nin under_over'ı, yoksa xG'den hesapla
+  const goalDecision: {
+    label: string;
+    rationale: string;
+    confidence: ConfidenceLabel;
+    direction: 'over' | 'under' | 'unknown';
+  } = (() => {
+    if (overUnder.type !== 'unknown') {
+      const dir = overUnder.type;
+      const reason =
+        dir === 'over'
+          ? `AwaStats modeli ${overUnder.threshold} golden fazla olmasını bekliyor (yaklaşık ${exp.total} gol).`
+          : `AwaStats modeli ${overUnder.threshold} golden az olmasını bekliyor (yaklaşık ${exp.total} gol).`;
+      const conf = exp.hasData
+        ? Math.abs(exp.total - overUnder.threshold) > 0.7
+          ? 'Yüksek'
+          : 'Orta'
+        : 'Orta';
+      return { label: overUnder.label, rationale: reason, confidence: conf, direction: dir };
+    }
+    if (!exp.hasData) {
+      return {
+        label: 'Tahmin edilemiyor',
+        rationale: 'Yeterli takım istatistiği yok.',
+        confidence: 'Düşük',
+        direction: 'unknown',
+      };
+    }
+    const dir: 'over' | 'under' = exp.total >= 2.5 ? 'over' : 'under';
+    return {
+      label: dir === 'over' ? 'Üst 2.5 (çok gol)' : 'Alt 2.5 (az gol)',
+      rationale: `Takımların sezon ortalamalarına göre ~${exp.total} gol bekleniyor.`,
+      confidence: Math.abs(exp.total - 2.5) > 0.7 ? 'Yüksek' : 'Orta',
+      direction: dir,
+    };
+  })();
+
+  // Karşılıklı Gol kararı: her iki takım da >= 0.8 xG bekliyorsa "Var"
+  const bttsDecision: {
+    label: 'Var' | 'Yok' | 'Tahmin edilemiyor';
+    rationale: string;
+    confidence: ConfidenceLabel;
+  } = (() => {
+    if (!exp.hasData) {
+      return {
+        label: 'Tahmin edilemiyor',
+        rationale: 'Yeterli takım istatistiği yok.',
+        confidence: 'Düşük',
+      };
+    }
+    const both = exp.home >= 0.9 && exp.away >= 0.9;
+    if (both) {
+      return {
+        label: 'Var',
+        rationale: `Her iki takım da gol atma eğiliminde (${homeTeamName} ~${exp.home}, ${awayTeamName} ~${exp.away}).`,
+        confidence: exp.home >= 1.2 && exp.away >= 1.2 ? 'Yüksek' : 'Orta',
+      };
+    }
+    const weaker = exp.home < exp.away ? homeTeamName : awayTeamName;
+    const weakerVal = Math.min(exp.home, exp.away);
+    return {
+      label: 'Yok',
+      rationale: `${weaker} çok az gol atıyor (~${weakerVal}). Tek takımın gol atması daha olası.`,
+      confidence: weakerVal < 0.5 ? 'Yüksek' : 'Orta',
+    };
+  })();
+
+  const h2hStats = computeH2HStats(h2h);
 
   return (
     <div className="space-y-6">
-      {/* Main Winner Prediction with Enhanced Display */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-600">
-            <Target className="w-5 h-5" />
-            AwaStats Resmi Tahminleri
+      {/* =================== TEK BAKIŞTA ÖZET =================== */}
+      <Card className="border-2 border-orange-200">
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+          <CardTitle className="flex items-center gap-2 text-orange-700">
+            <Flame className="w-5 h-5" />
+            Tek Bakışta Sonuç
           </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Bu maçta muhtemelen ne olacağının kısa özeti
+          </p>
         </CardHeader>
-        <CardContent>
-          {predictions?.winner && (
-            <div className="mb-6">
-              <div className="text-center">
-                <div className="text-lg font-semibold mb-2">Kazanan Tahmini</div>
-                <div className="text-3xl font-bold text-orange-600 mb-2">
-                  {predictions.winner.name === homeTeamName ? homeTeamName : 
-                   predictions.winner.name === awayTeamName ? awayTeamName : 
-                   'Beraberlik'}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Güven: {predictions.winner.comment || 'Orta'}
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Kazanan */}
+            <div className="p-4 rounded-lg bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                <Trophy className="w-3.5 h-3.5" />
+                Kim kazanır?
+              </div>
+              <div className="text-2xl font-bold text-orange-600 mb-1">
+                {winnerName || 'Belirsiz'}
+              </div>
+              <div className="text-sm text-muted-foreground mb-3">
+                {winnerName ? `%${winnerPct} ihtimal` : 'Açık sonuç'}
+              </div>
+              <Badge className={`${confidenceStyle(winnerConfidence)} border`}>
+                Güven: {winnerConfidence}
+              </Badge>
+              {winnerCommentTr && (
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  {winnerCommentTr}
+                </p>
+              )}
+            </div>
+
+            {/* Kaç gol */}
+            <div className="p-4 rounded-lg bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                <Target className="w-3.5 h-3.5" />
+                Kaç gol olur?
+              </div>
+              <div className="text-2xl font-bold text-orange-600 mb-1">{goalDecision.label}</div>
+              <div className="text-sm text-muted-foreground mb-3">
+                Beklenen toplam: ~{exp.total} gol
+              </div>
+              <Badge className={`${confidenceStyle(goalDecision.confidence)} border`}>
+                Güven: {goalDecision.confidence}
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-2">{goalDecision.rationale}</p>
+            </div>
+
+            {/* Karşılıklı gol */}
+            <div className="p-4 rounded-lg bg-muted/40 border">
+              <div className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                <Users className="w-3.5 h-3.5" />
+                İki takım da gol atar mı?
+              </div>
+              <div className="text-2xl font-bold text-orange-600 mb-1">{bttsDecision.label}</div>
+              <div className="text-sm text-muted-foreground mb-3">
+                {exp.hasData ? `${homeTeamName} ~${exp.home} / ${awayTeamName} ~${exp.away}` : '—'}
+              </div>
+              <Badge className={`${confidenceStyle(bttsDecision.confidence)} border`}>
+                Güven: {bttsDecision.confidence}
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-2">{bttsDecision.rationale}</p>
+            </div>
+          </div>
+
+          {h2hStats.sampleSize >= 3 && (
+            <div className="mt-5 p-3 rounded-lg bg-blue-50 border border-blue-200 text-sm">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-blue-900">
+                  <span className="font-semibold">Geçmiş veri:</span> Son {h2hStats.sampleSize}{' '}
+                  karşılaşmada maç başına ortalama <b>{h2hStats.avgGoals}</b> gol atıldı,{' '}
+                  <b>%{h2hStats.over25Percent}</b>'i 2.5 üst gol, <b>%{h2hStats.bttsPercent}</b>'inde
+                  iki takım da gol attı.
                 </div>
               </div>
             </div>
           )}
-
-          {/* Match Winner Percentages with Visual Enhancement */}
-          {predictions?.percent && (
-            <div className="mb-6">
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {predictions.percent.home || '0%'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{homeTeamName}</div>
-                  <Progress 
-                    value={parseInt(predictions.percent.home?.replace('%', '') || '0')} 
-                    className="mt-2 h-2"
-                  />
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-600">
-                    {predictions.percent.draw || '0%'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Beraberlik</div>
-                  <Progress 
-                    value={parseInt(predictions.percent.draw?.replace('%', '') || '0')} 
-                    className="mt-2 h-2"
-                  />
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {predictions.percent.away || '0%'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{awayTeamName}</div>
-                  <Progress 
-                    value={parseInt(predictions.percent.away?.replace('%', '') || '0')} 
-                    className="mt-2 h-2"
-                  />
-                </div>
-              </div>
-              
-              {/* Confidence Level Display */}
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
-                  {getConfidenceLevel(predictions.percent.home || '0%').icon}
-                  <span className={`font-medium ${getConfidenceLevel(predictions.percent.home || '0%').color}`}>
-                    Güven Seviyesi: {getConfidenceLevel(predictions.percent.home || '0%').level}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <Separator className="mb-6" />
         </CardContent>
       </Card>
 
-      {/* Enhanced Predictions Categories */}
-      {enhancedPredictions.map((category, categoryIndex) => (
-        <Card key={categoryIndex}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              {category.category}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {category.items.map((item, itemIndex) => (
-                <div key={itemIndex} className="space-y-2 p-3 bg-muted/30 rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <span className="font-medium text-sm">{item.label}</span>
-                    <Badge variant={item.confidence === 'Çok Yüksek' ? 'default' : 
-                                  item.confidence === 'Yüksek' ? 'secondary' : 'outline'}>
-                      {item.confidence}
-                    </Badge>
-                  </div>
-                  <div className="text-lg font-bold text-orange-600">
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Original API Predictions with Better Formatting */}
+      {/* =================== KAZANMA OLASILIKLARI =================== */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
-            Detaylı AwaStats Tahminleri
+            Kazanma Olasılıkları
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            AwaStats'in her sonuç için verdiği yüzde
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Goals Predictions */}
-            {predictions?.goals && (
-              <div className="space-y-3">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Trophy className="w-4 h-4" />
-                  Gol Tahminleri
-                </h4>
-                <div className="space-y-3">
-                  {predictions.goals.total && (
-                    <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                      <span>Toplam Gol:</span>
-                      <Badge variant="default">
-                        {predictions.goals.total}
-                      </Badge>
-                    </div>
-                  )}
-                  {predictions.goals.home && (
-                    <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                      <span>{homeTeamName}:</span>
-                      <Badge variant="secondary">
-                        {predictions.goals.home}
-                      </Badge>
-                    </div>
-                  )}
-                  {predictions.goals.away && (
-                    <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                      <span>{awayTeamName}:</span>
-                      <Badge variant="outline">
-                        {predictions.goals.away}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Under/Over */}
-            {predictions?.under_over && (
-              <div className="space-y-3">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Alt/Üst Tahminleri
-                </h4>
-                <div className="space-y-3">
-                  {typeof predictions.under_over === 'string' ? (
-                    <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
-                      <span>Tahmin:</span>
-                      <Badge variant="default">
-                        {predictions.under_over.startsWith('-') ? 
-                          `Alt ${Math.abs(parseFloat(predictions.under_over))}` : 
-                          `Üst ${predictions.under_over}`
-                        }
-                      </Badge>
-                    </div>
-                  ) : predictions.under_over && typeof predictions.under_over === 'object' ? (
-                    <>
-                      {predictions.under_over.under && (
-                        <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                          <span>Alt 2.5:</span>
-                          <Badge variant="secondary">
-                            {predictions.under_over.under}
-                          </Badge>
-                        </div>
-                      )}
-                      {predictions.under_over.over && (
-                        <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                          <span>Üst 2.5:</span>
-                          <Badge variant="outline">
-                            {predictions.under_over.over}
-                          </Badge>
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            )}
-
-            {/* Both Teams Score */}
-            {predictions?.btts && (
-              <div className="space-y-3">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  İki Takım Gol
-                </h4>
-                <div className="space-y-3">
-                  {predictions.btts?.yes && (
-                    <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                      <span>Evet:</span>
-                      <Badge variant="default">
-                        {predictions.btts.yes}
-                      </Badge>
-                    </div>
-                  )}
-                  {predictions.btts?.no && (
-                    <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-                      <span>Hayır:</span>
-                      <Badge variant="secondary">
-                        {predictions.btts.no}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600">{homePct}%</div>
+              <div className="text-sm font-medium mt-1">{homeTeamName}</div>
+              <div className="text-xs text-muted-foreground mb-2">Ev sahibi</div>
+              <Progress value={homePct} className="h-2" />
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-500">{drawPct}%</div>
+              <div className="text-sm font-medium mt-1">Berabere</div>
+              <div className="text-xs text-muted-foreground mb-2">&nbsp;</div>
+              <Progress value={drawPct} className="h-2" />
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-rose-600">{awayPct}%</div>
+              <div className="text-sm font-medium mt-1">{awayTeamName}</div>
+              <div className="text-xs text-muted-foreground mb-2">Deplasman</div>
+              <Progress value={awayPct} className="h-2" />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Enhanced Team Comparison with Visual Analytics */}
+      {/* =================== TAKIM KARŞILAŞTIRMASI =================== */}
       {comparison && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5" />
-              Detaylı Takım Karşılaştırması
+              Takım Karşılaştırması
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Her alanda hangi takım daha güçlü (AwaStats verileri)
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* Performance Bars */}
-              <div className="space-y-4">
-                {[
-                  { label: 'Form', homeValue: comparison.form?.home, awayValue: comparison.form?.away },
-                  { label: 'Atak Gücü', homeValue: comparison.att?.home, awayValue: comparison.att?.away },
-                  { label: 'Defans Gücü', homeValue: comparison.def?.home, awayValue: comparison.def?.away },
-                  { label: 'Gol Ortalaması', homeValue: comparison.goals?.home, awayValue: comparison.goals?.away },
-                  { label: 'Toplam Güç', homeValue: comparison.total?.home, awayValue: comparison.total?.away }
-                ].map((stat, index) => {
-                  const homeVal = parseFloat(stat.homeValue) || 0;
-                  const awayVal = parseFloat(stat.awayValue) || 0;
-                  const maxVal = Math.max(homeVal, awayVal);
-                  const homePercentage = maxVal > 0 ? (homeVal / maxVal) * 100 : 0;
-                  const awayPercentage = maxVal > 0 ? (awayVal / maxVal) * 100 : 0;
-                  
-                  return (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm font-medium">
-                        <span>{stat.label}</span>
-                        <span className="text-muted-foreground">
-                          {homeVal > awayVal ? `${homeTeamName} Üstün` : awayVal > homeVal ? `${awayTeamName} Üstün` : 'Eşit'}
-                        </span>
+            <div className="space-y-4">
+              {[
+                {
+                  label: 'Form',
+                  hint: 'Son maçlardaki performans',
+                  h: comparison.form?.home,
+                  a: comparison.form?.away,
+                },
+                {
+                  label: 'Atak Gücü',
+                  hint: 'Gol atma kapasitesi',
+                  h: comparison.att?.home,
+                  a: comparison.att?.away,
+                },
+                {
+                  label: 'Defans Gücü',
+                  hint: 'Gol yememe kapasitesi',
+                  h: comparison.def?.home,
+                  a: comparison.def?.away,
+                },
+                {
+                  label: 'Toplam Güç',
+                  hint: 'Genel takım gücü',
+                  h: comparison.total?.home,
+                  a: comparison.total?.away,
+                },
+              ].map((stat, idx) => {
+                const hv = parseFloat(stat.h) || 0;
+                const av = parseFloat(stat.a) || 0;
+                const max = Math.max(hv, av) || 1;
+                const hp = (hv / max) * 100;
+                const ap = (av / max) * 100;
+                const leader =
+                  hv > av ? homeTeamName : av > hv ? awayTeamName : 'Eşit';
+                return (
+                  <div key={idx} className="space-y-2">
+                    <div className="flex justify-between items-baseline text-sm">
+                      <div>
+                        <span className="font-semibold">{stat.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({stat.hint})</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-right space-y-1">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-xs">{homeTeamName}</span>
-                            <Badge variant={homeVal > awayVal ? 'default' : 'outline'}>
-                              {stat.homeValue || 'N/A'}
-                            </Badge>
-                          </div>
-                          <Progress value={homePercentage} className="h-2" />
-                        </div>
-                        <div className="text-left space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant={awayVal > homeVal ? 'default' : 'outline'}>
-                              {stat.awayValue || 'N/A'}
-                            </Badge>
-                            <span className="text-xs">{awayTeamName}</span>
-                          </div>
-                          <Progress value={awayPercentage} className="h-2" />
-                        </div>
-                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {leader === 'Eşit' ? 'Eşit' : `${leader} üstün`}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Advantage Analysis */}
-              <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                <h5 className="font-semibold mb-3 flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  Avantaj Analizi
-                </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="font-medium text-blue-600 mb-2">{homeTeamName} Avantajları</div>
-                    <div className="space-y-1">
-                      {parseFloat(comparison.form?.home || '0') > parseFloat(comparison.form?.away || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Daha iyi form</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-xs truncate">{homeTeamName}</span>
+                          <Badge variant={hv > av ? 'default' : 'outline'}>
+                            {stat.h || '—'}
+                          </Badge>
                         </div>
-                      )}
-                      {parseFloat(comparison.att?.home || '0') > parseFloat(comparison.att?.away || '0') && (
+                        <Progress value={hp} className="h-1.5" />
+                      </div>
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Güçlü atak</span>
+                          <Badge variant={av > hv ? 'default' : 'outline'}>
+                            {stat.a || '—'}
+                          </Badge>
+                          <span className="text-xs truncate">{awayTeamName}</span>
                         </div>
-                      )}
-                      {parseFloat(comparison.def?.home || '0') > parseFloat(comparison.def?.away || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Sağlam defans</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-green-500" />
-                        <span>Ev sahibi avantajı</span>
+                        <Progress value={ap} className="h-1.5" />
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="font-medium text-red-600 mb-2">{awayTeamName} Avantajları</div>
-                    <div className="space-y-1">
-                      {parseFloat(comparison.form?.away || '0') > parseFloat(comparison.form?.home || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Daha iyi form</span>
-                        </div>
-                      )}
-                      {parseFloat(comparison.att?.away || '0') > parseFloat(comparison.att?.home || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Güçlü atak</span>
-                        </div>
-                      )}
-                      {parseFloat(comparison.def?.away || '0') > parseFloat(comparison.def?.home || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Sağlam defans</span>
-                        </div>
-                      )}
-                      {parseFloat(comparison.goals?.away || '0') > parseFloat(comparison.goals?.home || '0') && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3 text-green-500" />
-                          <span>Yüksek gol ortalaması</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Enhanced Head to Head Analysis */}
+      {/* =================== SON KARŞILAŞMALAR =================== */}
       {h2h && h2h.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Son Karşılaşmalar & H2H Analizi
+              Son Karşılaşmalar (H2H)
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Bu iki takımın geçmişte oynadığı son maçlar
+            </p>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {/* H2H Summary Statistics */}
-              <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-                {(() => {
-                  let homeWins = 0, awayWins = 0, draws = 0;
-                  let totalHomeGoals = 0, totalAwayGoals = 0;
-                  
-                  h2h.slice(0, 10).forEach((match: any) => {
-                    if (match.goals.home > match.goals.away) {
-                      if (match.teams.home.name === homeTeamName) homeWins++;
-                      else awayWins++;
-                    } else if (match.goals.home < match.goals.away) {
-                      if (match.teams.away.name === homeTeamName) homeWins++;
-                      else awayWins++;
-                    } else {
-                      draws++;
-                    }
-                    totalHomeGoals += match.goals.home;
-                    totalAwayGoals += match.goals.away;
-                  });
-                  
-                  const totalMatches = Math.min(h2h.length, 10);
-                  const avgTotalGoals = totalMatches > 0 ? ((totalHomeGoals + totalAwayGoals) / totalMatches).toFixed(1) : '0';
-                  
-                  return (
-                    <>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{homeWins}</div>
-                        <div className="text-sm text-muted-foreground">{homeTeamName}</div>
-                        <div className="text-xs mt-1">
-                          %{totalMatches > 0 ? Math.round((homeWins/totalMatches)*100) : 0}
-                        </div>
+            <div className="space-y-2">
+              {h2h.slice(0, 5).map((m: any, i: number) => {
+                const hg = m.goals?.home || 0;
+                const ag = m.goals?.away || 0;
+                const tg = hg + ag;
+                const btts = hg > 0 && ag > 0;
+                const draw = hg === ag;
+                return (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center p-3 bg-muted/40 rounded-lg"
+                  >
+                    <div className="text-sm min-w-0 flex-1">
+                      <div className="font-medium truncate">
+                        {m.teams?.home?.name} vs {m.teams?.away?.name}
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-600">{draws}</div>
-                        <div className="text-sm text-muted-foreground">Beraberlik</div>
-                        <div className="text-xs mt-1">
-                          %{totalMatches > 0 ? Math.round((draws/totalMatches)*100) : 0}
-                        </div>
+                      <div className="text-xs text-muted-foreground">
+                        {m.fixture?.date
+                          ? new Date(m.fixture.date).toLocaleDateString('tr-TR')
+                          : ''}
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-red-600">{awayWins}</div>
-                        <div className="text-sm text-muted-foreground">{awayTeamName}</div>
-                        <div className="text-xs mt-1">
-                          %{totalMatches > 0 ? Math.round((awayWins/totalMatches)*100) : 0}
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="font-bold text-lg tabular-nums">
+                        {hg} - {ag}
                       </div>
-                    </>
-                  );
-                })()}
-              </div>
-              
-              {/* Additional H2H Statistics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {(() => {
-                  let over25Games = 0, under25Games = 0;
-                  let bttsGames = 0;
-                  let totalMatches = Math.min(h2h.length, 10);
-                  
-                  h2h.slice(0, 10).forEach((match: any) => {
-                    const totalGoals = match.goals.home + match.goals.away;
-                    if (totalGoals > 2.5) over25Games++;
-                    else under25Games++;
-                    
-                    if (match.goals.home > 0 && match.goals.away > 0) bttsGames++;
-                  });
-                  
-                  return (
-                    <>
-                      <div className="text-center p-3 bg-blue-50 rounded">
-                        <div className="font-bold">%{totalMatches > 0 ? Math.round((over25Games/totalMatches)*100) : 0}</div>
-                        <div className="text-xs text-muted-foreground">Üst 2.5</div>
+                      <div className="flex gap-1">
+                        <Badge
+                          variant={tg > 2.5 ? 'default' : 'outline'}
+                          className="text-xs"
+                          title={tg > 2.5 ? '2.5 üstü gol' : '2.5 altı gol'}
+                        >
+                          {tg > 2.5 ? 'Ü2.5' : 'A2.5'}
+                        </Badge>
+                        <Badge
+                          variant={btts ? 'default' : 'outline'}
+                          className="text-xs"
+                          title={
+                            btts ? 'İki takım da gol attı' : 'En az bir takım gol atamadı'
+                          }
+                        >
+                          {btts ? 'KG Var' : 'KG Yok'}
+                        </Badge>
                       </div>
-                      <div className="text-center p-3 bg-red-50 rounded">
-                        <div className="font-bold">%{totalMatches > 0 ? Math.round((under25Games/totalMatches)*100) : 0}</div>
-                        <div className="text-xs text-muted-foreground">Alt 2.5</div>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded">
-                        <div className="font-bold">%{totalMatches > 0 ? Math.round((bttsGames/totalMatches)*100) : 0}</div>
-                        <div className="text-xs text-muted-foreground">BTTS</div>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 rounded">
-                        <div className="font-bold">
-                          {(() => {
-                            const total = h2h.slice(0, 10).reduce((sum: number, match: any) => 
-                              sum + match.goals.home + match.goals.away, 0);
-                            return totalMatches > 0 ? (total / totalMatches).toFixed(1) : '0';
-                          })()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Ort. Gol</div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
-              {/* Recent Matches */}
-              <div>
-                <h5 className="font-semibold mb-3">Son 5 Karşılaşma</h5>
-                <div className="space-y-3">
-                  {h2h.slice(0, 5).map((match: any, index: number) => {
-                    const isHomeWin = match.goals.home > match.goals.away;
-                    const isAwayWin = match.goals.home < match.goals.away;
-                    const isDraw = match.goals.home === match.goals.away;
-                    const totalGoals = match.goals.home + match.goals.away;
-                    const isBtts = match.goals.home > 0 && match.goals.away > 0;
-                    
-                    return (
-                      <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {match.teams.home.name} vs {match.teams.away.name}
-                            </div>
-                            <div className="text-muted-foreground">
-                              {new Date(match.fixture.date).toLocaleDateString('tr-TR')}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <div className="font-bold text-lg mb-1">
-                            {match.goals.home} - {match.goals.away}
-                          </div>
-                          <div className="flex gap-1 justify-end">
-                            <Badge variant={totalGoals > 2.5 ? 'default' : 'outline'} className="text-xs">
-                              {totalGoals > 2.5 ? 'Ü2.5' : 'A2.5'}
-                            </Badge>
-                            <Badge variant={isBtts ? 'default' : 'outline'} className="text-xs">
-                              {isBtts ? 'BTTS' : 'No BTTS'}
-                            </Badge>
-                            <Badge 
-                              variant={isDraw ? 'secondary' : 'default'} 
-                              className={`text-xs ${isHomeWin ? 'bg-blue-100 text-blue-800' : 
-                                         isAwayWin ? 'bg-red-100 text-red-800' : ''}`}
-                            >
-                              {isDraw ? 'X' : isHomeWin ? 'H' : 'A'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* League Info */}
+      {/* =================== DETAYLAR (katlanabilir) =================== */}
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setShowDetails((s) => !s)}>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <HelpCircle className="w-5 h-5" />
+              Ham API Verisi ve Teknik Detaylar
+            </span>
+            {showDetails ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            AwaStats'ın döndüğü ham değerler — ileri analiz için
+          </p>
+        </CardHeader>
+        {showDetails && (
+          <CardContent className="pt-0">
+            <Separator className="mb-4" />
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="font-semibold mb-2">Gol Formatı Açıklaması</div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>
+                    <b>Alt/Üst ({overUnder.label}):</b>{' '}
+                    {overUnder.type === 'under'
+                      ? `Modele göre toplam gol ${overUnder.threshold}'un altında kalır.`
+                      : overUnder.type === 'over'
+                        ? `Modele göre toplam gol ${overUnder.threshold}'un üstünde olur.`
+                        : 'AwaStats bu maç için alt/üst tahmini vermedi.'}
+                  </p>
+                  <p>
+                    <b>Takım ortalamaları:</b> {homeTeamName} lig ortalamasında{' '}
+                    {getTeamAvgGoals(apiPredictions, 'home').scored.toFixed(2)} gol atıyor,{' '}
+                    {getTeamAvgGoals(apiPredictions, 'home').conceded.toFixed(2)} yiyor.{' '}
+                    {awayTeamName} ise {getTeamAvgGoals(apiPredictions, 'away').scored.toFixed(2)}{' '}
+                    atıyor, {getTeamAvgGoals(apiPredictions, 'away').conceded.toFixed(2)} yiyor.
+                  </p>
+                </div>
+              </div>
+
+              {predictions?.advice && (
+                <div>
+                  <div className="font-semibold mb-1">AwaStats Önerisi (orijinal):</div>
+                  <div className="text-xs p-2 bg-muted/50 rounded font-mono">
+                    {predictions.advice}
+                  </div>
+                </div>
+              )}
+
+              {h2hStats.sampleSize > 0 && (
+                <div>
+                  <div className="font-semibold mb-2">H2H Özet İstatistik</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2 bg-muted/40 rounded text-center">
+                      <div className="font-bold">%{h2hStats.over25Percent}</div>
+                      <div className="text-muted-foreground">Üst 2.5</div>
+                    </div>
+                    <div className="p-2 bg-muted/40 rounded text-center">
+                      <div className="font-bold">%{100 - h2hStats.over25Percent}</div>
+                      <div className="text-muted-foreground">Alt 2.5</div>
+                    </div>
+                    <div className="p-2 bg-muted/40 rounded text-center">
+                      <div className="font-bold">%{h2hStats.bttsPercent}</div>
+                      <div className="text-muted-foreground">KG Var</div>
+                    </div>
+                    <div className="p-2 bg-muted/40 rounded text-center">
+                      <div className="font-bold">{h2hStats.avgGoals}</div>
+                      <div className="text-muted-foreground">Ort. Gol</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* =================== LİG =================== */}
       {apiPredictions.league && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" />
-              Lig Bilgileri
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <img 
-                src={apiPredictions.league.logo} 
-                alt={apiPredictions.league.name}
-                className="w-12 h-12 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              {apiPredictions.league.logo && (
+                <img
+                  src={apiPredictions.league.logo}
+                  alt={apiPredictions.league.name}
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
               <div>
                 <div className="font-semibold">{apiPredictions.league.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  Sezon: {apiPredictions.league.season}
+                <div className="text-xs text-muted-foreground">
+                  Sezon {apiPredictions.league.season}
                 </div>
               </div>
             </div>

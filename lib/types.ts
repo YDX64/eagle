@@ -67,6 +67,9 @@ export interface PredictionApiData {
   confidenceSummary: ConfidenceSummary;
   sourceSnapshots?: SourceSnapshots;
   metadata: PredictionMetadata;
+  apiPredictions?: Record<string, unknown> | null;
+  advancedPrediction?: AdvancedMatchPrediction | null;
+  basicPrediction?: MatchPrediction | null;
 }
 
 export interface PredictionApiSuccessResponse {

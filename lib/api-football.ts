@@ -330,11 +330,41 @@ export class ApiFootballService {
    * Get predictions from AwaStats for a specific fixture
    */
   static async getPredictions(fixtureId: number): Promise<any> {
+    const { data } = await this.getPredictionsWithDetails(fixtureId);
+    return data;
+  }
+
+  /**
+   * Same as getPredictions but also returns the reason why data is missing
+   * (used for diagnostics / debug endpoints).
+   */
+  static async getPredictionsWithDetails(fixtureId: number): Promise<{
+    data: any;
+    error: string | null;
+    upstreamErrors?: any;
+    results?: number;
+  }> {
     try {
-      const response = await this.makeRequest<any>('/predictions', { fixture: fixtureId.toString() });
-      return response.response?.[0] || null;
-    } catch (error) {
-      return null;
+      const response = await this.makeRequest<any>('/predictions', {
+        fixture: fixtureId.toString(),
+      });
+      const upstreamErrors =
+        response?.errors &&
+        (Array.isArray(response.errors)
+          ? response.errors.length > 0
+          : Object.keys(response.errors).length > 0)
+          ? response.errors
+          : null;
+      const data = response?.response?.[0] || null;
+      if (!data && upstreamErrors) {
+        return { data: null, error: 'upstream_returned_errors', upstreamErrors, results: response?.results };
+      }
+      if (!data) {
+        return { data: null, error: 'upstream_empty_response', results: response?.results };
+      }
+      return { data, error: null, upstreamErrors, results: response?.results };
+    } catch (error: any) {
+      return { data: null, error: error?.message || String(error) };
     }
   }
 

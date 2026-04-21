@@ -294,6 +294,9 @@ export async function GET(
           confidenceSummary: ensemblePrediction.confidence,
           sourceSnapshots,
           metadata,
+          apiPredictions,
+          advancedPrediction,
+          basicPrediction,
         };
       },
       CacheService.TTL.PREDICTIONS
