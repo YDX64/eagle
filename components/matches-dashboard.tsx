@@ -7,6 +7,7 @@ import { MatchCard } from './match-card';
 import { HighConfidenceGoalsTable } from './high-confidence-goals-table';
 import { PredictionModal } from './prediction-modal';
 import { OptimizedMatchListEnhanced } from './optimized-match-list-enhanced';
+import { GoalAnalyzerPanel } from './goal-analyzer-panel';
 import { ThemeToggle } from './theme-toggle';
 import { Pagination } from './pagination';
 import { ClientWrapper } from './client-wrapper';
@@ -398,6 +399,12 @@ export function MatchesDashboard() {
         <p className="text-muted-foreground">
           Gelişmiş maç analizi ve AI destekli tahminler - Stockholm saati ({formatToStockholmDateTime(new Date().toISOString())})
         </p>
+        <div className="mt-4 flex items-center gap-3">
+          <GoalAnalyzerPanel />
+          <span className="text-xs text-muted-foreground">
+            Poisson + Oran Konsensüsü + H2H + Value Bet algoritmaları ile gol-beklentili maçları tek tıkla bul
+          </span>
+        </div>
       </div>
 
       {/* Enhanced Controls */}
