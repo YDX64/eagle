@@ -5,93 +5,6 @@ import { AdvancedPredictionEngine } from '@/lib/advanced-prediction-engine';
 import { PredictionEngine } from '@/lib/prediction-engine';
 import { withApiProtection, createApiResponse, handleApiError } from '@/lib/api-utils';
 
-
-const parsePercentString = (value?: string | null): number | null => {
-  if (!value) return null;
-  const cleaned = value.toString().replace('%', '').trim();
-  const num = parseFloat(cleaned);
-  return Number.isFinite(num) ? num / 100 : null;
-};
-
-const normalizeWinner = (
-  winnerName: string | undefined,
-  homeName: string,
-  awayName: string
-): 'home' | 'away' | 'draw' | null => {
-  if (!winnerName) return null;
-  const value = winnerName.toLowerCase();
-  if (value.includes('draw')) return 'draw';
-  if (value.includes('home')) return 'home';
-  if (value.includes('away')) return 'away';
-  if (value.includes(homeName.toLowerCase())) return 'home';
-  if (value.includes(awayName.toLowerCase())) return 'away';
-  return null;
-};
-
-const normalizeOverUnder = (value?: string | null): 'over' | 'under' | null => {
-  if (!value) return null;
-  const normalized = value.toLowerCase();
-  if (normalized.includes('over')) return 'over';
-  if (normalized.includes('under')) return 'under';
-  return null;
-};
-
-
-const deriveOverUnderConfidence = (
-  overUnder: 'over' | 'under' | null,
-  predictedGoalsTotal: number | null
-): number | null => {
-  if (!overUnder || predictedGoalsTotal === null || Number.isNaN(predictedGoalsTotal)) {
-    return null;
-  }
-
-  const baseline = 2.5;
-  const diff = overUnder === 'over'
-    ? predictedGoalsTotal - baseline
-    : baseline - predictedGoalsTotal;
-
-  const confidence = 0.5 + diff / 3;
-  return Math.max(0, Math.min(1, confidence));
-};
-
-const extractApiPrediction = (
-  apiData: any,
-  homeName: string,
-  awayName: string
-) => {
-  const result = {
-    winner: null as 'home' | 'away' | 'draw' | null,
-    winnerConfidence: null as number | null,
-    overUnder: null as 'over' | 'under' | null,
-    overUnderConfidence: null as number | null,
-    advice: null as string | null,
-  };
-
-  if (!apiData?.predictions) {
-    return result;
-  }
-
-  const pred = apiData.predictions;
-  result.advice = pred.advice || null;
-  result.winner = normalizeWinner(pred.winner?.name, homeName, awayName);
-
-  if (result.winner) {
-    const percentSource = pred.percent?.[result.winner];
-    const comparisonPercent = apiData?.comparison?.total?.[result.winner];
-    result.winnerConfidence = parsePercentString(percentSource) ?? parsePercentString(comparisonPercent);
-  }
-
-  const underOverRaw = typeof pred.under_over === 'string'
-    ? pred.under_over
-    : pred.under_over?.goals ?? '';
-  result.overUnder = normalizeOverUnder(underOverRaw);
-
-  const predictedGoalsTotal = (parseFloat(pred.goals?.home ?? '0') || 0) + (parseFloat(pred.goals?.away ?? '0') || 0);
-  result.overUnderConfidence = deriveOverUnderConfidence(result.overUnder, predictedGoalsTotal);
-
-  return result;
-};
-
 export const dynamic = "force-dynamic";
 
 interface BulkAnalysisParams {
@@ -186,15 +99,6 @@ async function bulkAnalysisHandler(request: NextRequest) {
             console.warn(`Warning: Could not fetch additional data for match ${match.fixture.id}`);
           }
 
-          let apiPredictionSummary = extractApiPrediction(null, match.teams.home.name, match.teams.away.name);
-
-          try {
-            const apiPredictionData = await ApiFootballService.getPredictions(match.fixture.id);
-            apiPredictionSummary = extractApiPrediction(apiPredictionData, match.teams.home.name, match.teams.away.name);
-          } catch (apiError) {
-            console.warn(`Warning: Could not fetch API prediction for match ${match.fixture.id}`);
-          }
-
           // DETERMINISTIC prediction logic using real API data
           let homeFormScore = 0.5;
           let awayFormScore = 0.5;
@@ -258,15 +162,6 @@ async function bulkAnalysisHandler(request: NextRequest) {
           const tier = confidence > 0.8 ? 'platinum' : confidence > 0.65 ? 'gold' : 'silver';
           const riskLevel = confidence > 0.75 ? 'low' : confidence > 0.55 ? 'medium' : 'high';
 
-          const h2hAvgGoals = h2hData && h2hData.length > 0
-            ? h2hData.reduce((acc: number, h: any) => acc + ((h.goals?.home ?? 0) + (h.goals?.away ?? 0)), 0) / h2hData.length / 3
-            : 0.5;
-          const overUnderPrediction = (homeFormScore + awayFormScore + h2hAvgGoals) > 1.3 ? 'over' : 'under';
-          const overUnderConfidence = Math.min(0.9, 0.5 + confidence * 0.35);
-
-          const algorithmsAgreeWinner = Boolean(apiPredictionSummary.winner && apiPredictionSummary.winner === winner);
-          const algorithmsAgreeOverUnder = Boolean(apiPredictionSummary.overUnder && apiPredictionSummary.overUnder === overUnderPrediction);
-
           // Create comprehensive analysis result with available real data
           analysisResult = {
             match_id: match.fixture.id,
@@ -284,15 +179,16 @@ async function bulkAnalysisHandler(request: NextRequest) {
             winner_confidence: confidence,
             btts_prediction: (homeFormScore + awayFormScore) > 1.2 ? 'yes' : 'no',
             btts_confidence: Math.min(0.9, 0.5 + Math.abs(homeFormScore + awayFormScore - 1.0) * 0.4),
-            over_under_prediction: overUnderPrediction,
-            over_under_confidence: overUnderConfidence,
+            over_under_prediction: (homeFormScore + awayFormScore + ((h2hData && h2hData.length > 0 ? h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length / 3 : 0.5))) > 1.3 ? 'over' : 'under',
+            over_under_confidence: Math.min(0.9, 0.5 + confidence * 0.35),
             
             // Real analysis factors
             home_form_score: homeFormScore,
             away_form_score: awayFormScore,
             head_to_head_score: h2hScore,
             home_advantage: homeAdvantage,
-            goals_analysis: h2hData && h2hData.length > 0 ? Math.min(0.9, 0.3 + (h2hData.reduce((acc: number, h: any) => acc + ((h.goals?.home ?? 0) + (h.goals?.away ?? 0)), 0) / h2hData.length) * 0.15) : 0.5,
+            goals_analysis: (h2hData && h2hData.length > 0) ? Math.min(0.9, 0.3 + (h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length) * 0.15) : 0.5,
+            
             // Overall assessment
             overall_confidence: confidence,
             confidence_tier: tier,
@@ -304,7 +200,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             kelly_percentage: Math.max(0.005, (confidence - 0.6) * 0.15),
 
             // === API FOOTBALL KATEGORILI VERİLER (Real where available) ===
-            // AwaStats Match Statistics (real data for finished matches)
+            // API Football Match Statistics (real data for finished matches)
             api_ms_home_shots_on_goal: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Shots on Goal')?.value || null,
             api_ms_home_shots_off_goal: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Shots off Goal')?.value || null,
             api_ms_home_total_shots: matchStats?.find((stat: any) => stat.team.id === match.teams.home.id)?.statistics?.find((s: any) => s.type === 'Total Shots')?.value || null,
@@ -323,7 +219,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             api_ms_away_corner_kicks: matchStats?.find((stat: any) => stat.team.id === match.teams.away.id)?.statistics?.find((s: any) => s.type === 'Corner Kicks')?.value || null,
             api_ms_away_fouls: matchStats?.find((stat: any) => stat.team.id === match.teams.away.id)?.statistics?.find((s: any) => s.type === 'Fouls')?.value || null,
             
-            // AwaStats Form Data (enhanced from h2h and standings data)
+            // API Football Form Data (enhanced from h2h and standings data)
             api_form_home_last_5: h2hData?.slice(0, 5).map((h: any) => h.teams.home.winner ? 'W' : h.teams.away.winner ? 'L' : 'D').join('') || null,
             api_form_home_wins_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.home.winner).length || null,
             api_form_home_losses_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.away.winner).length || null,
@@ -331,26 +227,20 @@ async function bulkAnalysisHandler(request: NextRequest) {
             api_form_away_wins_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.away.winner).length || null,
             api_form_away_losses_last_5: h2hData?.slice(0, 5).filter((h: any) => h.teams.home.winner).length || null,
             
-            // AwaStats Head to Head (real data)
+            // API Football Head to Head (real data)
             api_h2h_total_matches: h2hData?.length || null,
             api_h2h_home_wins: h2hData?.filter((h: any) => h.teams.home.winner === true).length || null,
             api_h2h_away_wins: h2hData?.filter((h: any) => h.teams.away.winner === true).length || null,
             api_h2h_draws: h2hData?.filter((h: any) => h.teams.home.winner === null && h.teams.away.winner === null).length || null,
-            api_h2h_avg_goals_per_match: h2hData && h2hData.length > 0 ? h2hData.reduce((acc: number, h: any) => acc + ((h.goals?.home ?? 0) + (h.goals?.away ?? 0)), 0) / h2hData.length : null,
+            api_h2h_avg_goals_per_match: (h2hData && h2hData.length > 0) ? h2hData.reduce((acc: number, h: any) => acc + (h.goals.home + h.goals.away), 0) / h2hData.length : null,
             
-            // AwaStats League Stats (real data from standings)
+            // API Football League Stats (real data from standings)
             api_league_home_position: standings?.find((s: any) => s.team.id === match.teams.home.id)?.rank || null,
             api_league_away_position: standings?.find((s: any) => s.team.id === match.teams.away.id)?.rank || null,
             api_league_home_points: standings?.find((s: any) => s.team.id === match.teams.home.id)?.points || null,
             api_league_away_points: standings?.find((s: any) => s.team.id === match.teams.away.id)?.points || null,
-            api_league_avg_goals_home: (() => {
-              const s = standings?.find((s: any) => s.team.id === match.teams.home.id);
-              return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null;
-            })(),
-            api_league_avg_goals_away: (() => {
-              const s = standings?.find((s: any) => s.team.id === match.teams.away.id);
-              return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null;
-            })(),
+            api_league_avg_goals_home: (() => { const s = standings?.find((s: any) => s.team.id === match.teams.home.id); return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null; })(),
+            api_league_avg_goals_away: (() => { const s = standings?.find((s: any) => s.team.id === match.teams.away.id); return s?.all?.goals?.for && s?.all?.played ? s.all.goals.for / s.all.played : null; })(),
             
             // === DETERMINISTIC CUSTOM ANALYSIS CATEGORIES ===
             // Own Analysis Metrics (derived from real API data)
@@ -409,14 +299,7 @@ async function bulkAnalysisHandler(request: NextRequest) {
             recommendation: `Basic analysis: ${match.teams.home.name} vs ${match.teams.away.name}`,
             risk_level: 'medium',
             expected_value: 0.05,
-            kelly_percentage: 0.02,
-            api_predicted_winner: null,
-            api_winner_confidence: null,
-            api_over_under_prediction: null,
-            api_over_under_confidence: null,
-            api_prediction_advice: null,
-            algorithms_agree_winner: false,
-            algorithms_agree_over_under: false
+            kelly_percentage: 0.02
           };
         }
 
