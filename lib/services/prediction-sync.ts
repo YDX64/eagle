@@ -242,6 +242,119 @@ async function storePredictions(matchId: number, advancedPrediction: any) {
   for (const payload of predictionsToSave) {
     await prisma.prediction.create({ data: payload });
   }
+
+  // DUAL-WRITE HOOK: mirror to tracking DB (non-fatal, additive)
+  // Keeps the /tracking dashboard in sync with daily-sync legacy runs.
+  try {
+    const { mirrorToTracking } = await import('@/lib/tracking/dual-write-hook');
+    const matchRow = await prisma.match.findUnique({
+      where: { id: matchId },
+      select: {
+        date: true,
+        homeTeam: { select: { name: true } },
+        awayTeam: { select: { name: true } },
+        league: { select: { name: true } },
+      },
+    });
+
+    const homeProb = homeProbSafe(advancedPrediction);
+    const drawProb = drawProbSafe(advancedPrediction);
+    const awayProb = awayProbSafe(advancedPrediction);
+    const bestMarket =
+      homeProb >= drawProb && homeProb >= awayProb
+        ? 'HOME_WIN'
+        : awayProb >= drawProb && awayProb > homeProb
+          ? 'AWAY_WIN'
+          : 'DRAW';
+    const bestLabel = bestMarket === 'HOME_WIN' ? 'MS 1' : bestMarket === 'AWAY_WIN' ? 'MS 2' : 'MS X';
+    const bestProb =
+      bestMarket === 'HOME_WIN' ? homeProb : bestMarket === 'AWAY_WIN' ? awayProb : drawProb;
+
+    const bttsProb = (advancedPrediction?.both_teams_score?.probability ?? 0) / 100;
+    const overProb = (advancedPrediction?.total_goals?.over_2_5?.probability ?? 0) / 100;
+
+    const picks = [
+      {
+        market: 'HOME_WIN',
+        market_label: 'MS 1',
+        pick_label: 'Ev sahibi kazanır',
+        category: 'MAÇ_SONUCU',
+        probability: homeProb,
+        is_best: bestMarket === 'HOME_WIN',
+      },
+      {
+        market: 'DRAW',
+        market_label: 'MS X',
+        pick_label: 'Beraberlik',
+        category: 'MAÇ_SONUCU',
+        probability: drawProb,
+        is_best: bestMarket === 'DRAW',
+      },
+      {
+        market: 'AWAY_WIN',
+        market_label: 'MS 2',
+        pick_label: 'Deplasman kazanır',
+        category: 'MAÇ_SONUCU',
+        probability: awayProb,
+        is_best: bestMarket === 'AWAY_WIN',
+      },
+      {
+        market: bttsProb >= 0.5 ? 'BTTS_YES' : 'BTTS_NO',
+        market_label: bttsProb >= 0.5 ? 'KG Var' : 'KG Yok',
+        pick_label: bttsProb >= 0.5 ? 'Karşılıklı Gol Var' : 'Karşılıklı Gol Yok',
+        category: 'KARSILIKLI_GOL',
+        probability: bttsProb >= 0.5 ? bttsProb : 1 - bttsProb,
+      },
+      {
+        market: overProb >= 0.5 ? 'OVER_25' : 'UNDER_25',
+        market_label: overProb >= 0.5 ? '2.5 Üst' : '2.5 Alt',
+        pick_label: overProb >= 0.5 ? 'Toplam gol 2.5 üst' : 'Toplam gol 2.5 alt',
+        category: 'GOL_TOPLAMI',
+        probability: overProb >= 0.5 ? overProb : 1 - overProb,
+      },
+    ];
+
+    await mirrorToTracking({
+      sport: 'football',
+      fixture_id: matchId,
+      home_team: matchRow?.homeTeam?.name ?? `team-${matchId}-home`,
+      away_team: matchRow?.awayTeam?.name ?? `team-${matchId}-away`,
+      league: matchRow?.league?.name,
+      match_date: matchRow?.date ?? new Date(),
+      home_win_prob: homeProb,
+      draw_prob: drawProb,
+      away_win_prob: awayProb,
+      confidence: Math.max(homeProb, drawProb, awayProb),
+      best_market: bestMarket,
+      best_pick_label: bestLabel,
+      best_probability: bestProb,
+      picks,
+      payload: {
+        engine: 'advanced',
+        algorithm_version: 'advanced-1.0',
+      },
+    });
+  } catch (mirrorErr) {
+    console.warn(
+      '[tracking] storePredictions mirror skipped:',
+      mirrorErr instanceof Error ? mirrorErr.message : mirrorErr
+    );
+  }
+}
+
+/** Safe probability extractors used by the tracking mirror. Legacy engine emits
+ *  percentages; we convert to 0..1 and guard against missing nested objects. */
+function homeProbSafe(p: any): number {
+  const v = p?.match_result?.home_win?.probability;
+  return typeof v === 'number' && Number.isFinite(v) ? v / 100 : 0;
+}
+function drawProbSafe(p: any): number {
+  const v = p?.match_result?.draw?.probability;
+  return typeof v === 'number' && Number.isFinite(v) ? v / 100 : 0;
+}
+function awayProbSafe(p: any): number {
+  const v = p?.match_result?.away_win?.probability;
+  return typeof v === 'number' && Number.isFinite(v) ? v / 100 : 0;
 }
 
 function mapConfidenceToTier(confidencePercent: number) {

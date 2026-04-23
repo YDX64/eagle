@@ -126,6 +126,86 @@ export async function saveEnsemblePrediction({
         } as Prisma.PredictionUncheckedCreateInput,
       });
     }
+
+    // DUAL-WRITE HOOK: mirror to tracking DB (non-fatal, additive)
+    // Imported lazily to avoid a circular dep between lib/db and
+    // lib/tracking/dual-write-hook (which itself imports from lib/db).
+    try {
+      const { mirrorToTracking } = await import('@/lib/tracking/dual-write-hook');
+      const homeWinProb = clamp(ensemblePrediction.matchResult.probabilities.home, 0, 1);
+      const drawProb = clamp(ensemblePrediction.matchResult.probabilities.draw, 0, 1);
+      const awayWinProb = clamp(ensemblePrediction.matchResult.probabilities.away, 0, 1);
+      const bestIsHome = predictedValue === 'home';
+      const bestIsAway = predictedValue === 'away';
+      const bestMarket = bestIsHome ? 'HOME_WIN' : bestIsAway ? 'AWAY_WIN' : 'DRAW';
+      const bestLabel = bestIsHome ? 'MS 1' : bestIsAway ? 'MS 2' : 'MS X';
+      const bestProb = bestIsHome ? homeWinProb : bestIsAway ? awayWinProb : drawProb;
+      const picks = [
+        {
+          market: 'HOME_WIN',
+          market_label: 'MS 1',
+          pick_label: 'Ev sahibi kazanır',
+          category: 'MAÇ_SONUCU',
+          probability: homeWinProb,
+          is_best: bestMarket === 'HOME_WIN',
+        },
+        {
+          market: 'DRAW',
+          market_label: 'MS X',
+          pick_label: 'Beraberlik',
+          category: 'MAÇ_SONUCU',
+          probability: drawProb,
+          is_best: bestMarket === 'DRAW',
+        },
+        {
+          market: 'AWAY_WIN',
+          market_label: 'MS 2',
+          pick_label: 'Deplasman kazanır',
+          category: 'MAÇ_SONUCU',
+          probability: awayWinProb,
+          is_best: bestMarket === 'AWAY_WIN',
+        },
+      ];
+      // Match metadata not carried by PredictionMetadata — query it cheaply
+      // from the SQLite `matches` table we just wrote to. If missing, we still
+      // mirror with placeholder team/league strings.
+      const matchRow = await prisma.match.findUnique({
+        where: { id: matchId },
+        select: {
+          date: true,
+          homeTeam: { select: { name: true } },
+          awayTeam: { select: { name: true } },
+          league: { select: { name: true } },
+        },
+      });
+      await mirrorToTracking({
+        sport: 'football',
+        fixture_id: matchId,
+        home_team: matchRow?.homeTeam?.name ?? `team-${matchId}-home`,
+        away_team: matchRow?.awayTeam?.name ?? `team-${matchId}-away`,
+        league: matchRow?.league?.name,
+        match_date: matchRow?.date ?? new Date(),
+        home_win_prob: homeWinProb,
+        draw_prob: drawProb,
+        away_win_prob: awayWinProb,
+        confidence: overallConfidence,
+        best_market: bestMarket,
+        best_pick_label: bestLabel,
+        best_probability: bestProb,
+        picks,
+        payload: {
+          engine: 'ensemble',
+          algorithm_version: '3.0',
+          predicted_value: predictedValue,
+        },
+      });
+    } catch (mirrorErr) {
+      // Never throw from the tracking mirror path. Log and continue.
+      console.warn(
+        '[tracking] saveEnsemblePrediction mirror skipped:',
+        mirrorErr instanceof Error ? mirrorErr.message : mirrorErr
+      );
+    }
   } catch (error) {
     console.error('[PREDICTION] Failed to persist ensemble prediction:', error);
   }
