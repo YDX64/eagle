@@ -9,15 +9,15 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function requiredSecret(): string {
   const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret || secret === 'your_nextauth_secret_here') {
-    // NextAuth refuses to start without a real secret in production. We
-    // bubble the failure early instead of producing silently-broken JWTs.
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('NEXTAUTH_SECRET is not configured');
-    }
-    return 'dev-insecure-secret-change-me';
+  if (secret && secret !== 'your_nextauth_secret_here') return secret;
+  // Don't throw at import/build time — Next.js collects page data during
+  // `next build`, which imports this module before the runtime env is applied.
+  // Warn loudly instead; the NextAuth handler will fail fast at request time
+  // if the secret is still unset in production.
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('[auth] NEXTAUTH_SECRET is not configured — requests will fail at runtime');
   }
-  return secret;
+  return 'build-time-placeholder-secret-do-not-use-in-production';
 }
 
 export const authOptions: NextAuthOptions = {

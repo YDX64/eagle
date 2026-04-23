@@ -138,6 +138,33 @@ export interface MatchStatistics {
   }[];
 }
 
+export interface MatchEvent {
+  time: { elapsed: number; extra: number | null };
+  team: Team;
+  player: { id: number | null; name: string | null };
+  assist: { id: number | null; name: string | null };
+  type: string; // Goal, Card, subst, Var
+  detail: string;
+  comments: string | null;
+}
+
+export interface OddsBookmaker {
+  id: number;
+  name: string;
+  bets: Array<{
+    id: number;
+    name: string;
+    values: Array<{ value: string; odd: string }>;
+  }>;
+}
+
+export interface FixtureOdds {
+  league: { id: number; season: number; name: string };
+  fixture: { id: number; date: string; timestamp: number };
+  update: string;
+  bookmakers: OddsBookmaker[];
+}
+
 import { CacheService } from './cache';
 
 const API_KEY = process.env.AWASTATS_API_KEY || process.env.API_FOOTBALL_KEY;
@@ -365,6 +392,67 @@ export class ApiFootballService {
       return { data, error: null, upstreamErrors, results: response?.results };
     } catch (error: any) {
       return { data: null, error: error?.message || String(error) };
+    }
+  }
+
+  /**
+   * Get bookmaker odds for a fixture.
+   * Returns an empty array when upstream has no odds data yet.
+   */
+  static async getOdds(fixtureId: number): Promise<FixtureOdds[]> {
+    const response = await this.makeRequest<FixtureOdds>('/odds', { fixture: fixtureId });
+    return response.response || [];
+  }
+
+  /**
+   * Get in-game events for a fixture (goals, cards, subs).
+   */
+  static async getFixtureEvents(fixtureId: number): Promise<MatchEvent[]> {
+    const response = await this.makeRequest<MatchEvent>('/fixtures/events', { fixture: fixtureId });
+    return response.response || [];
+  }
+
+  /**
+   * Get recent events for a team by scanning their last N fixtures.
+   * Used by cards / corners engines. Falls back to an empty list on failure.
+   */
+  static async getTeamRecentEvents(teamId: number, league: number, season: number, limit = 10): Promise<{ fixtureId: number; events: MatchEvent[] }[]> {
+    try {
+      const fixtures = await this.getFixturesByLeague(league, season);
+      const teamFixtures = fixtures
+        .filter(f => (f.teams.home.id === teamId || f.teams.away.id === teamId) && f.fixture.status.short === 'FT')
+        .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
+        .slice(0, limit);
+      const results: { fixtureId: number; events: MatchEvent[] }[] = [];
+      for (const f of teamFixtures) {
+        const events = await this.getFixtureEvents(f.fixture.id);
+        results.push({ fixtureId: f.fixture.id, events });
+      }
+      return results;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get recent statistics for a team by scanning their last N fixtures.
+   * Used by cards / corners engines.
+   */
+  static async getTeamRecentStats(teamId: number, league: number, season: number, limit = 10): Promise<{ fixtureId: number; stats: MatchStatistics[] }[]> {
+    try {
+      const fixtures = await this.getFixturesByLeague(league, season);
+      const teamFixtures = fixtures
+        .filter(f => (f.teams.home.id === teamId || f.teams.away.id === teamId) && f.fixture.status.short === 'FT')
+        .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
+        .slice(0, limit);
+      const results: { fixtureId: number; stats: MatchStatistics[] }[] = [];
+      for (const f of teamFixtures) {
+        const stats = await this.getMatchStatistics(f.fixture.id);
+        results.push({ fixtureId: f.fixture.id, stats });
+      }
+      return results;
+    } catch {
+      return [];
     }
   }
 
