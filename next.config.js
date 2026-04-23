@@ -4,7 +4,9 @@ const path = require('path');
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   output: process.env.NEXT_OUTPUT_MODE,
-  outputFileTracingRoot: path.join(__dirname, '../'),
+  // In Docker the app is the sole workspace; without this override the
+  // standalone tracer walks up to `/` and emits a broken output layout.
+  outputFileTracingRoot: __dirname,
   eslint: {
     ignoreDuringBuilds: true,
   },
