@@ -29,6 +29,7 @@ services:
       API_FOOTBALL_RATE_LIMIT: "900"
       # Prisma connection (unused by ProBet but required by schema)
       DATABASE_URL: "file:/app/data/probet.db"
+      TRACKING_DATABASE_URL: "postgresql://awauser:${PROBET_PG_PASSWORD_URL}@awa-postgres:5432/probet"
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-me-in-production}
       NEXTAUTH_URL: "https://pro.awastats.com"
       NEXT_PUBLIC_APP_URL: "https://pro.awastats.com"
