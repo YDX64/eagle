@@ -517,3 +517,47 @@ model sport_team_aliases {
   @@unique([sport, apisports_team_id])
   @@index([sport, canonical_source, canonical_team_id])
 }
+
+// ============================================================================
+// Coupons: user-assembled multi-leg tickets (high-odds filter + builder)
+// ============================================================================
+
+model coupons {
+  id                String        @id @default(cuid())
+  created_at        DateTime      @default(now()) @db.Timestamptz(6)
+  stake             Float
+  total_odds        Float
+  total_probability Float
+  expected_return   Float
+  expected_value    Float
+  risk_level        String
+  status            String        @default("pending")
+  settled_at        DateTime?     @db.Timestamptz(6)
+  note              String?
+  legs              coupon_legs[]
+
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+}
+
+model coupon_legs {
+  id          BigInt   @id @default(autoincrement())
+  coupon_id   String
+  pick_id     BigInt
+  sport       String
+  fixture_id  Int
+  home_team   String?
+  away_team   String?
+  match_date  DateTime? @db.Timestamptz(6)
+  league      String?
+  market      String
+  market_label String?
+  pick_label  String?
+  probability Float?
+  market_odds Float?
+  hit         Boolean?
+  coupons     coupons  @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+
+  @@index([pick_id])
+  @@index([coupon_id])
+}

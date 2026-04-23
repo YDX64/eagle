@@ -5,14 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart3,
+  Brain,
   LineChart as LineChartIcon,
   ListChecks,
   RefreshCw,
   Sparkles,
   Target,
+  Ticket,
   Trophy,
   TrendingUp,
   UserCircle2,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -61,6 +64,18 @@ const TABS: Array<{
     icon: Sparkles,
   },
   {
+    label: 'Yüksek Oran',
+    href: '/tracking/high-odds',
+    match: p => p.startsWith('/tracking/high-odds'),
+    icon: Zap,
+  },
+  {
+    label: 'Kuponlarım',
+    href: '/tracking/coupons',
+    match: p => p.startsWith('/tracking/coupons'),
+    icon: Ticket,
+  },
+  {
     label: 'Oyuncu Marketleri',
     href: '/tracking/player-props',
     match: p => p.startsWith('/tracking/player-props'),
@@ -71,6 +86,12 @@ const TABS: Array<{
     href: '/tracking/odds-movement',
     match: p => p.startsWith('/tracking/odds-movement'),
     icon: LineChartIcon,
+  },
+  {
+    label: 'Motor Karşılaştırması',
+    href: '/tracking/engines',
+    match: p => p.startsWith('/tracking/engines'),
+    icon: Brain,
   },
 ];
 
