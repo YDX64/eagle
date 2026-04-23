@@ -38,10 +38,14 @@ class InMemoryCache {
   }
 }
 
-// Cache uses in-memory fallback; the `cache_entries` table was removed from
-// the production probet schema. We keep the prisma reference typed as any so
-// future database-backed caching can be re-enabled without refactoring.
+// Try to import prisma, but don't fail if database is not configured
 let prisma: any = null;
+try {
+  const db = require('./db');
+  prisma = db.prisma;
+} catch (error) {
+  console.warn('Database not configured, using in-memory cache');
+}
 
 function looksLikePlaceholderUrl(url: string | undefined): boolean {
   if (!url) return true;

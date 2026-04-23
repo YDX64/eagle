@@ -5,21 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const SPORTS = [
-  { key: 'football', label: 'Futbol', icon: '⚽', href: '/', color: 'emerald' },
-  { key: 'basketball', label: 'Basketbol', icon: '🏀', href: '/basketball', color: 'orange' },
-  { key: 'hockey', label: 'Buz Hokeyi', icon: '🏒', href: '/hockey', color: 'blue' },
-  { key: 'handball', label: 'Hentbol', icon: '🤾', href: '/handball', color: 'purple' },
-  { key: 'volleyball', label: 'Voleybol', icon: '🏐', href: '/volleyball', color: 'pink' },
-  { key: 'baseball', label: 'Beyzbol', icon: '⚾', href: '/baseball', color: 'red' },
-  { key: 'high-value', label: 'Yüksek Değer', icon: '💰', href: '/high-value', color: 'yellow' },
+  { key: 'football', label: 'Futbol', icon: '\u26BD', href: '/', color: 'emerald' },
+  { key: 'basketball', label: 'Basketbol', icon: '\uD83C\uDFC0', href: '/basketball', color: 'orange' },
+  { key: 'hockey', label: 'Buz Hokeyi', icon: '\uD83C\uDFD2', href: '/hockey', color: 'blue' },
+  { key: 'handball', label: 'Hentbol', icon: '\uD83E\uDD3E', href: '/handball', color: 'purple' },
+  { key: 'volleyball', label: 'Voleybol', icon: '\uD83C\uDFD0', href: '/volleyball', color: 'pink' },
+  { key: 'high-value', label: 'Yuksek Deger', icon: '\uD83D\uDCB0', href: '/high-value', color: 'yellow' },
 ] as const;
 
 const TOOLS = [
-  { key: 'tracking', label: 'Takip Paneli', href: '/tracking' },
-  { key: 'performance', label: 'Performans', href: '/tracking/performance' },
-  { key: 'leaderboard', label: 'Lider Tablosu', href: '/tracking/leaderboard' },
-  { key: 'value', label: 'Değer Bahis', href: '/tracking/value-bets' },
-  { key: 'props', label: 'Oyuncu Bahis', href: '/tracking/player-props' },
+  { key: 'bulk', label: 'Toplu Analiz', href: '/bulk-analysis' },
+  { key: 'stats', label: 'Istatistikler', href: '/statistics' },
 ] as const;
 
 const colorMap: Record<string, { active: string; hover: string; text: string }> = {
@@ -29,7 +25,6 @@ const colorMap: Record<string, { active: string; hover: string; text: string }> 
   purple: { active: 'bg-purple-600 text-white shadow-lg shadow-purple-500/30', hover: 'hover:bg-purple-100 dark:hover:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400' },
   pink: { active: 'bg-pink-600 text-white shadow-lg shadow-pink-500/30', hover: 'hover:bg-pink-100 dark:hover:bg-pink-900/30', text: 'text-pink-700 dark:text-pink-400' },
   yellow: { active: 'bg-yellow-600 text-white shadow-lg shadow-yellow-500/30', hover: 'hover:bg-yellow-100 dark:hover:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400' },
-  red: { active: 'bg-red-600 text-white shadow-lg shadow-red-500/30', hover: 'hover:bg-red-100 dark:hover:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
 };
 
 export function SportSelector() {
@@ -40,9 +35,9 @@ export function SportSelector() {
     if (pathname.startsWith('/hockey')) return 'hockey';
     if (pathname.startsWith('/handball')) return 'handball';
     if (pathname.startsWith('/volleyball')) return 'volleyball';
-    if (pathname.startsWith('/baseball')) return 'baseball';
     if (pathname.startsWith('/high-value')) return 'high-value';
-    if (pathname.startsWith('/tracking')) return 'tracking';
+    if (pathname.startsWith('/bulk-analysis')) return 'bulk';
+    if (pathname.startsWith('/statistics')) return 'stats';
     return 'football';
   };
 
@@ -74,7 +69,7 @@ export function SportSelector() {
         })}
         <span className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1" />
         {TOOLS.map((tool) => {
-          const isActive = pathname === tool.href;
+          const isActive = activeSport === tool.key;
           return (
             <Link
               key={tool.key}
