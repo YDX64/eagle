@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import type { SportCode } from '@/lib/tracking/types';
 
 export const dynamic = 'force-dynamic';
