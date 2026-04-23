@@ -61,10 +61,55 @@ function isFinished(status: string | null | undefined): boolean {
   return FINISHED_STATUSES.has(status) || status.toLowerCase().includes('finished') || status.toLowerCase().includes('ended');
 }
 
-function evalPick(marketCode: string, ctx: SettleContext): boolean | 'void' | null {
+/**
+ * Cross-sport pick_label parser — reads the real total threshold directly
+ * out of the Turkish pick label (e.g. "230 Üst", "224 Alt", "5.5 Üst Gol").
+ *
+ * The user's NBA / basketball / hockey engines persist picks with a football
+ * market code (OVER_25, UNDER_35 etc.) even though the real threshold is
+ * 200+ points. This hook intercepts before taxonomy lookup so the threshold
+ * comes from pick_label instead of the wrong canonical line.
+ *
+ * Returns:
+ *   true  → hit
+ *   false → miss
+ *   null  → not parseable, fall through to taxonomy-based evaluator
+ */
+function evalFromLabel(
+  sport: string,
+  marketCode: string,
+  pickLabel: string | null | undefined,
+  ctx: SettleContext,
+): boolean | null {
+  if (!pickLabel) return null;
+  if (sport === 'football') return null; // football taxonomy is already correct
+  // Only totals-style markets need label parsing — otherwise fall through
+  if (!/^(OVER|UNDER|HO_OVER|HO_UNDER|BB_OVER|BB_UNDER|HB_OVER|HB_UNDER|VB_TOTAL_SETS_OVER|VB_TOTAL_SETS_UNDER|BS_OVER|BS_UNDER)_\d+$/i.test(marketCode)) {
+    return null;
+  }
+  const m = pickLabel.match(/(\d+(?:[.,]\d+)?)\s*(Üst|Alt|Over|Under)/i);
+  if (!m) return null;
+  const threshold = parseFloat(m[1].replace(',', '.'));
+  if (!Number.isFinite(threshold)) return null;
+  const total = ctx.home + ctx.away;
+  const isOver = /Üst|Over/i.test(m[2]);
+  return isOver ? total > threshold : total < threshold;
+}
+
+function evalPick(
+  marketCode: string,
+  ctx: SettleContext,
+  opts?: { sport?: string; pickLabel?: string | null },
+): boolean | 'void' | null {
+  // Cross-sport label parser takes precedence for non-football totals.
+  // Prevents the "basketball OVER_25 = 2.5 Üst" bug where a 189-point
+  // basketball game wrongly counted as an over against a 2.5 threshold.
+  if (opts?.sport && opts.sport !== 'football') {
+    const labelResult = evalFromLabel(opts.sport, marketCode, opts.pickLabel, ctx);
+    if (labelResult !== null) return labelResult;
+  }
   const def = getMarket(marketCode);
   if (!def) return null;
-  // Inject line if missing
   if (def.requires_line && ctx.line == null) {
     ctx.line = inferLine(marketCode);
   }
@@ -114,7 +159,10 @@ export async function settlePrediction(pred_id: string, result: GameResult): Pro
   await prisma.$transaction(async tx => {
     for (const pick of prediction.picks) {
       const ctx = { ...baseCtx };
-      const outcome = evalPick(pick.market, ctx);
+      const outcome = evalPick(pick.market, ctx, {
+        sport: prediction.sport,
+        pickLabel: pick.pick_label,
+      });
       const hit = outcome === true ? true : outcome === false ? false : null;
       if (outcome === 'void') {
         await tx.picks.update({ where: { id: pick.id }, data: { hit: null } });
@@ -130,7 +178,10 @@ export async function settlePrediction(pred_id: string, result: GameResult): Pro
     }
 
     for (const sb of prediction.system_bets) {
-      const outcome = evalPick(sb.market, { ...baseCtx });
+      const outcome = evalPick(sb.market, { ...baseCtx }, {
+        sport: prediction.sport,
+        pickLabel: sb.pick_label,
+      });
       const hit = outcome === true ? true : outcome === false ? false : null;
       if (outcome === 'void') {
         await tx.system_bets.update({ where: { id: sb.id }, data: { hit: null } });
