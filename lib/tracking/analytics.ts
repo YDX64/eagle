@@ -73,7 +73,7 @@ export async function getMarketPerformance(filters: AnalyticsFilters = {}): Prom
       ${where ? 'AND' : 'WHERE'} pk.hit IS NOT NULL
     GROUP BY p.sport, pk.market
     HAVING COUNT(*) >= 3
-    ORDER BY hit::float / COUNT(*) DESC, total DESC
+    ORDER BY SUM(CASE WHEN pk.hit = true THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*), 0) DESC NULLS LAST, COUNT(*) DESC
     LIMIT 500
   `;
   const rows = await prisma.$queryRawUnsafe<any[]>(sql, ...params);
