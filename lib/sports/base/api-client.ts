@@ -10,6 +10,7 @@ const BASE_URLS: Record<SportType, string> = {
   hockey: 'https://v1.hockey.api-sports.io',
   volleyball: 'https://v1.volleyball.api-sports.io',
   handball: 'https://v1.handball.api-sports.io',
+  baseball: 'https://v1.baseball.api-sports.io',
 };
 
 export class BaseSportApiClient {

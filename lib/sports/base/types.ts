@@ -1,5 +1,5 @@
 
-export type SportType = 'football' | 'basketball' | 'hockey' | 'volleyball' | 'handball';
+export type SportType = 'football' | 'basketball' | 'hockey' | 'volleyball' | 'handball' | 'baseball';
 
 // Common API-Sports response envelope (same across all sports)
 export interface ApiSportsResponse<T> {
@@ -140,6 +140,46 @@ export interface HandballScores {
   };
 }
 
+// Baseball scores
+// Baseball games have up to 9 innings (plus optional extra innings).
+// API-Baseball exposes hits/errors and per-inning runs in its games payload.
+export interface BaseballScores {
+  home: {
+    hits: number | null;
+    errors: number | null;
+    innings: {
+      1: number | null;
+      2: number | null;
+      3: number | null;
+      4: number | null;
+      5: number | null;
+      6: number | null;
+      7: number | null;
+      8: number | null;
+      9: number | null;
+      extra: number | null;
+    };
+    total: number | null;
+  };
+  away: {
+    hits: number | null;
+    errors: number | null;
+    innings: {
+      1: number | null;
+      2: number | null;
+      3: number | null;
+      4: number | null;
+      5: number | null;
+      6: number | null;
+      7: number | null;
+      8: number | null;
+      9: number | null;
+      extra: number | null;
+    };
+    total: number | null;
+  };
+}
+
 // Sport-specific game types
 export interface BasketballGame extends BaseGame {
   scores: BasketballScores;
@@ -155,6 +195,10 @@ export interface VolleyballGame extends BaseGame {
 
 export interface HandballGame extends BaseGame {
   scores: HandballScores;
+}
+
+export interface BaseballGame extends BaseGame {
+  scores: BaseballScores;
 }
 
 // Common standing structure

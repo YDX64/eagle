@@ -1,17 +1,20 @@
+/**
+ * Authentication configuration.
+ *
+ * The production probet database doesn't carry a User table — user management
+ * is deferred to an upstream identity provider or a simple env-gated admin
+ * credential for now. This keeps the Next.js route handlers building without
+ * requiring a Prisma User model.
+ */
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
-
-import { prisma } from '@/lib/db';
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function requiredSecret(): string {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret || secret === 'your_nextauth_secret_here') {
-    // NextAuth refuses to start without a real secret in production. We
-    // bubble the failure early instead of producing silently-broken JWTs.
     if (process.env.NODE_ENV === 'production') {
       throw new Error('NEXTAUTH_SECRET is not configured');
     }
@@ -21,7 +24,6 @@ function requiredSecret(): string {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: 'jwt',
     maxAge: SESSION_MAX_AGE_SECONDS,
@@ -32,28 +34,24 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
-      name: 'Email & Password',
+      name: 'Admin',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminHash = process.env.ADMIN_PASSWORD_HASH;
+        if (!adminEmail || !adminHash) return null;
         if (!credentials?.email || !credentials.password) return null;
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        });
-        if (!user || !user.passwordHash) return null;
-
-        const ok = await bcrypt.compare(credentials.password, user.passwordHash);
+        if (credentials.email.toLowerCase() !== adminEmail.toLowerCase()) return null;
+        const ok = await bcrypt.compare(credentials.password, adminHash);
         if (!ok) return null;
-
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? undefined,
-          image: user.image ?? undefined,
-          role: user.role,
+          id: 'admin',
+          email: adminEmail,
+          name: 'Admin',
+          role: 'admin',
         } as any;
       },
     }),
