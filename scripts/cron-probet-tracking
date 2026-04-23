@@ -1,0 +1,39 @@
+# /etc/cron.d/probet-tracking
+# Install on AWAXX with:
+#   sudo cp /opt/probet/scripts/cron-probet-tracking /etc/cron.d/probet-tracking
+#   sudo chmod 0644 /etc/cron.d/probet-tracking
+#   sudo systemctl reload cron   # or: sudo service cron restart
+#
+# Requires CRON_SECRET env var set in /opt/probet/.env AND baked into probet-app
+# (docker-compose.yml already forwards it).
+#
+# Log files live under /var/log/probet-tracking/ — make sure the dir exists:
+#   sudo mkdir -p /var/log/probet-tracking && sudo chown root:root /var/log/probet-tracking
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+
+# ─── Daily multi-sport prediction generation (all 6 sports) ──────────────────
+# Runs at 06:15 UTC every day. Scans today's fixtures, runs every sport's
+# engine, persists into predictions + picks + odds snapshots.
+15 6 * * *  root  SECRET=$(grep '^CRON_SECRET=' /opt/probet/.env | cut -d= -f2-); curl -fsS -X POST -H "Authorization: Bearer $SECRET" http://127.0.0.1:5051/api/cron/daily-all-sports >> /var/log/probet-tracking/daily.log 2>&1
+
+# ─── Settle finished predictions every 30 minutes ────────────────────────────
+# Picks up any prediction whose match_date has passed + status still pending,
+# evaluates each pick's market against the game result, flips hit/miss.
+*/30 * * * *  root  SECRET=$(grep '^CRON_SECRET=' /opt/probet/.env | cut -d= -f2-); curl -fsS -X POST -H "Authorization: Bearer $SECRET" http://127.0.0.1:5051/api/cron/settle-finished >> /var/log/probet-tracking/settle.log 2>&1
+
+# ─── NHL player roster + box score import (daily) ────────────────────────────
+# Pulls fresh NHL Web API data into ho_player_season_averages + ho_player_game_logs.
+# Powers hockey player-props from the user's prediction engines.
+35 6 * * *  root  SECRET=$(grep '^CRON_SECRET=' /opt/probet/.env | cut -d= -f2-); curl -fsS --max-time 600 -X POST -H "Authorization: Bearer $SECRET" "http://127.0.0.1:5051/api/cron/import-nhl-players?mode=both&days=3" >> /var/log/probet-tracking/nhl-import.log 2>&1
+
+# ─── MLB player roster + box score import (daily) ────────────────────────────
+# Pulls MLB StatsAPI into bs_player_season_averages + bs_player_game_logs.
+45 6 * * *  root  SECRET=$(grep '^CRON_SECRET=' /opt/probet/.env | cut -d= -f2-); curl -fsS --max-time 600 -X POST -H "Authorization: Bearer $SECRET" "http://127.0.0.1:5051/api/cron/import-mlb-players?mode=both&days=3" >> /var/log/probet-tracking/mlb-import.log 2>&1
+
+# ─── Market taxonomy reseed weekly (idempotent) ──────────────────────────────
+# Guards against missing rows in market_taxonomy. No-ops when all 212 codes
+# are already there.
+0 3 * * 0  root  curl -fsS -X POST http://127.0.0.1:5051/api/tracking/seed-markets >> /var/log/probet-tracking/seed.log 2>&1

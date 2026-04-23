@@ -3,7 +3,8 @@
  * Arctic Futurism Theme - i18n destekli
  */
 import { useState, useEffect, useMemo } from "react";
-import Link from 'next/link';;
+import Link from 'next/link';
+import { PredictionResultBadge, PredictionResultBadgeProvider } from '@/components/tracking/prediction-result-badge';
 import {
   getGames,
   getLiveGames,
@@ -221,9 +222,11 @@ export default function Home() {
                   </span>
                 </div>
                 <div className="space-y-1.5">
-                  {group.games.map((game, idx) => (
-                    <GameCard key={game.id} game={game} delay={idx * 50} />
-                  ))}
+                  <PredictionResultBadgeProvider sport="hockey">
+                    {group.games.map((game, idx) => (
+                      <GameCard key={game.id} game={game} delay={idx * 50} />
+                    ))}
+                  </PredictionResultBadgeProvider>
                 </div>
               </div>
             ))
@@ -240,11 +243,16 @@ function GameCard({ game, delay }: { game: Game; delay: number }) {
   const finished = isFinishedGame(game.status);
 
   return (
+    <div className="relative">
     <Link
       href={`/hockey-2/match/${game.id}`}
       className={`block bg-card border border-border rounded-xl backdrop-blur-sm hover:bg-accent/60 transition-all rounded-lg p-3 sm:p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${live ? "border-l-2 border-l-destructive" : ""}`}
       style={{ animationDelay: `${delay}ms` }}
     >
+      {/* Kazandı/Kaybetti/Bekliyor badge — absolute positioned so it doesn't break the Link */}
+      <span className="absolute top-1 right-1 z-10 pointer-events-none">
+        <PredictionResultBadge fixtureId={game.id as any} sport="hockey" size="xs" />
+      </span>
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="w-16 sm:w-20 text-center shrink-0">
           {live ? (
@@ -287,6 +295,7 @@ function GameCard({ game, delay }: { game: Game; delay: number }) {
         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
     </Link>
+    </div>
   );
 }
 
