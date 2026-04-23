@@ -1,20 +1,25 @@
 /**
- * Baseball player-prop generator.
+ * Baseball player-prop generator (DB-backed).
  *
- * Starting pitchers (SP) → STRIKEOUTS.
- * Starting batters → HITS, TOTAL_BASES, HOME_RUNS.
+ * Data flow:
+ *   1. `baseballApi.getGameById(game_id)` → api-sports baseball fixture with
+ *      league + home/away team ids + names.
+ *   2. Resolve each team to its canonical MLB team via `sport_team_aliases`.
+ *   3. Pull rosters from `bs_player_season_averages` (populated by
+ *      `lib/importers/mlb-importer.ts`) split into pitchers vs batters.
+ *   4. Emit STRIKEOUTS lines for qualified pitchers (games_started >= 10) and
+ *      HITS / TOTAL_BASES / HOME_RUNS lines for batters.
+ *   5. `buildLinesForPlayer` handles per-line confidence and distribution
+ *      maths in `stat-distributions.ts`.
  *
- * MLB + NPB + KBO + every major league defined in `MAJOR_BASEBALL_LEAGUES`.
- * Data comes from the api-sports baseball `/players` endpoint. API responses
- * for baseball tend to expose:
- *   - pitching.strikeouts / games / innings / ERA / WHIP / K9 / BAA
- *   - batting.hits / at_bats / doubles / triples / homeruns / runs / RBI / games
- *
- * For pitcher K projections we use a K/9 × expected innings model. For batter
- * markets we use per-game rates scaled by the expected plate appearances.
+ * If the tracking DB has no data yet for the resolved team, we emit an
+ * empty `players[]` with a helpful note that directs the caller to
+ * `/api/cron/import-mlb-players`.
  */
 
+import { trackingPrisma } from '@/lib/db';
 import { baseballApi, MAJOR_BASEBALL_LEAGUES } from '@/lib/sports/baseball/api-baseball';
+import { resolveTeamAlias, type CanonicalTeam } from '@/lib/importers/shared';
 import { buildLinesForPlayer } from './line-builder';
 import { chooseDistribution } from './stat-distributions';
 import {
@@ -24,6 +29,9 @@ import {
   type PlayerPropPredictionResult,
 } from './types';
 
+// ---------------------------------------------------------------------------
+// Book lines (per the spec)
+// ---------------------------------------------------------------------------
 const STRIKEOUT_LINES = [3.5, 4.5, 5.5, 6.5, 7.5] as const;
 const HIT_LINES = [0.5, 1.5] as const;
 const TB_LINES = [1.5, 2.5, 3.5] as const;
@@ -36,7 +44,6 @@ const MIN_MEAN = {
   HR: 0.12,
 } as const;
 
-// Default coefficients of variation derived from empirical MLB data.
 const DEFAULT_CV = {
   STRIKEOUTS: 0.35,
   HITS: 0.75,
@@ -44,17 +51,26 @@ const DEFAULT_CV = {
   HR: 1.6,
 } as const;
 
+/** Minimum games started for a pitcher to be emitted. */
+const MIN_PITCHER_STARTS = 10;
+
+// ---------------------------------------------------------------------------
+// Baselines
+// ---------------------------------------------------------------------------
+
 interface PitcherBaseline {
   player_id: number;
   player_name: string;
   team_id: number;
   team_name: string;
   position: string | null;
+  games_played: number;
   games_started: number;
-  innings_per_start: number; // expected IP in this start
+  innings_per_start: number;
   k_per_9: number;
   era: number | null;
-  baa: number | null; // batting average against
+  baa: number | null;
+  k_std: number | null;
 }
 
 interface BatterBaseline {
@@ -70,6 +86,9 @@ interface BatterBaseline {
   home_runs_per_game: number;
   batting_average: number | null;
   slugging: number | null;
+  hits_std: number | null;
+  tb_std: number | null;
+  hr_std: number | null;
 }
 
 interface TeamContext {
@@ -81,7 +100,45 @@ interface TeamContext {
 }
 
 // ---------------------------------------------------------------------------
-// Entry
+// MLB canonical teams for fuzzy matching
+// ---------------------------------------------------------------------------
+
+/** IDs match MLB StatsAPI's internal team ids. */
+const MLB_CANONICAL_TEAMS: CanonicalTeam[] = [
+  { team_id: 108, name: 'Los Angeles Angels', abbr: 'LAA', aliases: ['Angels'] },
+  { team_id: 109, name: 'Arizona Diamondbacks', abbr: 'ARI', aliases: ['Diamondbacks', 'D-backs'] },
+  { team_id: 110, name: 'Baltimore Orioles', abbr: 'BAL', aliases: ['Orioles'] },
+  { team_id: 111, name: 'Boston Red Sox', abbr: 'BOS', aliases: ['Red Sox'] },
+  { team_id: 112, name: 'Chicago Cubs', abbr: 'CHC', aliases: ['Cubs'] },
+  { team_id: 113, name: 'Cincinnati Reds', abbr: 'CIN', aliases: ['Reds'] },
+  { team_id: 114, name: 'Cleveland Guardians', abbr: 'CLE', aliases: ['Guardians', 'Indians'] },
+  { team_id: 115, name: 'Colorado Rockies', abbr: 'COL', aliases: ['Rockies'] },
+  { team_id: 116, name: 'Detroit Tigers', abbr: 'DET', aliases: ['Tigers'] },
+  { team_id: 117, name: 'Houston Astros', abbr: 'HOU', aliases: ['Astros'] },
+  { team_id: 118, name: 'Kansas City Royals', abbr: 'KC', aliases: ['Royals'] },
+  { team_id: 119, name: 'Los Angeles Dodgers', abbr: 'LAD', aliases: ['Dodgers'] },
+  { team_id: 120, name: 'Washington Nationals', abbr: 'WSH', aliases: ['Nationals', 'Nats'] },
+  { team_id: 121, name: 'New York Mets', abbr: 'NYM', aliases: ['Mets'] },
+  { team_id: 133, name: 'Athletics', abbr: 'ATH', aliases: ['Oakland Athletics', "Oakland A's"] },
+  { team_id: 134, name: 'Pittsburgh Pirates', abbr: 'PIT', aliases: ['Pirates'] },
+  { team_id: 135, name: 'San Diego Padres', abbr: 'SD', aliases: ['Padres'] },
+  { team_id: 136, name: 'Seattle Mariners', abbr: 'SEA', aliases: ['Mariners'] },
+  { team_id: 137, name: 'San Francisco Giants', abbr: 'SF', aliases: ['Giants'] },
+  { team_id: 138, name: 'St. Louis Cardinals', abbr: 'STL', aliases: ['Cardinals', 'St Louis Cardinals'] },
+  { team_id: 139, name: 'Tampa Bay Rays', abbr: 'TB', aliases: ['Rays'] },
+  { team_id: 140, name: 'Texas Rangers', abbr: 'TEX', aliases: ['Rangers'] },
+  { team_id: 141, name: 'Toronto Blue Jays', abbr: 'TOR', aliases: ['Blue Jays'] },
+  { team_id: 142, name: 'Minnesota Twins', abbr: 'MIN', aliases: ['Twins'] },
+  { team_id: 143, name: 'Philadelphia Phillies', abbr: 'PHI', aliases: ['Phillies'] },
+  { team_id: 144, name: 'Atlanta Braves', abbr: 'ATL', aliases: ['Braves'] },
+  { team_id: 145, name: 'Chicago White Sox', abbr: 'CWS', aliases: ['White Sox'] },
+  { team_id: 146, name: 'Miami Marlins', abbr: 'MIA', aliases: ['Marlins'] },
+  { team_id: 147, name: 'New York Yankees', abbr: 'NYY', aliases: ['Yankees'] },
+  { team_id: 158, name: 'Milwaukee Brewers', abbr: 'MIL', aliases: ['Brewers'] },
+];
+
+// ---------------------------------------------------------------------------
+// Main entry
 // ---------------------------------------------------------------------------
 
 export async function generateBaseballProps(
@@ -99,6 +156,7 @@ export async function generateBaseballProps(
 
   const season = (league.season ?? baseballApi.getCurrentSeason()) as string | number;
   const leagueId = league.id as number;
+  const isMlb = leagueId === MAJOR_BASEBALL_LEAGUES.MLB;
 
   const [homeCtx, awayCtx, leagueRpg] = await Promise.all([
     loadTeamContext(leagueId, season, home.id),
@@ -106,38 +164,39 @@ export async function generateBaseballProps(
     loadLeagueRunsPerGame(leagueId, season),
   ]);
 
-  const [homePlayers, awayPlayers] = await Promise.all([
-    loadRoster(leagueId, season, home.id, home.name as string),
-    loadRoster(leagueId, season, away.id, away.name as string),
+  const notes: string[] = [];
+  const [homeRoster, awayRoster] = await Promise.all([
+    loadRoster(home.id as number, home.name as string, season, leagueId, notes),
+    loadRoster(away.id as number, away.name as string, season, leagueId, notes),
   ]);
 
   const lines: PlayerPropLine[] = [];
-
-  // Pitchers
-  for (const p of homePlayers.pitchers) {
+  for (const p of homeRoster.pitchers) {
     lines.push(...emitPitcher(p, true, homeCtx, awayCtx, leagueRpg));
   }
-  for (const p of awayPlayers.pitchers) {
+  for (const p of awayRoster.pitchers) {
     lines.push(...emitPitcher(p, false, awayCtx, homeCtx, leagueRpg));
   }
-
-  // Batters
-  for (const b of homePlayers.batters) {
+  for (const b of homeRoster.batters) {
     lines.push(...emitBatter(b, true, homeCtx, awayCtx, leagueRpg));
   }
-  for (const b of awayPlayers.batters) {
+  for (const b of awayRoster.batters) {
     lines.push(...emitBatter(b, false, awayCtx, homeCtx, leagueRpg));
   }
 
   const highConfidence = lines.filter(l => l.confidence >= CONFIDENCE_THRESHOLDS.gold);
-  const notes: string[] = [];
-  const homeRosterSize = homePlayers.pitchers.length + homePlayers.batters.length;
-  const awayRosterSize = awayPlayers.pitchers.length + awayPlayers.batters.length;
-  const totalRoster = homeRosterSize + awayRosterSize;
-  if (totalRoster === 0) {
-    notes.push(
-      'api-sports beyzbol API\'sinde oyuncu-seviye endpoint bulunmuyor. Beyzbol oyuncu projeksiyonları için ya DB\'de oyuncu tablosu (baseball_player_season_averages) ya da harici oyuncu veri kaynağı gerekli.',
-    );
+  const homeRosterSize = homeRoster.pitchers.length + homeRoster.batters.length;
+  const awayRosterSize = awayRoster.pitchers.length + awayRoster.batters.length;
+  if (homeRosterSize + awayRosterSize === 0) {
+    if (isMlb) {
+      notes.push(
+        'MLB oyuncu veritabanı boş. MLB oyuncu ortalamalarını içe aktarmak için /api/cron/import-mlb-players?mode=rosters endpoint\'ini çağırın.',
+      );
+    } else {
+      notes.push(
+        'Bu lig için oyuncu veri kaynağı henüz yok. MLB dışı beyzbol ligleri şu an desteklenmiyor.',
+      );
+    }
   }
 
   return {
@@ -177,6 +236,112 @@ function detectLeagueLabel(leagueId: number): string | null {
 // Loaders
 // ---------------------------------------------------------------------------
 
+interface Roster {
+  pitchers: PitcherBaseline[];
+  batters: BatterBaseline[];
+}
+
+async function loadRoster(
+  apisportsTeamId: number,
+  apisportsTeamName: string,
+  season: string | number,
+  leagueId: number,
+  notes: string[],
+): Promise<Roster> {
+  const empty: Roster = { pitchers: [], batters: [] };
+  if (!trackingPrisma) return empty;
+
+  const canonicalSource = leagueId === MAJOR_BASEBALL_LEAGUES.MLB ? 'mlb' : null;
+  if (!canonicalSource) return empty;
+
+  const alias = await resolveTeamAlias(
+    'baseball',
+    apisportsTeamId,
+    apisportsTeamName,
+    canonicalSource,
+    MLB_CANONICAL_TEAMS,
+  ).catch(() => null);
+
+  if (!alias) {
+    notes.push(
+      `api-sports takımı '${apisportsTeamName}' (id=${apisportsTeamId}) için MLB eşlemesi bulunamadı. sport_team_aliases tablosuna manuel ekleyin.`,
+    );
+    return empty;
+  }
+
+  const seasonStr = toMlbSeason(season);
+  const rows = await trackingPrisma.bs_player_season_averages
+    .findMany({
+      where: {
+        source: canonicalSource,
+        team_id: alias.canonical_team_id,
+        season: seasonStr,
+      },
+      orderBy: [{ role: 'asc' }, { ops: 'desc' }],
+      take: 40,
+    })
+    .catch(() => []);
+
+  if (rows.length === 0) {
+    notes.push(
+      `Takım ${alias.canonical_name ?? alias.canonical_team_id} için ${seasonStr} sezonunda oyuncu verisi yok.`,
+    );
+    return empty;
+  }
+
+  const pitchers: PitcherBaseline[] = [];
+  const batters: BatterBaseline[] = [];
+  for (const r of rows as any[]) {
+    if ((r.role === 'pitcher' || r.role === 'both') && (r.games_started ?? 0) >= MIN_PITCHER_STARTS) {
+      pitchers.push({
+        player_id: r.player_id,
+        player_name: r.player_name ?? `MLB Player ${r.player_id}`,
+        team_id: r.team_id,
+        team_name: r.team_name ?? apisportsTeamName,
+        position: r.position ?? null,
+        games_played: r.games_played ?? 0,
+        games_started: r.games_started ?? 0,
+        innings_per_start: Number(r.innings_per_start ?? 0),
+        k_per_9: Number(r.k_per_9 ?? 0),
+        era: r.era ?? null,
+        baa: r.baa ?? null,
+        k_std: r.k_std ?? null,
+      });
+    }
+    if ((r.role === 'batter' || r.role === 'both') && (r.games_played ?? 0) >= 5) {
+      batters.push({
+        player_id: r.player_id,
+        player_name: r.player_name ?? `MLB Player ${r.player_id}`,
+        team_id: r.team_id,
+        team_name: r.team_name ?? apisportsTeamName,
+        position: r.position ?? null,
+        games_played: r.games_played ?? 0,
+        plate_appearances_per_game: Number(r.plate_appearances_per_game ?? 0),
+        hits_per_game: Number(r.hits_per_game ?? 0),
+        total_bases_per_game: Number(r.tb_per_game ?? 0),
+        home_runs_per_game: Number(r.hr_per_game ?? 0),
+        batting_average: r.avg ?? null,
+        slugging: r.slg ?? null,
+        hits_std: r.hits_std ?? null,
+        tb_std: r.tb_std ?? null,
+        hr_std: r.hr_std ?? null,
+      });
+    }
+  }
+
+  // Cap batter count so we don't swamp the consumer with bench hitters.
+  batters.sort(
+    (a, b) => (b.plate_appearances_per_game || 0) - (a.plate_appearances_per_game || 0),
+  );
+  return { pitchers: pitchers.slice(0, 6), batters: batters.slice(0, 12) };
+}
+
+function toMlbSeason(season: string | number): string {
+  const raw = String(season);
+  const match = raw.match(/(\d{4})/);
+  return match ? match[1] : raw;
+}
+
 async function loadTeamContext(
   leagueId: number,
   season: string | number,
@@ -184,15 +349,19 @@ async function loadTeamContext(
 ): Promise<TeamContext> {
   try {
     const stats = await baseballApi.getTeamStatistics({ league: leagueId, season, team: teamId });
-    const row = Array.isArray(stats) ? stats[0] : stats;
+    const row = Array.isArray(stats) ? stats[0] : (stats as any);
     const games = Number(row?.games ?? row?.games_played ?? 0);
-    const rf = Number(row?.runs?.for?.total?.all ?? row?.runs_for ?? row?.goals?.for?.total?.all ?? 0);
-    const ra = Number(row?.runs?.against?.total?.all ?? row?.runs_against ?? row?.goals?.against?.total?.all ?? 0);
+    const rf = Number(
+      row?.runs?.for?.total?.all ?? row?.runs_for ?? row?.goals?.for?.total?.all ?? 0,
+    );
+    const ra = Number(
+      row?.runs?.against?.total?.all ?? row?.runs_against ?? row?.goals?.against?.total?.all ?? 0,
+    );
     const avg = ((): number | null => {
-    const raw = row?.batting_average ?? row?.avg ?? 0;
-    const num = Number(raw);
-    return num > 0 ? num : null;
-  })();
+      const raw = row?.batting_average ?? row?.avg ?? 0;
+      const num = Number(raw);
+      return num > 0 ? num : null;
+    })();
     return {
       team_id: teamId,
       runs_per_game: games > 0 ? rf / games : null,
@@ -230,135 +399,6 @@ async function loadLeagueRunsPerGame(
   }
 }
 
-interface Roster {
-  pitchers: PitcherBaseline[];
-  batters: BatterBaseline[];
-}
-
-async function loadRoster(
-  leagueId: number,
-  season: string | number,
-  teamId: number,
-  teamName: string,
-): Promise<Roster> {
-  try {
-    const rows = (await (baseballApi as any).cachedRequest?.(
-      '/players',
-      { league: leagueId, season, team: teamId },
-      3600,
-    )) as any[] | undefined;
-    if (!rows || rows.length === 0) return { pitchers: [], batters: [] };
-
-    const pitchers: PitcherBaseline[] = [];
-    const batters: BatterBaseline[] = [];
-
-    for (const row of rows) {
-      const info = row.player ?? row;
-      const stats = Array.isArray(row.statistics) ? row.statistics[0] : row.statistics;
-      if (!info?.id || !stats) continue;
-
-      const position = (info?.position as string | undefined)?.toUpperCase?.() ?? null;
-      const pos = position ?? '';
-      const startsFromStats = Number(stats?.pitching?.starts ?? stats?.starts ?? 0);
-      const isSP =
-        /^SP$|STARTING PITCHER|PITCHER\s*-\s*S/.test(pos) ||
-        (/^P$/.test(pos) && startsFromStats > 3);
-
-      const pitcher = toPitcher(info, stats, teamId, teamName);
-      if (isSP && pitcher) {
-        pitchers.push(pitcher);
-        continue;
-      }
-
-      const batter = toBatter(info, stats, teamId, teamName);
-      if (batter) batters.push(batter);
-    }
-
-    // Only the top 9-12 batters by PA typically start.
-    batters.sort((a, b) => b.plate_appearances_per_game - a.plate_appearances_per_game);
-
-    return {
-      pitchers: pitchers.slice(0, 6), // top candidates for starting rotation
-      batters: batters.slice(0, 12),
-    };
-  } catch {
-    return { pitchers: [], batters: [] };
-  }
-}
-
-function toPitcher(info: any, stats: any, teamId: number, teamName: string): PitcherBaseline | null {
-  const p = stats?.pitching ?? stats;
-  const games_started = Number(p?.starts ?? p?.games?.started ?? p?.games_started ?? 0);
-  const innings = Number(p?.innings_pitched ?? p?.innings?.total ?? p?.ip ?? 0);
-  if (games_started < 3 || innings < 10) return null;
-  const strikeouts = Number(p?.strikeouts ?? p?.k ?? 0);
-  const eraRaw = Number(p?.era ?? 0);
-  const era = eraRaw > 0 ? eraRaw : null;
-  const baaRaw = Number(p?.batting_average_against ?? p?.baa ?? 0);
-  const baa = baaRaw > 0 ? baaRaw : null;
-  // K/9 = K * 9 / IP
-  const k_per_9 = innings > 0 ? (strikeouts * 9) / innings : 0;
-  // Average IP per start, capped at 7 (typical modern MLB ceiling).
-  const innings_per_start = Math.min(7, innings / Math.max(1, games_started));
-  if (k_per_9 <= 0 || innings_per_start <= 0) return null;
-  return {
-    player_id: Number(info?.id ?? 0),
-    player_name: resolvePlayerName(info),
-    team_id: teamId,
-    team_name: teamName,
-    position: 'SP',
-    games_started,
-    innings_per_start,
-    k_per_9,
-    era,
-    baa,
-  };
-}
-
-function toBatter(info: any, stats: any, teamId: number, teamName: string): BatterBaseline | null {
-  const b = stats?.batting ?? stats;
-  const games = Number(b?.games ?? b?.appearences ?? b?.games_played ?? 0);
-  if (games < 5) return null;
-  const pa = Number(b?.plate_appearances ?? b?.pa ?? 0);
-  const ab = Number(b?.at_bats ?? b?.atBats ?? b?.ab ?? 0);
-  const hits = Number(b?.hits ?? 0);
-  const doubles = Number(b?.doubles ?? b?.['2b'] ?? 0);
-  const triples = Number(b?.triples ?? b?.['3b'] ?? 0);
-  const homeruns = Number(b?.homeruns ?? b?.home_runs ?? b?.hr ?? 0);
-  const singles = Math.max(0, hits - doubles - triples - homeruns);
-  const total_bases = singles + doubles * 2 + triples * 3 + homeruns * 4;
-  const paPerGame = games > 0 ? (pa > 0 ? pa / games : ab / games + 0.5) : 0;
-  const hitsPerGame = games > 0 ? hits / games : 0;
-  if (hitsPerGame <= 0) return null;
-  return {
-    player_id: Number(info?.id ?? 0),
-    player_name: resolvePlayerName(info),
-    team_id: teamId,
-    team_name: teamName,
-    position: (info?.position as string | null) ?? null,
-    games_played: games,
-    plate_appearances_per_game: paPerGame,
-    hits_per_game: hitsPerGame,
-    total_bases_per_game: games > 0 ? total_bases / games : 0,
-    home_runs_per_game: games > 0 ? homeruns / games : 0,
-    batting_average: ab > 0 ? hits / ab : null,
-    slugging: ab > 0 ? total_bases / ab : null,
-  };
-}
-
-/**
- * Build a human-readable player name from api-sports' nested payload. The
- * endpoint sometimes exposes `.name`, sometimes only `firstname` + `lastname`.
- */
-function resolvePlayerName(info: any): string {
-  if (typeof info?.name === 'string' && info.name.trim()) return info.name.trim();
-  const first = typeof info?.firstname === 'string' ? info.firstname.trim() : '';
-  const last = typeof info?.lastname === 'string' ? info.lastname.trim() : '';
-  const joined = `${first} ${last}`.trim();
-  if (joined) return joined;
-  return `Player ${info?.id ?? '?'}`;
-}
-
 // ---------------------------------------------------------------------------
 // Emit pitchers (STRIKEOUTS)
 // ---------------------------------------------------------------------------
@@ -370,23 +410,18 @@ function emitPitcher(
   oppCtx: TeamContext,
   leagueRpg: number,
 ): PlayerPropLine[] {
-  // Matchup: strong-hitting opponents reduce strikeouts, weak ones increase.
-  // Use team batting average as proxy (lower BA → more Ks).
-  const leagueAvg = 0.245; // typical MLB baseline; NPB/KBO similar.
+  const leagueAvg = 0.245;
   const matchupFactor = oppCtx.team_batting_avg
     ? Math.max(0.88, Math.min(1.12, leagueAvg / Math.max(0.190, oppCtx.team_batting_avg)))
     : 1.0;
-  // Pace factor: higher-scoring games → pitcher pulled sooner → fewer Ks.
   const leagueAvgRpg = leagueRpg / 2;
   const oppRpg = oppCtx.runs_per_game ?? leagueAvgRpg;
   const paceFactor = Math.max(0.9, Math.min(1.08, leagueAvgRpg / Math.max(2.5, oppRpg)));
-  // Home pitchers are marginally better (+2% on average).
   const homeAdj = isHome ? 0.02 : -0.01;
 
-  // Expected Ks = K/9 × expected IP × adjustments.
   const mean = (p.k_per_9 / 9) * p.innings_per_start * matchupFactor * paceFactor * (1 + homeAdj);
   if (mean < MIN_MEAN.STRIKEOUTS) return [];
-  const std = Math.max(mean * DEFAULT_CV.STRIKEOUTS, 1.2);
+  const std = p.k_std && p.k_std > 0 ? p.k_std : Math.max(mean * DEFAULT_CV.STRIKEOUTS, 1.2);
   const dist = chooseDistribution(mean, std, 'poisson');
 
   const reasoning = ({ line, side, mean: m }: { line: number; side: 'OVER' | 'UNDER'; prob: number; mean: number }) => {
@@ -443,13 +478,10 @@ function emitBatter(
 ): PlayerPropLine[] {
   const out: PlayerPropLine[] = [];
 
-  // Matchup factor: opposing pitching (approximate via runs_allowed_per_game)
   const leagueSideAvg = leagueRpg / 2;
   const oppRa = oppCtx.runs_allowed_per_game ?? leagueSideAvg;
   const matchupFactor = Math.max(0.9, Math.min(1.1, oppRa / Math.max(3.0, leagueSideAvg)));
-  // Pace: implied run environment.
   const paceFactor = 1.0;
-  // Home hitters: modest +2% on average.
   const homeAdj = isHome ? 0.02 : -0.01;
 
   const reasoning = (stat: string) =>
@@ -459,15 +491,18 @@ function emitBatter(
       pieces.push(`projeksiyon ${mean.toFixed(2)}`);
       if (matchupFactor > 1.03) pieces.push('rakip atma zayıf');
       else if (matchupFactor < 0.97) pieces.push('rakip atma güçlü');
-      if (b.batting_average) pieces.push(`BA ${b.batting_average.toFixed(3)}`);
+      if (b.batting_average) pieces.push(`AVG ${b.batting_average.toFixed(3)}`);
       pieces.push(isHome ? 'ev sahibi avantajı' : 'deplasman');
       return pieces.join(' — ');
     };
 
-  // ---- HITS ---------------------------------------------------------------
+  // ---- HITS -------------------------------------------------------------
   const hitsMean = b.hits_per_game * matchupFactor * paceFactor * (1 + homeAdj);
   if (hitsMean >= MIN_MEAN.HITS) {
-    const std = Math.max(Math.sqrt(hitsMean * (1 + DEFAULT_CV.HITS)), 0.6);
+    const std =
+      b.hits_std && b.hits_std > 0
+        ? b.hits_std
+        : Math.max(Math.sqrt(hitsMean * (1 + DEFAULT_CV.HITS)), 0.6);
     const dist = chooseDistribution(hitsMean, std, 'poisson');
     out.push(
       ...buildLinesForPlayer({
@@ -488,10 +523,11 @@ function emitBatter(
     );
   }
 
-  // ---- TOTAL BASES --------------------------------------------------------
+  // ---- TOTAL BASES ------------------------------------------------------
   const tbMean = b.total_bases_per_game * matchupFactor * paceFactor * (1 + homeAdj);
   if (tbMean >= MIN_MEAN.TB) {
-    const std = Math.max(tbMean * DEFAULT_CV.TB, 0.9);
+    const std =
+      b.tb_std && b.tb_std > 0 ? b.tb_std : Math.max(tbMean * DEFAULT_CV.TB, 0.9);
     const dist = chooseDistribution(tbMean, std, 'negative_binomial');
     out.push(
       ...buildLinesForPlayer({
@@ -512,10 +548,13 @@ function emitBatter(
     );
   }
 
-  // ---- HOME RUNS ----------------------------------------------------------
+  // ---- HOME RUNS --------------------------------------------------------
   const hrMean = b.home_runs_per_game * matchupFactor * paceFactor * (1 + homeAdj);
   if (hrMean >= MIN_MEAN.HR) {
-    const std = Math.max(Math.sqrt(hrMean * (1 + DEFAULT_CV.HR)), 0.4);
+    const std =
+      b.hr_std && b.hr_std > 0
+        ? b.hr_std
+        : Math.max(Math.sqrt(hrMean * (1 + DEFAULT_CV.HR)), 0.4);
     const dist = chooseDistribution(hrMean, std, 'poisson');
     out.push(
       ...buildLinesForPlayer({

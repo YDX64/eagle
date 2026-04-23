@@ -360,3 +360,160 @@ model bb_player_game_logs {
   @@index([player_id])
   @@index([team_id])
 }
+
+// ============================================================================
+// V2: Hockey + Baseball player data (NHL Web API / MLB StatsAPI importers)
+// ============================================================================
+
+model ho_player_season_averages {
+  id               BigInt   @id @default(autoincrement())
+  source           String   @default("nhl")
+  player_id        Int
+  player_name      String?
+  team_id          Int
+  team_name        String?
+  position         String?
+  season           String
+  games_played     Int      @default(0)
+  goals_per_game   Float?
+  assists_per_game Float?
+  points_per_game  Float?
+  shots_per_game   Float?
+  hits_per_game    Float?
+  blocks_per_game  Float?
+  pim_per_game     Float?
+  toi_per_game     Float?
+  plus_minus_avg   Float?
+  goals_std        Float?
+  assists_std      Float?
+  points_std       Float?
+  shots_std        Float?
+  computed_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([source, player_id, season])
+  @@index([source, team_id, season])
+  @@index([position])
+}
+
+model ho_player_game_logs {
+  id          BigInt   @id @default(autoincrement())
+  source      String   @default("nhl")
+  game_id     String
+  api_game_id Int
+  player_id   Int
+  player_name String?
+  team_id     Int
+  team_name   String?
+  position    String?
+  toi         Float?
+  goals       Int?
+  assists     Int?
+  points      Int?
+  shots       Int?
+  hits        Int?
+  blocks      Int?
+  pim         Int?
+  plus_minus  Int?
+  is_starter  Boolean?
+  fetched_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([source, api_game_id, player_id])
+  @@index([game_id])
+  @@index([player_id])
+  @@index([team_id])
+}
+
+model bs_player_season_averages {
+  id                         String   @id @default(cuid())
+  source                     String   @default("mlb")
+  player_id                  Int
+  player_name                String?
+  team_id                    Int
+  team_name                  String?
+  position                   String?
+  role                       String   @default("batter")
+  season                     String
+  games_played               Int      @default(0)
+  games_started              Int?     @default(0)
+  hits_per_game              Float?
+  tb_per_game                Float?
+  hr_per_game                Float?
+  rbi_per_game               Float?
+  runs_per_game              Float?
+  so_per_game                Float?
+  bb_per_game                Float?
+  avg                        Float?
+  obp                        Float?
+  slg                        Float?
+  ops                        Float?
+  plate_appearances_per_game Float?
+  innings_per_start          Float?
+  k_per_9                    Float?
+  bb_per_9                   Float?
+  hr_per_9                   Float?
+  era                        Float?
+  whip                       Float?
+  baa                        Float?
+  hits_std                   Float?
+  tb_std                     Float?
+  hr_std                     Float?
+  k_std                      Float?
+  computed_at                DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([source, player_id, season])
+  @@index([source, team_id, season])
+  @@index([role])
+}
+
+model bs_player_game_logs {
+  id              BigInt   @id @default(autoincrement())
+  source          String   @default("mlb")
+  game_id         String
+  api_game_id     Int
+  player_id       Int
+  player_name     String?
+  team_id         Int
+  team_name       String?
+  position        String?
+  role            String?
+  at_bats         Int?
+  hits            Int?
+  doubles         Int?
+  triples         Int?
+  home_runs       Int?
+  rbis            Int?
+  runs            Int?
+  strikeouts      Int?
+  walks           Int?
+  total_bases     Int?
+  stolen_bases    Int?
+  innings_pitched Float?
+  earned_runs     Int?
+  pitcher_ks      Int?
+  pitcher_bb      Int?
+  hits_allowed    Int?
+  hr_allowed      Int?
+  is_starter      Boolean?
+  fetched_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([source, api_game_id, player_id])
+  @@index([game_id])
+  @@index([player_id])
+  @@index([team_id])
+}
+
+model sport_team_aliases {
+  id                BigInt   @id @default(autoincrement())
+  sport             String
+  apisports_team_id Int
+  apisports_name    String
+  canonical_source  String
+  canonical_team_id Int
+  canonical_name    String
+  canonical_abbr    String?
+  confidence        Float    @default(1.0)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([sport, apisports_team_id])
+  @@index([sport, canonical_source, canonical_team_id])
+}
