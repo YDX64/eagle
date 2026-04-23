@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   BarChart3,
   LineChart as LineChartIcon,
+  ListChecks,
   RefreshCw,
   Sparkles,
   Target,
@@ -34,6 +35,12 @@ const TABS: Array<{
     href: '/tracking',
     match: p => p === '/tracking' || p === '/tracking/',
     icon: BarChart3,
+  },
+  {
+    label: 'Maç Tahminleri',
+    href: '/tracking/fixtures',
+    match: p => p.startsWith('/tracking/fixtures'),
+    icon: ListChecks,
   },
   {
     label: 'Performans',

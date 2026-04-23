@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, MapPin, Users, TrendingUp, Calendar, Target, Trophy, ArrowUpRight, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
 import { Fixture } from '@/lib/api-football';
+import { PredictionResultBadge } from '@/components/tracking/prediction-result-badge';
 
 export interface PredictionOutcome {
   predictionType: string;
@@ -303,6 +304,11 @@ export function MatchCard({
                 Hızlı Önizleme
               </Button>
             )}
+          </div>
+
+          {/* Tracking: Kazandı / Kaybetti / Bekliyor — postgres'teki predictions + picks tablosundan */}
+          <div className="flex justify-end pt-1">
+            <PredictionResultBadge fixtureId={match.fixture.id} sport="football" size="xs" />
           </div>
 
           {/* Venue Info */}
