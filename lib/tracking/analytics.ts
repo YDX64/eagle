@@ -7,7 +7,7 @@
  *  - "Son 100 maçta en yüksek edge'e sahip bookmaker/market kombinasyonu?"
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import type { AnalyticsFilters, MarketFamily, MarketPerformanceRow, SportCode } from './types';
 import { getMarket } from './market-taxonomy';
 

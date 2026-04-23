@@ -1,0 +1,308 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Velocity Glass: hide scrollbar on tab switcher */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Material Symbols Outlined base settings */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 72.22% 50.59%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 36%;
+    --radius: 0.75rem;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 221.2 83.2% 53.3%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 221.2 83.2% 53.3%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 280 65% 60%;
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 210 11% 15%;
+    --foreground: 0 0% 98%;
+    --card: 210 11% 17%;
+    --card-foreground: 0 0% 95%;
+    --popover: 210 11% 17%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 9% 25%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 210 9% 25%;
+    --muted-foreground: 210 5% 70%;
+    --accent: 210 9% 25%;
+    --accent-foreground: 0 0% 90%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 210 8% 30%;
+    --input: 210 8% 30%;
+    --ring: 142 70% 45%;
+    --success: 142 70% 45%;
+    --warning: 38 92% 60%;
+    --info: 217.2 91.2% 65%;
+    --chart-1: 142 70% 45%;
+    --chart-2: 38 92% 60%;
+    --chart-3: 217.2 91.2% 65%;
+    --chart-4: 0 72% 55%;
+    --chart-5: 280 65% 65%;
+    color-scheme: dark;
+  }
+
+  /* Enhanced Date picker styling */
+  input[type="date"] {
+    color-scheme: inherit;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--card-foreground));
+    border-radius: calc(var(--radius) - 2px);
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  input[type="date"]:focus {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-color: hsl(var(--ring));
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='hsl(142, 76%25, 36%25)' aria-hidden='true'%3e%3cpath fill-rule='evenodd' d='M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z' clip-rule='evenodd' /%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin-right: 8px;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='hsl(142, 70%25, 45%25)' aria-hidden='true'%3e%3cpath fill-rule='evenodd' d='M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75z' clip-rule='evenodd' /%3e%3c/svg%3e");
+  }
+
+  /* Modern form enhancements */
+  .form-input {
+    @apply bg-card border-border text-card-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200;
+  }
+
+  .form-select {
+    @apply bg-card border-border text-card-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom animations and styles */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Live match pulse animation */
+@keyframes pulse-red {
+  0%, 100% { background-color: rgb(220, 38, 38); }
+  50% { background-color: rgb(248, 113, 113); }
+}
+
+.animate-pulse-red {
+  animation: pulse-red 2s infinite;
+}
+
+/* Custom scrollbar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Match card hover effects */
+.match-card {
+  transition: all 0.3s ease;
+}
+
+.match-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Form result indicators */
+.form-w {
+  @apply bg-green-500 text-white;
+}
+
+.form-d {
+  @apply bg-yellow-500 text-white;
+}
+
+.form-l {
+  @apply bg-red-500 text-white;
+}
+
+/* DataTables Light/Dark Mode Styles */
+.dataTables_wrapper {
+  @apply text-foreground;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+  @apply bg-background border border-border text-foreground px-2 py-1 rounded;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  @apply text-foreground;
+}
+
+.dataTables_wrapper table.dataTable {
+  @apply bg-card text-card-foreground border-separate border-spacing-0;
+  border-collapse: separate !important;
+}
+
+.dataTables_wrapper table.dataTable thead th {
+  @apply bg-muted text-muted-foreground border-b border-border px-4 py-3 font-medium text-left;
+}
+
+.dataTables_wrapper table.dataTable tbody td {
+  @apply border-b border-border px-4 py-3;
+}
+
+.dataTables_wrapper table.dataTable tbody tr:hover {
+  @apply bg-muted/50;
+}
+
+.dataTables_wrapper table.dataTable tbody tr.odd {
+  @apply bg-background;
+}
+
+.dataTables_wrapper table.dataTable tbody tr.even {
+  @apply bg-muted/20;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  @apply px-3 py-1 mx-1 bg-background border border-border text-foreground rounded hover:bg-accent;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Dark mode specific DataTables adjustments */
+.dark .dataTables_wrapper table.dataTable thead th {
+  @apply bg-muted/50;
+}
+
+.dark .dataTables_wrapper table.dataTable tbody tr:hover {
+  @apply bg-accent/50;
+}
+
+.dark .dataTables_wrapper .dataTables_length select,
+.dark .dataTables_wrapper .dataTables_filter input {
+  @apply bg-muted border-border;
+}
+
+/* Custom DataTables responsive styles */
+.dataTables_wrapper .dtr-inline.collapsed tbody td.child {
+  @apply bg-muted/30;
+}
+
+.dataTables_wrapper .dtr-inline.collapsed tbody tr.child td {
+  @apply border-none;
+}
+
+/* Analysis category badges */
+.category-badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.category-api-ms {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+.category-api-form {
+  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.category-api-h2h {
+  @apply bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200;
+}
+
+.category-api-league {
+  @apply bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200;
+}
+
+.category-own-an {
+  @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200;
+}
+
+.category-risk {
+  @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+.category-perf {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.category-market {
+  @apply bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200;
+}

@@ -3,16 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Velocity Glass: hide scrollbar on tab switcher */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Material Symbols Outlined base settings */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  vertical-align: middle;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -123,8 +113,56 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* iOS safe areas for notch / home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Bottom padding on mobile only so desktop content isn't pushed */
+    min-height: 100dvh;
+  }
+
+  /* Prevent text zoom on input focus (iOS) */
+  input, select, textarea {
+    font-size: 16px;
+  }
+  @media (min-width: 768px) {
+    input, select, textarea {
+      font-size: inherit;
+    }
+  }
+
+  /* Touch-friendly interactive elements */
+  button, a[role="button"], [role="button"], .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Keep scrollbars out of the way on mobile but keep behavior */
+  @media (max-width: 767px) {
+    ::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+  }
+
+  /* Nicer focus rings for keyboard users, invisible for mouse */
+  :focus:not(:focus-visible) { outline: none; }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Avoid horizontal page bounce from rogue child overflow on mobile */
+  html, body {
+    overflow-x: hidden;
   }
 }
 

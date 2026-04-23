@@ -6,7 +6,7 @@
  * Prediction ID convention: `{sport}:{api_game_id}` (matches legacy production data).
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import type { NormalizedPrediction, NormalizedPick, NormalizedPlayerProp } from './types';
 
 export interface PersistResult {

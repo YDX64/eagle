@@ -1,0 +1,200 @@
+{
+  "generated_at": "2026-04-07T03:47:09.443635",
+  "total_matches_used": 783946,
+  "base_rates": {
+    "home_win": 0.44372061340959706,
+    "draw": 0.2385942399093815,
+    "away_win": 0.3176851466810214,
+    "over_25": 0.520116181471683,
+    "over_15": 0.7457873373931367,
+    "btts_yes": 0.5139933107637515
+  },
+  "patterns": {
+    "draw_low_goals": {
+      "hitRate": 0.3083,
+      "sampleSize": 172037,
+      "isBanko": false,
+      "sourceHitRate": 0.38
+    },
+    "msx_433_iy_gol": {
+      "hitRate": 0.7439,
+      "sampleSize": 70451,
+      "isBanko": true,
+      "sourceHitRate": 0.7431
+    },
+    "ms1_185_203_home": {
+      "hitRate": 0.4959,
+      "sampleSize": 72508,
+      "isBanko": false,
+      "sourceHitRate": 0.48
+    },
+    "high_scoring_lock": {
+      "hitRate": 0.8387,
+      "sampleSize": 31940,
+      "isBanko": true,
+      "sourceHitRate": 0.94
+    },
+    "super_banko_ms1x": {
+      "hitRate": 0.7806,
+      "sampleSize": 32030,
+      "isBanko": true,
+      "sourceHitRate": 0.948
+    },
+    "ms1_220_home": {
+      "hitRate": 0.4326,
+      "sampleSize": 56745,
+      "isBanko": false,
+      "sourceHitRate": 0.48
+    },
+    "ms1_160_169_btts": {
+      "hitRate": 0.5225,
+      "sampleSize": 41269,
+      "isBanko": false,
+      "sourceHitRate": 0.5152
+    },
+    "htft_x_x_draw": {
+      "hitRate": 0.1979,
+      "sampleSize": 106873,
+      "isBanko": false,
+      "sourceHitRate": 0.718
+    },
+    "htft_1_1_lock": {
+      "hitRate": 0.3772,
+      "sampleSize": 55287,
+      "isBanko": false,
+      "sourceHitRate": 0.835
+    },
+    "btts_lock_o25_144": {
+      "hitRate": 0.5628,
+      "sampleSize": 34065,
+      "isBanko": false,
+      "sourceHitRate": 0.76
+    },
+    "btts_no_defensive": {
+      "hitRate": 0.5654,
+      "sampleSize": 30477,
+      "isBanko": false,
+      "sourceHitRate": 0.62
+    },
+    "ms1_250_300_upset": {
+      "hitRate": 0.3159,
+      "sampleSize": 54044,
+      "isBanko": false,
+      "sourceHitRate": 0.31
+    },
+    "defensive_match": {
+      "hitRate": 0.6485,
+      "sampleSize": 26016,
+      "isBanko": false,
+      "sourceHitRate": 0.58
+    },
+    "footystats_btts_stack": {
+      "hitRate": 0.5971,
+      "sampleSize": 26401,
+      "isBanko": false,
+      "sourceHitRate": 0.78
+    },
+    "dc_x2_safe": {
+      "hitRate": 0.8133,
+      "sampleSize": 19138,
+      "isBanko": true,
+      "sourceHitRate": 0.78
+    },
+    "msx_310_320_draw": {
+      "hitRate": 0.2915,
+      "sampleSize": 48324,
+      "isBanko": false,
+      "sourceHitRate": 0.2892
+    },
+    "strong_fav_home": {
+      "hitRate": 0.7614,
+      "sampleSize": 16296,
+      "isBanko": true,
+      "sourceHitRate": 0.72
+    },
+    "htft_2_2_away_lock": {
+      "hitRate": 0.2937,
+      "sampleSize": 34922,
+      "isBanko": false,
+      "sourceHitRate": 0.69
+    },
+    "low_scoring_match": {
+      "hitRate": 0.6626,
+      "sampleSize": 14740,
+      "isBanko": true,
+      "sourceHitRate": 0.897
+    },
+    "super_banko_ms2x": {
+      "hitRate": 0.7523,
+      "sampleSize": 12661,
+      "isBanko": true,
+      "sourceHitRate": 0.935
+    },
+    "super_banko_over_05": {
+      "hitRate": 0.9025,
+      "sampleSize": 10194,
+      "isBanko": true,
+      "sourceHitRate": 0.973
+    },
+    "strong_favorite_win": {
+      "hitRate": 0.7524,
+      "sampleSize": 11641,
+      "isBanko": true,
+      "sourceHitRate": 0.923
+    },
+    "super_banko_btts_no": {
+      "hitRate": 0.5655,
+      "sampleSize": 14175,
+      "isBanko": false,
+      "sourceHitRate": 0.912
+    },
+    "htft_x_1_classic": {
+      "hitRate": 0.1912,
+      "sampleSize": 35512,
+      "isBanko": false,
+      "sourceHitRate": 0.742
+    },
+    "over_35_lock": {
+      "hitRate": 0.4881,
+      "sampleSize": 8613,
+      "isBanko": false,
+      "sourceHitRate": 0.56
+    },
+    "ht_goal_msx_lock": {
+      "hitRate": 0.739,
+      "sampleSize": 4744,
+      "isBanko": true,
+      "sourceHitRate": 0.78
+    },
+    "htft_2_1_classic": {
+      "hitRate": 0.0335,
+      "sampleSize": 65271,
+      "isBanko": false,
+      "sourceHitRate": 0.065
+    },
+    "underdog_win_value": {
+      "hitRate": 0.1628,
+      "sampleSize": 8071,
+      "isBanko": false,
+      "sourceHitRate": 0.18
+    },
+    "ht_no_goal_defensive": {
+      "hitRate": 0.8333,
+      "sampleSize": 18,
+      "isBanko": false,
+      "sourceHitRate": 0.85
+    },
+    "goal_stack_filter": {
+      "hitRate": 1.0,
+      "sampleSize": 8,
+      "isBanko": false,
+      "sourceHitRate": 0.92
+    },
+    "mega_goals_lock": {
+      "hitRate": 0,
+      "sampleSize": 0,
+      "isBanko": false,
+      "sourceHitRate": 0.88
+    }
+  }
+}

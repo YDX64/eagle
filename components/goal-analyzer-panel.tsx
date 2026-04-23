@@ -140,6 +140,19 @@ function MatchCard({ r }: { r: AnalysisResult }) {
         </div>
       </div>
 
+      {/* ── TAVSİYE (kartın üstünde büyük, karar verici) ───────────────── */}
+      <div className="mt-3 rounded-lg border-2 border-emerald-500 bg-gradient-to-r from-emerald-50 to-emerald-100/60 dark:from-emerald-950/50 dark:to-emerald-900/30 px-3 py-2.5 flex items-center gap-3 shadow-sm">
+        <div className="text-emerald-600 dark:text-emerald-400 text-3xl leading-none">✓</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-widest font-semibold text-emerald-700/80 dark:text-emerald-300/80">
+            Tavsiye
+          </div>
+          <div className="text-lg sm:text-xl md:text-2xl font-extrabold text-emerald-900 dark:text-emerald-100 leading-tight truncate">
+            {r.recommendation}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-6 gap-1 mt-3 text-center text-[11px]">
         <div className="bg-amber-50 dark:bg-amber-900/30 rounded px-1 py-1">
           <div className="text-amber-700 dark:text-amber-300">İY 0.5</div>
@@ -249,10 +262,6 @@ function MatchCard({ r }: { r: AnalysisResult }) {
         </div>
       )}
 
-      <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
-        <span className="text-slate-500">Tavsiye:</span>
-        <span className="font-bold text-emerald-700 dark:text-emerald-300">{r.recommendation}</span>
-      </div>
     </div>
   );
 }

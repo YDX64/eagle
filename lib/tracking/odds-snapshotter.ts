@@ -6,7 +6,7 @@
  * Uses api-sports' /odds endpoint per sport.
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import type { SportCode } from './types';
 
 interface RawBookmaker {

@@ -1,34 +1,16 @@
 
 import type { Metadata, Viewport } from 'next';
-import { Inter, Space_Grotesk, Manrope, Lexend } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as HotToaster } from 'react-hot-toast';
 
-const inter = Inter({
+const inter = Inter({ 
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-space-grotesk',
-});
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-manrope',
-});
-
-const lexend = Lexend({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-lexend',
 });
 
 export const metadata: Metadata = {
@@ -65,6 +47,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: 'cover', // iOS notch / safe-area kullanımı için
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#10b981' },
     { media: '(prefers-color-scheme: dark)', color: '#065f46' },
@@ -77,10 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${spaceGrotesk.variable} ${manrope.variable} ${lexend.variable}`}>
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <ErrorBoundary>
           <ThemeProvider

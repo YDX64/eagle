@@ -138,33 +138,6 @@ export interface MatchStatistics {
   }[];
 }
 
-export interface MatchEvent {
-  time: { elapsed: number; extra: number | null };
-  team: Team;
-  player: { id: number | null; name: string | null };
-  assist: { id: number | null; name: string | null };
-  type: string; // Goal, Card, subst, Var
-  detail: string;
-  comments: string | null;
-}
-
-export interface OddsBookmaker {
-  id: number;
-  name: string;
-  bets: Array<{
-    id: number;
-    name: string;
-    values: Array<{ value: string; odd: string }>;
-  }>;
-}
-
-export interface FixtureOdds {
-  league: { id: number; season: number; name: string };
-  fixture: { id: number; date: string; timestamp: number };
-  update: string;
-  bookmakers: OddsBookmaker[];
-}
-
 import { CacheService } from './cache';
 
 const API_KEY = process.env.AWASTATS_API_KEY || process.env.API_FOOTBALL_KEY;
@@ -174,23 +147,67 @@ const BASE_URL = process.env.AWASTATS_BASE_URL || 'https://v3.football.api-sport
 const MIN_DELAY_MS = Math.ceil(60_000 / 9);
 const MAX_RETRIES = 3;
 
-// Per-endpoint cache TTL in seconds. Lower for live data, higher for static.
+// Daily hard-cap on upstream requests to protect against quota blowouts.
+// Can be tuned via env UPSTREAM_DAILY_CAP. Default 100k per 24h.
+const DAILY_UPSTREAM_CAP = Number(process.env.UPSTREAM_DAILY_CAP || '100000');
+
+// Per-endpoint cache TTL in seconds. Meaningful intervals, not twitchy ones.
 const TTL_BY_ENDPOINT: Record<string, number> = {
-  '/status': 60,
-  '/leagues': 86_400,
-  '/teams': 86_400,
-  '/teams/statistics': 3_600,
-  '/standings': 3_600,
-  '/fixtures': 300,               // today fixtures + live need fresh-ish
-  '/fixtures/headtohead': 21_600,
-  '/fixtures/statistics': 86_400,
-  '/predictions': 1_800,
+  '/status':               3_600,   // 1 h
+  '/leagues':              86_400,  // 24 h - mostly static
+  '/teams':                604_800, // 7 d  - teams rarely change
+  '/teams/statistics':     21_600,  // 6 h
+  '/standings':            21_600,  // 6 h  - updates post-match
+  '/fixtures':             3_600,   // 1 h  - today/upcoming list
+  '/fixtures/headtohead':  86_400,  // 24 h - H2H history immutable
+  '/fixtures/statistics':  86_400,  // 24 h - final after match
+  '/predictions':          21_600,  // 6 h  - stable during session
+  '/odds':                 1_800,   // 30 min
 };
 
 function resolveTtl(endpoint: string, params: Record<string, string | number>): number {
-  // Live fixtures should be nearly real-time.
+  // Live fixtures: truly real-time, short TTL.
   if (endpoint === '/fixtures' && params.live) return 30;
-  return TTL_BY_ENDPOINT[endpoint] ?? 600;
+  // Historical fixture by explicit id = past snapshot, long TTL.
+  if (endpoint === '/fixtures' && params.id) return 86_400;
+  return TTL_BY_ENDPOINT[endpoint] ?? 3_600; // default 1h (was 600)
+}
+
+// -------------------------------------------------------------------------
+// Daily upstream counter — protects the upstream quota from runaway loops.
+// Stored in the CacheService (survives process restart within DB cache).
+// -------------------------------------------------------------------------
+function dailyCounterKey(): string {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `upstream_daily_counter_${yyyy}-${mm}-${dd}`;
+}
+
+async function getDailyUpstreamCount(): Promise<number> {
+  const c = await CacheService.get<{ count: number }>(dailyCounterKey());
+  return c?.count ?? 0;
+}
+
+async function incrementDailyUpstreamCount(): Promise<number> {
+  const key = dailyCounterKey();
+  const current = await CacheService.get<{ count: number }>(key);
+  const next = (current?.count ?? 0) + 1;
+  // TTL 25h so it auto-expires after the UTC day rolls over.
+  await CacheService.set(key, { count: next }, 90_000);
+  return next;
+}
+
+function emptyResponse<T>(endpoint: string, params: Record<string, string | number>): ApiFootballResponse<T> {
+  return {
+    get: endpoint,
+    parameters: params,
+    errors: ['daily_cap_reached'] as any,
+    results: 0,
+    paging: { current: 1, total: 1 },
+    response: [] as T[],
+  };
 }
 
 const baseHeaders: Record<string, string> = {
@@ -233,6 +250,16 @@ export class ApiFootballService {
     const cached = await CacheService.get<ApiFootballResponse<T>>(cacheKey);
     if (cached) return cached;
 
+    // Hard-cap guard: if we've already blown past the daily budget, serve an
+    // empty response instead of hammering upstream. This stops runaway loops.
+    const dailyCount = await getDailyUpstreamCount();
+    if (dailyCount >= DAILY_UPSTREAM_CAP) {
+      console.warn(
+        `[UPSTREAM-CAP] Daily cap ${DAILY_UPSTREAM_CAP} reached (${dailyCount}) — serving empty response for ${endpoint}`
+      );
+      return emptyResponse<T>(endpoint, params);
+    }
+
     const url = new URL(`${BASE_URL}${endpoint}`);
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -266,12 +293,15 @@ export class ApiFootballService {
         }
 
         const data = (await response.json()) as ApiFootballResponse<T>;
+        // Count every successful upstream hit toward the daily cap.
+        await incrementDailyUpstreamCount();
         // Only cache successful, non-empty responses to avoid poisoning.
         if (Array.isArray(data?.response) && data.response.length > 0) {
           await CacheService.set(cacheKey, data, ttl);
         } else {
           // Still cache empty lists briefly to avoid hot-loops.
-          await CacheService.set(cacheKey, data, Math.min(ttl, 60));
+          // Longer empty-cache (10 min) reduces hot re-polling of barren sports.
+          await CacheService.set(cacheKey, data, Math.min(ttl, 600));
         }
         return data;
       } catch (err) {
@@ -395,67 +425,6 @@ export class ApiFootballService {
     }
   }
 
-  /**
-   * Get bookmaker odds for a fixture.
-   * Returns an empty array when upstream has no odds data yet.
-   */
-  static async getOdds(fixtureId: number): Promise<FixtureOdds[]> {
-    const response = await this.makeRequest<FixtureOdds>('/odds', { fixture: fixtureId });
-    return response.response || [];
-  }
-
-  /**
-   * Get in-game events for a fixture (goals, cards, subs).
-   */
-  static async getFixtureEvents(fixtureId: number): Promise<MatchEvent[]> {
-    const response = await this.makeRequest<MatchEvent>('/fixtures/events', { fixture: fixtureId });
-    return response.response || [];
-  }
-
-  /**
-   * Get recent events for a team by scanning their last N fixtures.
-   * Used by cards / corners engines. Falls back to an empty list on failure.
-   */
-  static async getTeamRecentEvents(teamId: number, league: number, season: number, limit = 10): Promise<{ fixtureId: number; events: MatchEvent[] }[]> {
-    try {
-      const fixtures = await this.getFixturesByLeague(league, season);
-      const teamFixtures = fixtures
-        .filter(f => (f.teams.home.id === teamId || f.teams.away.id === teamId) && f.fixture.status.short === 'FT')
-        .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
-        .slice(0, limit);
-      const results: { fixtureId: number; events: MatchEvent[] }[] = [];
-      for (const f of teamFixtures) {
-        const events = await this.getFixtureEvents(f.fixture.id);
-        results.push({ fixtureId: f.fixture.id, events });
-      }
-      return results;
-    } catch {
-      return [];
-    }
-  }
-
-  /**
-   * Get recent statistics for a team by scanning their last N fixtures.
-   * Used by cards / corners engines.
-   */
-  static async getTeamRecentStats(teamId: number, league: number, season: number, limit = 10): Promise<{ fixtureId: number; stats: MatchStatistics[] }[]> {
-    try {
-      const fixtures = await this.getFixturesByLeague(league, season);
-      const teamFixtures = fixtures
-        .filter(f => (f.teams.home.id === teamId || f.teams.away.id === teamId) && f.fixture.status.short === 'FT')
-        .sort((a, b) => b.fixture.timestamp - a.fixture.timestamp)
-        .slice(0, limit);
-      const results: { fixtureId: number; stats: MatchStatistics[] }[] = [];
-      for (const f of teamFixtures) {
-        const stats = await this.getMatchStatistics(f.fixture.id);
-        results.push({ fixtureId: f.fixture.id, stats });
-      }
-      return results;
-    } catch {
-      return [];
-    }
-  }
-
 }
 
 // Major league IDs for easy reference
@@ -473,3 +442,14 @@ export const MAJOR_LEAGUES = {
 } as const;
 
 export const CURRENT_SEASON = 2024;
+
+/**
+ * Infer the API-Football season year from a given date.
+ * European leagues run Aug → May, API-Football uses the START year
+ * (March 2026 → 2025, September 2025 → 2025).
+ */
+export function inferSeason(date: Date = new Date()): number {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  return month >= 7 ? year : year - 1;
+}

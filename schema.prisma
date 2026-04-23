@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-    provider = "postgresql"
+    provider = "sqlite"
     url      = env("DATABASE_URL")
 }
 
@@ -288,7 +288,7 @@ model Prediction {
   @@index([is_high_confidence, confidence_score])
   @@index([confidence_tier, createdAt])
   @@index([match_id, is_high_confidence])
-  @@map("legacy_predictions")
+  @@map("predictions")
 }
 
 model HeadToHead {
@@ -568,6 +568,15 @@ model BulkAnalysisResult {
   market_volume_indicator     Float?     // Hacim göstergesi
   market_smart_money_flow     Float?     // Akıllı para akışı
   
+  // API-Football prediction alignment
+  api_predicted_winner        String?
+  api_winner_confidence       Float?
+  api_over_under_prediction   String?
+  api_over_under_confidence   Float?
+  api_prediction_advice       String?
+  algorithms_agree_winner     Boolean   @default(false)
+  algorithms_agree_over_under Boolean   @default(false)
+  
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   
@@ -578,738 +587,48 @@ model BulkAnalysisResult {
   @@map("bulk_analysis_results")
 }
 
-// ==========================================
-// MULTI-SPORT MODELS
-// ==========================================
+// ---------------------------------------------------------------------------
+// NextAuth.js models (via @next-auth/prisma-adapter).
+// Credentials provider is used for email/password; the Account/Session
+// models are kept so we can plug in OAuth providers later without another
+// migration.
+// ---------------------------------------------------------------------------
 
-enum Sport {
-  football
-  basketball
-  hockey
-  volleyball
-  handball
-}
-
-model BasketballGame {
-  id              Int       @id
-  date            DateTime
-  timestamp       Int
-  timezone        String?
-  week            String?
-  status_long     String
-  status_short    String
-  league_id       Int
-  league_name     String
-  league_season   String
-  league_logo     String?
-  country_name    String?
-  country_flag    String?
-  home_team_id    Int
-  away_team_id    Int
-  home_team_name  String
-  away_team_name  String
-  home_team_logo  String?
-  away_team_logo  String?
-  home_q1         Int?
-  home_q2         Int?
-  home_q3         Int?
-  home_q4         Int?
-  home_ot         Int?
-  home_total      Int?
-  away_q1         Int?
-  away_q2         Int?
-  away_q3         Int?
-  away_q4         Int?
-  away_ot         Int?
-  away_total      Int?
-  score_details   Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([date])
-  @@index([league_id, date])
-  @@index([home_team_id])
-  @@index([away_team_id])
-  @@map("basketball_games")
-}
-
-model HockeyGame {
-  id              Int       @id
-  date            DateTime
-  timestamp       Int
-  timezone        String?
-  week            String?
-  status_long     String
-  status_short    String
-  league_id       Int
-  league_name     String
-  league_season   String
-  league_logo     String?
-  country_name    String?
-  country_flag    String?
-  home_team_id    Int
-  away_team_id    Int
-  home_team_name  String
-  away_team_name  String
-  home_team_logo  String?
-  away_team_logo  String?
-  home_p1         Int?
-  home_p2         Int?
-  home_p3         Int?
-  home_ot         Int?
-  home_pen        Int?
-  home_total      Int?
-  away_p1         Int?
-  away_p2         Int?
-  away_p3         Int?
-  away_ot         Int?
-  away_pen        Int?
-  away_total      Int?
-  score_details   Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([date])
-  @@index([league_id, date])
-  @@map("hockey_games")
-}
-
-model HandballGame {
-  id              Int       @id
-  date            DateTime
-  timestamp       Int
-  timezone        String?
-  week            String?
-  status_long     String
-  status_short    String
-  league_id       Int
-  league_name     String
-  league_season   String
-  league_logo     String?
-  country_name    String?
-  country_flag    String?
-  home_team_id    Int
-  away_team_id    Int
-  home_team_name  String
-  away_team_name  String
-  home_team_logo  String?
-  away_team_logo  String?
-  home_h1         Int?
-  home_h2         Int?
-  home_et         Int?
-  home_pen        Int?
-  home_total      Int?
-  away_h1         Int?
-  away_h2         Int?
-  away_et         Int?
-  away_pen        Int?
-  away_total      Int?
-  score_details   Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([date])
-  @@index([league_id, date])
-  @@map("handball_games")
-}
-
-model VolleyballGame {
-  id              Int       @id
-  date            DateTime
-  timestamp       Int
-  timezone        String?
-  week            String?
-  status_long     String
-  status_short    String
-  league_id       Int
-  league_name     String
-  league_season   String
-  league_logo     String?
-  country_name    String?
-  country_flag    String?
-  home_team_id    Int
-  away_team_id    Int
-  home_team_name  String
-  away_team_name  String
-  home_team_logo  String?
-  away_team_logo  String?
-  home_s1         Int?
-  home_s2         Int?
-  home_s3         Int?
-  home_s4         Int?
-  home_s5         Int?
-  home_total      Int?
-  away_s1         Int?
-  away_s2         Int?
-  away_s3         Int?
-  away_s4         Int?
-  away_s5         Int?
-  away_total      Int?
-  score_details   Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([date])
-  @@index([league_id, date])
-  @@map("volleyball_games")
-}
-
-model SportPrediction {
-  id                    Int       @id @default(autoincrement())
-  sport                 Sport
-  game_id               Int
-  prediction_type       String
-  predicted_value       String
-  confidence_score      Float
-  is_high_confidence    Boolean   @default(false)
-  confidence_tier       String?
-  expected_value        Float?
-  kelly_percentage      Float?
-  market_odds           Float?
-  implied_probability   Float?
-  our_probability       Float?
-  value_edge            Float?
-  algorithm_version     String    @default("1.0")
-  factors_used          Json?
-  is_correct            Boolean?
-  actual_result         String?
-  reasoning             String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  @@index([sport, is_high_confidence, confidence_score])
-  @@index([sport, confidence_tier, createdAt])
-  @@index([sport, game_id])
-  @@map("sport_predictions")
-}
-model bb_backfill_jobs {
-  id             BigInt    @id @default(autoincrement())
-  job_type       String
-  source         String
-  target         String
-  status         String    @default("pending")
-  started_at     DateTime? @db.Timestamptz(6)
-  finished_at    DateTime? @db.Timestamptz(6)
-  progress_done  Int?      @default(0)
-  progress_total Int?      @default(0)
-  error_message  String?
-  created_at     DateTime  @default(now()) @db.Timestamptz(6)
-
-  @@index([status], map: "idx_bb_backfill_status")
-  @@index([job_type], map: "idx_bb_backfill_type")
-}
-
-model bb_games {
-  id             String   @id
-  source         String
-  api_game_id    Int
-  league_id      Int
-  league_name    String?
-  season         String
-  game_date      DateTime @db.Timestamptz(6)
-  status_short   String?
-  status_long    String?
-  home_team_id   Int
-  home_team_name String
-  home_team_code String?
-  away_team_id   Int
-  away_team_name String
-  away_team_code String?
-  home_score     Int?
-  away_score     Int?
-  home_linescore Json?
-  away_linescore Json?
-  venue_name     String?
-  venue_city     String?
-  raw_data       Json?
-  fetched_at     DateTime @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime @default(now()) @db.Timestamptz(6)
-
-  @@index([source, api_game_id], map: "idx_bb_games_api_id")
-  @@index([away_team_id], map: "idx_bb_games_away_team")
-  @@index([game_date], map: "idx_bb_games_date")
-  @@index([home_team_id], map: "idx_bb_games_home_team")
-  @@index([league_id, season], map: "idx_bb_games_league_season")
-  @@index([source], map: "idx_bb_games_source")
-  @@index([status_short], map: "idx_bb_games_status")
-}
-
-model bb_ml_models {
-  id               BigInt    @id @default(autoincrement())
-  source           String
-  league_id        Int
-  season           String
-  model_type       String
-  target           String
-  model_data       Json
-  feature_names    Json
-  training_samples Int?
-  cv_accuracy      Float?
-  cv_log_loss      Float?
-  cv_brier         Float?
-  trained_at       DateTime  @default(now()) @db.Timestamptz(6)
-  expires_at       DateTime? @db.Timestamptz(6)
-
-  @@unique([source, league_id, season, model_type, target, trained_at])
-  @@index([source, league_id, season, target, trained_at(sort: Desc)], map: "idx_bb_ml_models_lookup")
-}
-
-model bb_odds_snapshots {
-  id               BigInt   @id @default(autoincrement())
-  source           String
-  game_id          String
-  api_game_id      Int
-  bookmaker        String
-  snapshot_at      DateTime @default(now()) @db.Timestamptz(6)
-  odds_data        Json
-  home_moneyline   Float?
-  away_moneyline   Float?
-  spread_line      Float?
-  spread_home_odds Float?
-  total_line       Float?
-  over_odds        Float?
-  under_odds       Float?
-
-  @@index([bookmaker], map: "idx_bb_odds_bookmaker")
-  @@index([game_id], map: "idx_bb_odds_game")
-  @@index([snapshot_at], map: "idx_bb_odds_snapshot_at")
-}
-
-model bb_player_game_logs {
-  id             BigInt   @id @default(autoincrement())
-  source         String   @default("nba")
-  game_id        String
-  api_game_id    Int
-  player_id      Int
-  player_name    String?
-  team_id        Int
-  team_name      String?
-  minutes        Float?
-  points         Int?
-  fgm            Int?
-  fga            Int?
-  ftm            Int?
-  fta            Int?
-  tpm            Int?
-  tpa            Int?
-  off_reb        Int?
-  def_reb        Int?
-  total_reb      Int?
-  assists        Int?
-  steals         Int?
-  blocks         Int?
-  turnovers      Int?
-  personal_fouls Int?
-  plus_minus     Int?
-  position       String?
-  is_starter     Boolean?
-  dnp            Boolean?
-  fetched_at     DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([source, api_game_id, player_id])
-  @@index([game_id], map: "idx_bb_player_logs_game")
-  @@index([player_id], map: "idx_bb_player_logs_player")
-  @@index([team_id], map: "idx_bb_player_logs_team")
-}
-
-model bb_player_season_averages {
-  id             BigInt   @id @default(autoincrement())
-  source         String   @default("nba")
-  player_id      Int
-  player_name    String?
-  team_id        Int
-  team_name      String?
-  season         String
-  games_played   Int      @default(0)
-  games_started  Int?     @default(0)
-  mpg            Float?
-  ppg            Float?
-  rpg            Float?
-  apg            Float?
-  spg            Float?
-  bpg            Float?
-  topg           Float?
-  tpmpg          Float?
-  tpapg          Float?
-  fg_pct         Float?
-  ft_pct         Float?
-  tp_pct         Float?
-  plus_minus_avg Float?
-  usage_rate     Float?
-  ppg_std        Float?
-  rpg_std        Float?
-  apg_std        Float?
-  tpmpg_std      Float?
-  correlations   Json?
-  computed_at    DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([source, player_id, season])
-  @@index([source, player_id, season], map: "idx_bb_player_season_lookup")
-  @@index([team_id, season], map: "idx_bb_player_season_team")
-}
-
-model bb_quarter_shares {
-  id           BigInt   @id @default(autoincrement())
-  source       String
-  league_id    Int
-  season       String
-  q1_share     Float
-  q2_share     Float
-  q3_share     Float
-  q4_share     Float
-  fh_share     Float
-  sh_share     Float
-  q1_std       Float?
-  q2_std       Float?
-  q3_std       Float?
-  q4_std       Float?
-  sample_games Int
-  computed_at  DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([source, league_id, season])
-  @@index([source, league_id, season], map: "idx_bb_quarter_shares_lookup")
-}
-
-model bb_team_ratings {
-  id         BigInt   @id @default(autoincrement())
-  source     String
-  league_id  Int
-  season     String
-  team_id    Int
-  as_of_date DateTime @db.Date
-  elo        Float
-  elo_games  Int      @default(0)
-  off_mean   Float?
-  off_var    Float?
-  def_mean   Float?
-  def_var    Float?
-  massey     Float?
-  composite  Float?
-  home_adv   Float?   @default(0)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([source, league_id, season, team_id, as_of_date])
-  @@index([source, league_id, season, team_id, as_of_date(sort: Desc)], map: "idx_bb_ratings_current")
-  @@index([as_of_date], map: "idx_bb_ratings_date")
-}
-
-model bb_team_season_aggregates {
-  id             BigInt   @id @default(autoincrement())
-  source         String
-  league_id      Int
-  season         String
-  team_id        Int
-  team_name      String?
-  games_played   Int      @default(0)
-  points         Int?
-  points_allowed Int?
-  fgm            Int?
-  fga            Int?
-  ftm            Int?
-  fta            Int?
-  tpm            Int?
-  tpa            Int?
-  off_reb        Int?
-  def_reb        Int?
-  assists        Int?
-  steals         Int?
-  blocks         Int?
-  turnovers      Int?
-  personal_fouls Int?
-  efg_pct        Float?
-  tov_pct        Float?
-  orb_pct        Float?
-  ft_rate        Float?
-  opp_efg_pct    Float?
-  opp_tov_pct    Float?
-  opp_orb_pct    Float?
-  opp_ft_rate    Float?
-  pace           Float?
-  off_rating     Float?
-  def_rating     Float?
-  net_rating     Float?
-  home_games     Int?     @default(0)
-  home_wins      Int?     @default(0)
-  away_games     Int?     @default(0)
-  away_wins      Int?     @default(0)
-  computed_at    DateTime @default(now()) @db.Timestamptz(6)
-
-  @@unique([source, league_id, season, team_id])
-  @@index([source, league_id, season, team_id], map: "idx_bb_team_agg_lookup")
-}
-
-model pattern_matches {
-  id               BigInt      @id @default(autoincrement())
-  prediction_id    String
-  pattern_id       String
-  pattern_name     String?
-  pattern_category String?
-  hit_rate         Float?
-  sample_size      Int?
-  is_banko         Boolean?    @default(false)
-  predicted_market String?
-  hit              Boolean?
-  predictions      predictions @relation(fields: [prediction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([hit], map: "idx_patterns_hit")
-  @@index([pattern_id], map: "idx_patterns_id")
-  @@index([prediction_id], map: "idx_patterns_prediction")
-}
-
-model picks {
-  id                 BigInt      @id @default(autoincrement())
-  prediction_id      String
-  market             String
-  market_label       String?
-  pick_label         String?
-  category           String?
-  probability        Float?
-  market_odds        Float?
-  expected_value     Float?
-  is_best            Boolean?    @default(false)
-  is_high_confidence Boolean?    @default(false)
-  hit                Boolean?
-  score_value        String?
-  predictions        predictions @relation(fields: [prediction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([hit], map: "idx_picks_hit")
-  @@index([market], map: "idx_picks_market")
-  @@index([prediction_id], map: "idx_picks_prediction")
-}
-
-model predictions {
-  id                  String            @id
-  sport               String            @default("football")
-  fixture_id          Int
-  home_team           String?
-  away_team           String?
-  league              String?
-  match_date          DateTime?         @db.Timestamptz(6)
-  predicted_at        DateTime          @default(now()) @db.Timestamptz(6)
-  status              String            @default("pending")
-  home_win_prob       Float?
-  draw_prob           Float?
-  away_win_prob       Float?
-  confidence          Float?
-  best_market         String?
-  best_pick_label     String?
-  best_probability    Float?
-  best_market_odds    Float?
-  best_expected_value Float?
-  actual_home         Int?
-  actual_away         Int?
-  actual_ht_home      Int?
-  actual_ht_away      Int?
-  resolved_at         DateTime?         @db.Timestamptz(6)
-  best_pick_hit       Boolean?
-  payload             Json?
-  pattern_matches     pattern_matches[]
-  picks               picks[]
-  system_bets         system_bets[]
-  player_prop_picks   player_prop_picks[]
-
-  @@index([fixture_id], map: "idx_predictions_fixture")
-  @@index([match_date], map: "idx_predictions_match_date")
-  @@index([predicted_at], map: "idx_predictions_predicted_at")
-  @@index([sport], map: "idx_predictions_sport")
-  @@index([status], map: "idx_predictions_status")
-}
-
-model system_bets {
-  id                BigInt      @id @default(autoincrement())
-  prediction_id     String
-  market            String
-  pick_label        String?
-  model_probability Float?
-  market_odds       Float?
-  expected_value    Float?
-  kelly_stake       Float?
-  risk_level        String?
-  category          String?
-  hit               Boolean?
-  predictions       predictions @relation(fields: [prediction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([category], map: "idx_system_bets_category")
-  @@index([hit], map: "idx_system_bets_hit")
-  @@index([prediction_id], map: "idx_system_bets_prediction")
-}
-
-// ==========================================================================
-// NEW MULTI-SPORT TRACKING TABLES (v2 — cross-sport market tracking)
-// ==========================================================================
-
-/// Unified cross-sport fixture/game cache. Every sport writes here.
-model sport_games {
-  id              String   @id // "{sport}:{api_game_id}"
-  sport           String
-  api_game_id     Int
-  league_id       Int?
-  league_name     String?
-  league_country  String?
-  season          String?
-  game_date       DateTime @db.Timestamptz(6)
-  timestamp       Int?
-  status_short    String?
-  status_long     String?
-  status_elapsed  Int?
-  home_team_id    Int?
-  home_team_name  String
-  home_team_logo  String?
-  away_team_id    Int?
-  away_team_name  String
-  away_team_logo  String?
-  home_score      Int?
-  away_score      Int?
-  home_score_ht   Int?
-  away_score_ht   Int?
-  raw_scores      Json?
-  venue_name      String?
-  venue_city      String?
-  raw_fixture     Json?
-  fetched_at      DateTime @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime @default(now()) @db.Timestamptz(6) @updatedAt
-
-  @@unique([sport, api_game_id])
-  @@index([sport, game_date], map: "idx_sport_games_sport_date")
-  @@index([game_date], map: "idx_sport_games_date")
-  @@index([sport, league_id, game_date], map: "idx_sport_games_sport_league")
-  @@index([status_short], map: "idx_sport_games_status")
-}
-
-/// Cross-sport odds snapshots (separate from bb_odds_snapshots which is NBA-only).
-model odds_snapshots_v2 {
-  id           BigInt   @id @default(autoincrement())
-  sport        String
-  api_game_id  Int
-  game_id      String? // "{sport}:{api_game_id}"
-  bookmaker_id Int?
-  bookmaker    String
-  market       String
-  selection    String?
-  line         Float?
-  odds_value   Float
-  is_opening   Boolean  @default(false)
-  is_closing   Boolean  @default(false)
-  snapshot_at  DateTime @default(now()) @db.Timestamptz(6)
-  raw_data     Json?
-
-  @@index([sport, api_game_id, market], map: "idx_odds_v2_sport_game_market")
-  @@index([sport, api_game_id, bookmaker], map: "idx_odds_v2_sport_game_book")
-  @@index([snapshot_at], map: "idx_odds_v2_snapshot_at")
-  @@index([market, selection], map: "idx_odds_v2_market_selection")
-}
-
-/// Player-level prop predictions (basketball/hockey/baseball/football).
-/// Linked to predictions via prediction_id when a game-level prediction exists.
-model player_prop_picks {
-  id                BigInt       @id @default(autoincrement())
-  sport             String
-  api_game_id       Int
-  prediction_id     String? // optional: link to game-level prediction
-  player_id         Int
-  player_name       String
-  team_id           Int?
-  team_name         String?
-  position          String?
-  market            String // POINTS, REBOUNDS, ASSISTS, GOALS, SHOTS, STRIKEOUTS, HITS, etc.
-  market_label      String?
-  line              Float
-  selection         String // OVER, UNDER, YES, NO
-  pick_label        String?
-  probability       Float
-  market_odds       Float?
-  expected_value    Float?
-  is_high_confidence Boolean     @default(false)
-  is_best           Boolean      @default(false)
-  category          String?
-  confidence_tier   String? // platinum, gold, silver
-  reasoning         String?
-  factors_used      Json?
-  actual_value      Float?
-  hit               Boolean?
-  resolved_at       DateTime?    @db.Timestamptz(6)
-  predicted_at      DateTime     @default(now()) @db.Timestamptz(6)
-  predictions       predictions? @relation(fields: [prediction_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([sport, predicted_at(sort: Desc)], map: "idx_player_props_sport_time")
-  @@index([sport, api_game_id], map: "idx_player_props_game")
-  @@index([player_id], map: "idx_player_props_player")
-  @@index([hit], map: "idx_player_props_hit")
-  @@index([market, selection], map: "idx_player_props_market_selection")
-  @@index([is_high_confidence, probability(sort: Desc)], map: "idx_player_props_high_conf")
-}
-
-/// Batch prediction run audit trail. Each daily/hourly orchestration run logs here.
-model prediction_runs {
-  id                 String    @id @default(cuid())
-  run_type           String // daily, hourly, manual, backfill
-  target_date        DateTime? @db.Date
-  target_sports      Json // ["football", "basketball", ...]
-  started_at         DateTime  @default(now()) @db.Timestamptz(6)
-  finished_at        DateTime? @db.Timestamptz(6)
-  status             String    @default("running") // running, completed, failed, partial
-  fixtures_scanned   Int       @default(0)
-  predictions_saved  Int       @default(0)
-  picks_saved        Int       @default(0)
-  player_props_saved Int       @default(0)
-  odds_snapshots     Int       @default(0)
-  errors             Json?
-  meta               Json?
-
-  @@index([run_type, started_at(sort: Desc)], map: "idx_prediction_runs_type_time")
-  @@index([status], map: "idx_prediction_runs_status")
-}
-
-/// Cross-sport market taxonomy — unified names, categories, settlement rules.
-model market_taxonomy {
-  market_code       String  @id // e.g., "HOME_WIN", "UNDER_25", "BB_POINTS_OVER"
-  sport             String // football, basketball, hockey, handball, volleyball, baseball, all
-  family            String // match_winner, totals, handicap, btts, cards, corners, player_props, correct_score, ht_ft
-  category          String // main, side, special, player
-  display_name_tr   String // Turkish display name
-  display_name_en   String // English display name
-  description       String?
-  settlement_rule   String // Pseudo-DSL: "home_score > away_score", "home_score + away_score > line"
-  requires_line     Boolean @default(false)
-  created_at        DateTime @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime @default(now()) @db.Timestamptz(6) @updatedAt
-
-  @@index([sport, family], map: "idx_market_tax_sport_family")
-  @@index([family, category], map: "idx_market_tax_family_cat")
-}
-
-/// Simple user model for legacy auth (PrismaAdapter + CredentialsProvider).
-/// May stay empty; the only way to populate it is via `/api/auth/signup`.
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String?
-  name         String?
-  image        String?
-  role         String    @default("user")
-  emailVerified DateTime?
-  accounts     Account[]
-  sessions     Session[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  image          String?
+  emailVerified  DateTime?
+  passwordHash   String?
+  role           String    @default("user") // user | admin
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+
   @@map("users")
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -1318,7 +637,10 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@map("sessions")
 }
 
@@ -1326,6 +648,7 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+
   @@unique([identifier, token])
   @@map("verification_tokens")
 }

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
+import { HighConfidenceGoalsTable } from '@/components/high-confidence-goals-table';
 import { Search, Filter, Download, RefreshCw, Play } from 'lucide-react';
+import AnalysisProgress from '@/components/analysis-progress';
 
 interface BulkAnalysisResult {
   id: number;
@@ -38,7 +40,7 @@ interface BulkAnalysisResult {
   home_advantage?: number;
   goals_analysis?: number;
   
-  // API Football Match Statistics
+  // AwaStats Match Statistics
   api_ms_home_shots_on_goal?: number;
   api_ms_home_shots_off_goal?: number;
   api_ms_home_total_shots?: number;
@@ -56,7 +58,7 @@ interface BulkAnalysisResult {
   api_ms_away_corner_kicks?: number;
   api_ms_away_fouls?: number;
   
-  // API Football Form Data
+  // AwaStats Form Data
   api_form_home_last_5?: string;
   api_form_home_wins_last_5?: number;
   api_form_home_losses_last_5?: number;
@@ -64,14 +66,14 @@ interface BulkAnalysisResult {
   api_form_away_wins_last_5?: number;
   api_form_away_losses_last_5?: number;
   
-  // API Football Head-to-Head
+  // AwaStats Head-to-Head
   api_h2h_total_matches?: number;
   api_h2h_home_wins?: number;
   api_h2h_away_wins?: number;
   api_h2h_draws?: number;
   api_h2h_avg_goals_per_match?: number;
   
-  // API Football League Data
+  // AwaStats League Data
   api_league_home_position?: number;
   api_league_away_position?: number;
   api_league_home_points?: number;
@@ -105,6 +107,15 @@ interface BulkAnalysisResult {
   market_odds_draw?: number;
   market_volume_indicator?: number;
   market_smart_money_flow?: number;
+  
+  // API Prediction Alignment
+  api_predicted_winner?: string;
+  api_winner_confidence?: number;
+  api_over_under_prediction?: string;
+  api_over_under_confidence?: number;
+  api_prediction_advice?: string;
+  algorithms_agree_winner?: boolean;
+  algorithms_agree_over_under?: boolean;
   
   createdAt?: string;
   updatedAt?: string;
@@ -142,7 +153,16 @@ export default function BulkAnalysisPage() {
     'basic', 'predictions', 'api_ms', 'api_form', 'api_h2h', 'api_league', 'own_an', 'risk', 'perf', 'market'
   ]);
 
+  const [showGoalInsights, setShowGoalInsights] = useState(false);
+  const [syncingGoals, setSyncingGoals] = useState(false);
+  const [goalSummary, setGoalSummary] = useState<null | { date: string; fixturesFound: number; processed: number; skipped: number; failed: number }>(null);
+
   // Column definitions by category
+  const agreementStats = useMemo(() => ({
+    winner: filteredResults.filter((row) => row.algorithms_agree_winner).length,
+    overUnder: filteredResults.filter((row) => row.algorithms_agree_over_under).length,
+  }), [filteredResults]);
+
   const columnCategories = {
     basic: {
       title: 'Basic Info',
@@ -173,6 +193,13 @@ export default function BulkAnalysisPage() {
         { key: 'head_to_head_score', label: 'H2H Score', type: 'number' },
         { key: 'home_advantage', label: 'Home Adv', type: 'number' },
         { key: 'goals_analysis', label: 'Goals', type: 'number' },
+        { key: 'api_predicted_winner', label: 'API Winner', type: 'text' },
+        { key: 'api_winner_confidence', label: 'API Win Conf%', type: 'number' },
+        { key: 'api_over_under_prediction', label: 'API O/U', type: 'text' },
+        { key: 'api_over_under_confidence', label: 'API O/U Conf%', type: 'number' },
+        { key: 'api_prediction_advice', label: 'API Advice', type: 'text' },
+        { key: 'algorithms_agree_winner', label: 'Winner ✓', type: 'boolean' },
+        { key: 'algorithms_agree_over_under', label: 'O/U ✓', type: 'boolean' },
       ]
     },
     api_ms: {
@@ -290,34 +317,39 @@ export default function BulkAnalysisPage() {
 
   const formatValue = (value: any, type: string) => {
     if (value === null || value === undefined) return 'N/A';
+    if (type === 'boolean') {
+      return value ? '✓' : '✗';
+    }
     if (type === 'number') {
-      return typeof value === 'number' ? value.toFixed(3) : 'N/A';
+      if (typeof value !== 'number' || Number.isNaN(value)) return 'N/A';
+      return value.toFixed(3);
     }
     return String(value);
   };
 
-  // Load analysis results  
-  const loadResults = async () => {
+  // Load analysis results. Accepts an AbortSignal so re-filters cancel
+  // the previous in-flight request and we avoid a stale-response race.
+  const loadResults = useCallback(async (signal?: AbortSignal) => {
     if (!filters.date) return;
-    
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
         date: filters.date,
-        limit: '1000', // Load more data for Excel-like experience
+        limit: '1000',
         ...(filters.tier && { tier: filters.tier }),
         ...(filters.riskLevel && { riskLevel: filters.riskLevel }),
         ...(filters.league && { league: filters.league }),
       });
 
-      const response = await fetch(`/api/bulk-analysis/results?${params}`);
+      const response = await fetch(`/api/bulk-analysis/results?${params}`, { signal });
       const data = await response.json();
 
       if (data.success) {
         setResults(data.data.results || []);
         setStats(data.data.stats || null);
         applyFilters(data.data.results || []);
-        
+
         if (data.data.results?.length === 0) {
           toast('Bu tarih için analiz sonucu bulunamadı. Lütfen analizi başlatın.');
         } else {
@@ -326,16 +358,54 @@ export default function BulkAnalysisPage() {
       } else {
         throw new Error(data.error || 'Veriler yüklenirken hata oluştu');
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
       console.error('Error loading results:', error);
       toast.error('Veriler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.date, filters.tier, filters.riskLevel, filters.league]);
 
-  // Start bulk analysis
-  const startAnalysis = async () => {
+  const syncGoalInsights = useCallback(async (force = false) => {
+    if (!filters.date) {
+      toast.error('Lütfen bir tarih seçin');
+      return;
+    }
+
+    setSyncingGoals(true);
+    try {
+      const response = await fetch('/api/recommendations/high-confidence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: filters.date,
+          force,
+          skipIfFreshMinutes: force ? 0 : 60,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Güvenli öneriler güncellenemedi');
+      }
+
+      setGoalSummary(data.summary ?? null);
+      toast.success(`KG & Üst 2.5 önerileri güncellendi (${data.summary?.processed || 0} maç işlendi)`);
+    } catch (error) {
+      console.error('Goal sync error:', error);
+      toast.error('Güvenli öneriler güncellenirken hata oluştu');
+    } finally {
+      setSyncingGoals(false);
+    }
+  }, [filters.date]);
+
+  // Start bulk analysis — uses zaman bazlı cache varsayılan
+  // force=true => cache bypass (yalnızca kullanıcı özellikle "Zorla Yenile" derse)
+  const startAnalysis = async (force: boolean = false) => {
     if (!filters.date) {
       toast.error('Lütfen bir tarih seçin');
       return;
@@ -343,15 +413,22 @@ export default function BulkAnalysisPage() {
 
     setAnalyzing(true);
     try {
-      const response = await fetch(`/api/bulk-analysis?date=${filters.date}&forceRefresh=true`, {
-        method: 'POST',
-      });
-      
+      // Default: son 6 saat içindeki sonuçları cache'den serve et, yoksa fresh yap.
+      // force=true iken cache temizlenir ve tüm maçlar yeniden fetch edilir (upstream ağır).
+      const qs = force
+        ? `date=${encodeURIComponent(filters.date)}&forceRefresh=true`
+        : `date=${encodeURIComponent(filters.date)}&maxAgeHours=6`;
+
+      const response = await fetch(`/api/bulk-analysis?${qs}`, { method: 'POST' });
       const data = await response.json();
-      
+
       if (data.success) {
-        toast.success(`Analiz tamamlandı: ${data.count} maç analiz edildi`);
-        loadResults();
+        if (data.data?.cached) {
+          toast.success(`Önbellekten yüklendi: ${data.data.count} maç (son ${data.data.maxAgeHours ?? 6} saat içinde)`);
+        } else {
+          toast.success(`Analiz tamamlandı: ${data.data?.count ?? 0} maç analiz edildi`);
+        }
+        await loadResults();
       } else {
         throw new Error(data.error || 'Analiz sırasında hata oluştu');
       }
@@ -362,6 +439,8 @@ export default function BulkAnalysisPage() {
       setAnalyzing(false);
     }
   };
+
+  const forceAnalysis = () => startAnalysis(true);
 
   // Apply all filters
   const applyFilters = (data: BulkAnalysisResult[]) => {
@@ -453,15 +532,29 @@ export default function BulkAnalysisPage() {
 
   // Effects
   useEffect(() => {
-    loadResults();
-  }, [filters.date]);
+    const controller = new AbortController();
+    loadResults(controller.signal);
+    return () => controller.abort();
+  }, [loadResults]);
 
   useEffect(() => {
     applyFilters(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results, filters.search, columnFilters, sortConfig]);
+
+  useEffect(() => {
+    if (showGoalInsights) {
+      if (!goalSummary || goalSummary.date !== filters.date) {
+        syncGoalInsights(false).catch(() => undefined);
+      }
+    }
+  }, [showGoalInsights, filters.date, goalSummary, syncGoalInsights]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Progress Modal */}
+      <AnalysisProgress isAnalyzing={analyzing} />
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -507,6 +600,68 @@ export default function BulkAnalysisPage() {
             </Card>
           ))}
         </div>
+      )}
+
+
+      {/* KG & Üst 2.5 Öneri Yönetimi */}
+      <Card className="border-emerald-200 bg-emerald-50/40 dark:bg-emerald-900/20">
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-200">
+              KG & Üst 2.5 Güvenli Öneriler
+            </CardTitle>
+            <CardDescription>Modelin risk sekmesindeki yüksek güvenli KG / Üst tahminlerini otomatik eşitle</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowGoalInsights((prev) => !prev)}
+            >
+              {showGoalInsights ? 'Tabloyu Gizle' : 'Tabloyu Göster'}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => syncGoalInsights(false)}
+              disabled={syncingGoals}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${syncingGoals ? 'animate-spin' : ''}`} />
+              Güncelle
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => syncGoalInsights(true)}
+              disabled={syncingGoals}
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Zorla Yenile
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-emerald-800 dark:text-emerald-200">
+          {goalSummary ? (
+            <div className="flex flex-wrap gap-4">
+              <span><strong>Tarih:</strong> {goalSummary.date}</span>
+              <span><strong>Bulunan:</strong> {goalSummary.fixturesFound}</span>
+              <span><strong>İşlenen:</strong> {goalSummary.processed}</span>
+              <span><strong>Atlanan:</strong> {goalSummary.skipped}</span>
+              <span><strong>Hata:</strong> {goalSummary.failed}</span>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              Henüz özet yok. Güncelle düğmesine bastığınızda son durum burada görünecek.
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            Not: Zorla yenile seçeneği tüm maçları yeniden analiz eder ve API limitlerini daha fazla kullanır.
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {showGoalInsights && (
+        <HighConfidenceGoalsTable initialDate={filters.date} />
       )}
 
       {/* Controls */}
@@ -566,23 +721,38 @@ export default function BulkAnalysisPage() {
               />
             </div>
 
-            <div className="md:col-span-2 flex gap-2">
+            <div className="md:col-span-2 flex flex-wrap gap-2">
               <Button
-                onClick={startAnalysis}
+                type="button"
+                onClick={() => startAnalysis(false)}
                 disabled={analyzing || !filters.date}
-                className="flex-1"
+                className="flex-1 min-w-[160px]"
+                title="Son 6 saat içindeki sonuçları önbellekten getirir, yoksa yeni analiz yapar"
               >
                 <Play className="w-4 h-4 mr-2" />
-                {analyzing ? 'Analyzing...' : 'Start Analysis'}
+                {analyzing ? 'Analiz ediliyor…' : 'Analiz Et (cache)'}
               </Button>
-              
+
               <Button
+                type="button"
+                variant="destructive"
+                onClick={forceAnalysis}
+                disabled={analyzing || !filters.date}
+                className="min-w-[160px]"
+                title="Önbelleği bypass ederek tüm maçları upstream'den yeniden çeker (API kotası tüketir)"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Zorla Yenile
+              </Button>
+
+              <Button
+                type="button"
                 variant="outline"
-                onClick={loadResults}
+                onClick={() => loadResults()}
                 disabled={loading}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+                Listeyi Yenile
               </Button>
 
               <Button
@@ -629,7 +799,9 @@ export default function BulkAnalysisPage() {
               <CardTitle>Ultra Detailed Analysis Results</CardTitle>
               {filteredResults.length > 0 && (
                 <CardDescription>
-                  {filteredResults.length} matches shown (filtered from {results.length} total)
+                  {filteredResults.length} matches shown (filtered from {results.length} total).
+                  <span className="ml-2 text-emerald-600 dark:text-emerald-300">Winner ✓: {agreementStats.winner}</span>
+                  <span className="ml-2 text-blue-600 dark:text-blue-300">O/U ✓: {agreementStats.overUnder}</span>
                 </CardDescription>
               )}
             </div>
@@ -685,12 +857,18 @@ export default function BulkAnalysisPage() {
 
                 {/* Table Data */}
                 <div className="space-y-1">
-                  {filteredResults.map((result) => (
-                    <div key={result.id} className="grid gap-1 hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded border" style={{ gridTemplateColumns: `repeat(${Object.values(columnCategories).filter(cat => selectedCategories.includes(Object.keys(columnCategories).find(k => columnCategories[k as keyof typeof columnCategories] === cat) || '')).flatMap(cat => cat.columns).length}, minmax(120px, 1fr))` }}>
-                      {Object.entries(columnCategories)
-                        .filter(([key]) => selectedCategories.includes(key))
-                        .flatMap(([_, category]) => category.columns)
-                        .map((column) => (
+                  {filteredResults.map((result) => {
+                    const activeColumns = Object.entries(columnCategories)
+                      .filter(([key]) => selectedCategories.includes(key))
+                      .flatMap(([_, category]) => category.columns);
+
+                    return (
+                      <div
+                        key={result.id}
+                        className={`grid gap-1 p-1 rounded border transition-colors ${result.algorithms_agree_winner && result.algorithms_agree_over_under ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                        style={{ gridTemplateColumns: `repeat(${activeColumns.length}, minmax(120px, 1fr))` }}
+                      >
+                        {activeColumns.map((column) => (
                           <div key={column.key} className="p-2 text-xs border-r border-gray-200 dark:border-gray-700">
                             {column.key === 'confidence_tier' ? (
                               <Badge className={getConfidenceColor(String(result[column.key as keyof BulkAnalysisResult] || ''))}>
@@ -700,15 +878,24 @@ export default function BulkAnalysisPage() {
                               <Badge className={getRiskColor(String(result[column.key as keyof BulkAnalysisResult] || ''))}>
                                 {formatValue(result[column.key as keyof BulkAnalysisResult], column.type)}
                               </Badge>
+                            ) : column.type === 'number' ? (
+                              <span className="font-mono">
+                                {formatValue(result[column.key as keyof BulkAnalysisResult], column.type)}
+                              </span>
+                            ) : column.type === 'boolean' ? (
+                              <span className="font-semibold">
+                                {formatValue(result[column.key as keyof BulkAnalysisResult], column.type)}
+                              </span>
                             ) : (
-                              <span className={`${column.type === 'number' ? 'font-mono' : ''}`}>
+                              <span>
                                 {formatValue(result[column.key as keyof BulkAnalysisResult], column.type)}
                               </span>
                             )}
                           </div>
                         ))}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

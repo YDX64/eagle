@@ -1,0 +1,72 @@
+{
+  "note": "Joint BTTS \u00d7 Over/Under 2.5 rates",
+  "combinations": {
+    "BTTS_YES_AND_OVER_25": {
+      "count": 795505,
+      "hits": 322796,
+      "rate": 0.4058
+    },
+    "BTTS_YES_AND_UNDER_25": {
+      "count": 795505,
+      "hits": 86197,
+      "rate": 0.1084
+    },
+    "BTTS_NO_AND_OVER_25": {
+      "count": 795505,
+      "hits": 91150,
+      "rate": 0.1146
+    },
+    "BTTS_NO_AND_UNDER_25": {
+      "count": 795505,
+      "hits": 295362,
+      "rate": 0.3713
+    }
+  },
+  "htft_score_combos": {
+    "2/1_and_2-1": {
+      "count": 651225,
+      "hits": 8575,
+      "rate": 0.0132
+    },
+    "2/1_and_3-1": {
+      "count": 651225,
+      "hits": 2272,
+      "rate": 0.0035
+    },
+    "2/1_and_3-2": {
+      "count": 651225,
+      "hits": 3661,
+      "rate": 0.0056
+    },
+    "1/1_and_2-0": {
+      "count": 651225,
+      "hits": 31784,
+      "rate": 0.0488
+    },
+    "1/1_and_1-0": {
+      "count": 651225,
+      "hits": 27761,
+      "rate": 0.0426
+    },
+    "X/X_and_0-0": {
+      "count": 651225,
+      "hits": 48229,
+      "rate": 0.0741
+    },
+    "X/X_and_1-1": {
+      "count": 651225,
+      "hits": 21651,
+      "rate": 0.0332
+    },
+    "X/1_and_1-0": {
+      "count": 651225,
+      "hits": 38675,
+      "rate": 0.0594
+    },
+    "X/2_and_0-1": {
+      "count": 651225,
+      "hits": 29463,
+      "rate": 0.0452
+    }
+  }
+}

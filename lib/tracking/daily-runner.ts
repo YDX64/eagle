@@ -12,7 +12,7 @@
  * Designed to be invoked by a cron endpoint (/api/cron/daily-all-sports).
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import { ApiFootballService } from '@/lib/api-football';
 import { basketballApi } from '@/lib/sports/basketball/api-basketball';
 import { hockeyApi } from '@/lib/sports/hockey/api-hockey';

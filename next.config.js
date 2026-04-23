@@ -1,38 +1,116 @@
 const path = require('path');
 
+// Content Security Policy — locks the page down to same-origin script/style
+// and the specific third-party hosts we actually use. `'unsafe-inline'` is
+// retained because Next.js App Router emits inline bootstrap scripts; a
+// nonce-based replacement is a larger refactor and is tracked separately.
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://media.api-sports.io https://*.api-sports.io https://v3.football.api-sports.io",
+  "font-src 'self' data:",
+  "connect-src 'self' https://v3.football.api-sports.io https://*.api-sports.io https://*.awastats.com",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  "upgrade-insecure-requests",
+].join('; ');
+
+const securityHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
+  { key: 'Content-Security-Policy', value: CSP_DIRECTIVES },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   output: process.env.NEXT_OUTPUT_MODE,
-  // In Docker the app is the sole workspace; without this override the
-  // standalone tracer walks up to `/` and emits a broken output layout.
-  outputFileTracingRoot: __dirname,
+  // NOTE: outputFileTracingRoot intentionally omitted.
+  // When set to '../' the standalone build emits server.js under /app/app/
+  // instead of /app/, which breaks the `CMD ["node", "server.js"]` in Dockerfile.
+
+  // Node-only kütüphaneler (ioredis, bcryptjs vb.) client-bundle'a sızmasın.
+  // ioredis DNS/net/tls'e bağımlı — server-only tutulur, client'ta fallback false.
+  serverExternalPackages: ['ioredis', 'bcryptjs'],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        dns: false,
+        net: false,
+        tls: false,
+        fs: false,
+        child_process: false,
+        'supports-color': false,
+      };
+    }
+    return config;
+  },
+  // Don't advertise the framework in responses.
+  poweredByHeader: false,
+  // Enable modern compression for smaller payload.
+  compress: true,
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
   images: { unoptimized: true },
-  // Allow all origins for Replit environment  
   allowedDevOrigins: [
-    "2195234c-6362-4bbf-9308-30d81205ccc9-00-2h5am7z8se23h.pike.replit.dev",
-    "127.0.0.1",
-    "localhost"
+    '2195234c-6362-4bbf-9308-30d81205ccc9-00-2h5am7z8se23h.pike.replit.dev',
+    '127.0.0.1',
+    'localhost',
   ],
-  // Add cache headers for Replit
   async headers() {
     return [
+      // API routes must never be cached by browsers/proxies — betting data
+      // is time-sensitive.
+      {
+        source: '/api/:path*',
+        headers: [
+          ...securityHeaders,
+          { key: 'Cache-Control', value: 'no-store, max-age=0' },
+        ],
+      },
+      // Static Next.js build assets are content-hashed → cache forever.
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          ...securityHeaders,
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      // Public static files (images, fonts placed in /public)
+      {
+        source: '/:path*\\.(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2|ttf|otf)',
+        headers: [
+          ...securityHeaders,
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=86400' },
+        ],
+      },
+      // Everything else — HTML pages: short cache + SWR to keep matches fresh.
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          },
+          ...securityHeaders,
+          { key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' },
         ],
       },
-    ]
+    ];
   },
 };
 

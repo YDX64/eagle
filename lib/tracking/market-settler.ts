@@ -12,7 +12,7 @@
  *   4. Update hit/best_pick_hit/status/resolved_at in a transaction.
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import { getMarket, inferLine, type SettleContext } from './market-taxonomy';
 import type { SettlementResult, SportCode } from './types';
 

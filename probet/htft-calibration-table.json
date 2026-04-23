@@ -1,0 +1,2155 @@
+{
+  "note": "HTFT calibration from Bet365 closing odds (ka* columns). Odds \u2192 empirical hit rate.",
+  "source": "bet365_matches",
+  "markets": {
+    "1/1": {
+      "close_column": "kahtft11_odds",
+      "open_column": "achtft11_odds",
+      "total_samples": 688550,
+      "total_hits": 171652,
+      "overall_rate": 0.2493,
+      "buckets": [
+        {
+          "bucket": "A",
+          "odds_low": 1.0,
+          "odds_high": 1.3,
+          "count": 2853,
+          "hits": 2313,
+          "rate": 0.8107
+        },
+        {
+          "bucket": "B",
+          "odds_low": 1.3,
+          "odds_high": 1.45,
+          "count": 5837,
+          "hits": 3923,
+          "rate": 0.6721
+        },
+        {
+          "bucket": "C",
+          "odds_low": 1.45,
+          "odds_high": 1.6,
+          "count": 7772,
+          "hits": 4741,
+          "rate": 0.61
+        },
+        {
+          "bucket": "D",
+          "odds_low": 1.6,
+          "odds_high": 1.75,
+          "count": 14791,
+          "hits": 8204,
+          "rate": 0.5547
+        },
+        {
+          "bucket": "E",
+          "odds_low": 1.75,
+          "odds_high": 1.9,
+          "count": 10181,
+          "hits": 5177,
+          "rate": 0.5085
+        },
+        {
+          "bucket": "F",
+          "odds_low": 1.9,
+          "odds_high": 2.05,
+          "count": 18289,
+          "hits": 8615,
+          "rate": 0.471
+        },
+        {
+          "bucket": "G",
+          "odds_low": 2.05,
+          "odds_high": 2.25,
+          "count": 23294,
+          "hits": 9897,
+          "rate": 0.4249
+        },
+        {
+          "bucket": "H",
+          "odds_low": 2.25,
+          "odds_high": 2.5,
+          "count": 36276,
+          "hits": 14148,
+          "rate": 0.39
+        },
+        {
+          "bucket": "I",
+          "odds_low": 2.5,
+          "odds_high": 2.85,
+          "count": 64082,
+          "hits": 22140,
+          "rate": 0.3455
+        },
+        {
+          "bucket": "J",
+          "odds_low": 2.85,
+          "odds_high": 3.3,
+          "count": 87340,
+          "hits": 25340,
+          "rate": 0.2901
+        },
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 94068,
+          "hits": 23348,
+          "rate": 0.2482
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 116565,
+          "hits": 22773,
+          "rate": 0.1954
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 68450,
+          "hits": 9991,
+          "rate": 0.146
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 69376,
+          "hits": 5521,
+          "rate": 0.0796
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 35234,
+          "hits": 3692,
+          "rate": 0.1048
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 16142,
+          "hits": 1186,
+          "rate": 0.0735
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 11768,
+          "hits": 521,
+          "rate": 0.0443
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 4801,
+          "hits": 111,
+          "rate": 0.0231
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1192,
+          "hits": 10,
+          "rate": 0.0084
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 239,
+          "hits": 1,
+          "rate": 0.0042
+        }
+      ]
+    },
+    "1/X": {
+      "close_column": "kahtft1x_odds",
+      "open_column": "achtft1x_odds",
+      "total_samples": 1238266,
+      "total_hits": 57648,
+      "overall_rate": 0.0466,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 619156,
+          "hits": 28824,
+          "rate": 0.0466
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 99,
+          "hits": 3,
+          "rate": 0.0303
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 93971,
+          "hits": 5014,
+          "rate": 0.0534
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 502522,
+          "hits": 23478,
+          "rate": 0.0467
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 20706,
+          "hits": 320,
+          "rate": 0.0155
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1812,
+          "hits": 9,
+          "rate": 0.005
+        }
+      ]
+    },
+    "1/2": {
+      "close_column": "kahtft12_odds",
+      "open_column": "achtft12_odds",
+      "total_samples": 1238342,
+      "total_hits": 26690,
+      "overall_rate": 0.0216,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 619171,
+          "hits": 13345,
+          "rate": 0.0216
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 51,
+          "hits": 0,
+          "rate": 0.0
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 913,
+          "hits": 35,
+          "rate": 0.0383
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 134707,
+          "hits": 4740,
+          "rate": 0.0352
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 417217,
+          "hits": 8081,
+          "rate": 0.0194
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 60462,
+          "hits": 470,
+          "rate": 0.0078
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 5821,
+          "hits": 19,
+          "rate": 0.0033
+        }
+      ]
+    },
+    "X/1": {
+      "close_column": "kahtftx1_odds",
+      "open_column": "achtftx1_odds",
+      "total_samples": 762740,
+      "total_hits": 107586,
+      "overall_rate": 0.1411,
+      "buckets": [
+        {
+          "bucket": "J",
+          "odds_low": 2.85,
+          "odds_high": 3.3,
+          "count": 1027,
+          "hits": 249,
+          "rate": 0.2425
+        },
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 40928,
+          "hits": 9301,
+          "rate": 0.2273
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 182517,
+          "hits": 35435,
+          "rate": 0.1941
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 251138,
+          "hits": 37731,
+          "rate": 0.1502
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 143565,
+          "hits": 12435,
+          "rate": 0.0866
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 84953,
+          "hits": 9030,
+          "rate": 0.1063
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 30395,
+          "hits": 2308,
+          "rate": 0.0759
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 19753,
+          "hits": 930,
+          "rate": 0.0471
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 7274,
+          "hits": 159,
+          "rate": 0.0219
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1120,
+          "hits": 8,
+          "rate": 0.0071
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 70,
+          "hits": 0,
+          "rate": 0.0
+        }
+      ]
+    },
+    "X/X": {
+      "close_column": "kahtftxx_odds",
+      "open_column": "achtftxx_odds",
+      "total_samples": 760194,
+      "total_hits": 104493,
+      "overall_rate": 0.1375,
+      "buckets": [
+        {
+          "bucket": "J",
+          "odds_low": 2.85,
+          "odds_high": 3.3,
+          "count": 227,
+          "hits": 63,
+          "rate": 0.2775
+        },
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 7081,
+          "hits": 1749,
+          "rate": 0.247
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 142460,
+          "hits": 28935,
+          "rate": 0.2031
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 328349,
+          "hits": 49444,
+          "rate": 0.1506
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 141039,
+          "hits": 12151,
+          "rate": 0.0862
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 106570,
+          "hits": 10430,
+          "rate": 0.0979
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 24163,
+          "hits": 1423,
+          "rate": 0.0589
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 8493,
+          "hits": 275,
+          "rate": 0.0324
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 1734,
+          "hits": 22,
+          "rate": 0.0127
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 78,
+          "hits": 1,
+          "rate": 0.0128
+        }
+      ]
+    },
+    "X/2": {
+      "close_column": "kahtftx2_odds",
+      "open_column": "achtftx2_odds",
+      "total_samples": 971475,
+      "total_hits": 97707,
+      "overall_rate": 0.1006,
+      "buckets": [
+        {
+          "bucket": "J",
+          "odds_low": 2.85,
+          "odds_high": 3.3,
+          "count": 176,
+          "hits": 46,
+          "rate": 0.2614
+        },
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 9871,
+          "hits": 2321,
+          "rate": 0.2351
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 63766,
+          "hits": 12591,
+          "rate": 0.1975
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 193062,
+          "hits": 27445,
+          "rate": 0.1422
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 352300,
+          "hits": 27652,
+          "rate": 0.0785
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 183343,
+          "hits": 18319,
+          "rate": 0.0999
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 88890,
+          "hits": 6259,
+          "rate": 0.0704
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 58902,
+          "hits": 2677,
+          "rate": 0.0454
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 19699,
+          "hits": 392,
+          "rate": 0.0199
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1380,
+          "hits": 5,
+          "rate": 0.0036
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 86,
+          "hits": 0,
+          "rate": 0.0
+        }
+      ]
+    },
+    "2/1": {
+      "close_column": "kahtft21_odds",
+      "open_column": "achtft21_odds",
+      "total_samples": 1238304,
+      "total_hits": 32430,
+      "overall_rate": 0.0262,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 619152,
+          "hits": 16215,
+          "rate": 0.0262
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 164,
+          "hits": 9,
+          "rate": 0.0549
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 1338,
+          "hits": 61,
+          "rate": 0.0456
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 269204,
+          "hits": 8716,
+          "rate": 0.0324
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 326987,
+          "hits": 7260,
+          "rate": 0.0222
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 18961,
+          "hits": 164,
+          "rate": 0.0086
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 2498,
+          "hits": 5,
+          "rate": 0.002
+        }
+      ]
+    },
+    "2/X": {
+      "close_column": "kahtft2x_odds",
+      "open_column": "achtft2x_odds",
+      "total_samples": 1238328,
+      "total_hits": 54558,
+      "overall_rate": 0.0441,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 619164,
+          "hits": 27279,
+          "rate": 0.0441
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 85,
+          "hits": 1,
+          "rate": 0.0118
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 69634,
+          "hits": 3604,
+          "rate": 0.0518
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 519745,
+          "hits": 23203,
+          "rate": 0.0446
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 27389,
+          "hits": 463,
+          "rate": 0.0169
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 2256,
+          "hits": 8,
+          "rate": 0.0035
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 55,
+          "hits": 0,
+          "rate": 0.0
+        }
+      ]
+    },
+    "2/2": {
+      "close_column": "kahtft22_odds",
+      "open_column": "achtft22_odds",
+      "total_samples": 826434,
+      "total_hits": 125290,
+      "overall_rate": 0.1516,
+      "buckets": [
+        {
+          "bucket": "A",
+          "odds_low": 1.0,
+          "odds_high": 1.3,
+          "count": 2108,
+          "hits": 1687,
+          "rate": 0.8003
+        },
+        {
+          "bucket": "B",
+          "odds_low": 1.3,
+          "odds_high": 1.45,
+          "count": 2776,
+          "hits": 1897,
+          "rate": 0.6834
+        },
+        {
+          "bucket": "C",
+          "odds_low": 1.45,
+          "odds_high": 1.6,
+          "count": 2854,
+          "hits": 1758,
+          "rate": 0.616
+        },
+        {
+          "bucket": "D",
+          "odds_low": 1.6,
+          "odds_high": 1.75,
+          "count": 5218,
+          "hits": 2871,
+          "rate": 0.5502
+        },
+        {
+          "bucket": "E",
+          "odds_low": 1.75,
+          "odds_high": 1.9,
+          "count": 3466,
+          "hits": 1758,
+          "rate": 0.5072
+        },
+        {
+          "bucket": "F",
+          "odds_low": 1.9,
+          "odds_high": 2.05,
+          "count": 6096,
+          "hits": 2886,
+          "rate": 0.4734
+        },
+        {
+          "bucket": "G",
+          "odds_low": 2.05,
+          "odds_high": 2.25,
+          "count": 7989,
+          "hits": 3409,
+          "rate": 0.4267
+        },
+        {
+          "bucket": "H",
+          "odds_low": 2.25,
+          "odds_high": 2.5,
+          "count": 12326,
+          "hits": 4819,
+          "rate": 0.391
+        },
+        {
+          "bucket": "I",
+          "odds_low": 2.5,
+          "odds_high": 2.85,
+          "count": 22745,
+          "hits": 7852,
+          "rate": 0.3452
+        },
+        {
+          "bucket": "J",
+          "odds_low": 2.85,
+          "odds_high": 3.3,
+          "count": 35389,
+          "hits": 10453,
+          "rate": 0.2954
+        },
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 51205,
+          "hits": 12517,
+          "rate": 0.2444
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 117454,
+          "hits": 22574,
+          "rate": 0.1922
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 142296,
+          "hits": 19857,
+          "rate": 0.1395
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 207256,
+          "hits": 15476,
+          "rate": 0.0747
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 102789,
+          "hits": 10106,
+          "rate": 0.0983
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 52014,
+          "hits": 3523,
+          "rate": 0.0677
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 37378,
+          "hits": 1601,
+          "rate": 0.0428
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 12851,
+          "hits": 236,
+          "rate": 0.0184
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1885,
+          "hits": 9,
+          "rate": 0.0048
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 339,
+          "hits": 1,
+          "rate": 0.0029
+        }
+      ]
+    }
+  },
+  "per_league": {
+    "1/1": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 16119,
+        "rate": 0.2622
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 11758,
+        "rate": 0.2783
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 10766,
+        "rate": 0.2701
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 7226,
+        "rate": 0.2599
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 6254,
+        "rate": 0.2536
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 5771,
+        "rate": 0.272
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 5386,
+        "rate": 0.2804
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 5560,
+        "rate": 0.2998
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 4273,
+        "rate": 0.2453
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 3660,
+        "rate": 0.2479
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 4116,
+        "rate": 0.2892
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 3075,
+        "rate": 0.2341
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 3903,
+        "rate": 0.3016
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 3421,
+        "rate": 0.2699
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 3254,
+        "rate": 0.261
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 2936,
+        "rate": 0.2535
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 2674,
+        "rate": 0.243
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 3051,
+        "rate": 0.2879
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 2713,
+        "rate": 0.2572
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 2763,
+        "rate": 0.2672
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 2651,
+        "rate": 0.2846
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 2697,
+        "rate": 0.2943
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 2415,
+        "rate": 0.2745
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 2310,
+        "rate": 0.274
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 2050,
+        "rate": 0.2662
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 2000,
+        "rate": 0.2672
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 1958,
+        "rate": 0.2629
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 1993,
+        "rate": 0.2679
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 1421,
+        "rate": 0.2127
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 1866,
+        "rate": 0.2824
+      }
+    ],
+    "1/2": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 1488,
+        "rate": 0.0242
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 958,
+        "rate": 0.0227
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 928,
+        "rate": 0.0233
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 506,
+        "rate": 0.0182
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 452,
+        "rate": 0.0183
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 384,
+        "rate": 0.0181
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 483,
+        "rate": 0.0251
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 376,
+        "rate": 0.0203
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 241,
+        "rate": 0.0138
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 349,
+        "rate": 0.0236
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 380,
+        "rate": 0.0267
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 337,
+        "rate": 0.0257
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 335,
+        "rate": 0.0259
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 333,
+        "rate": 0.0263
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 258,
+        "rate": 0.0207
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 268,
+        "rate": 0.0231
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 296,
+        "rate": 0.0269
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 282,
+        "rate": 0.0266
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 224,
+        "rate": 0.0212
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 190,
+        "rate": 0.0184
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 218,
+        "rate": 0.0234
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 209,
+        "rate": 0.0228
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 144,
+        "rate": 0.0164
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 221,
+        "rate": 0.0262
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 180,
+        "rate": 0.0234
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 134,
+        "rate": 0.0179
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 198,
+        "rate": 0.0266
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 170,
+        "rate": 0.0229
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 184,
+        "rate": 0.0275
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 95,
+        "rate": 0.0144
+      }
+    ],
+    "X/1": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 9038,
+        "rate": 0.147
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 5620,
+        "rate": 0.133
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 5521,
+        "rate": 0.1385
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 4714,
+        "rate": 0.1695
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 3945,
+        "rate": 0.1599
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 3657,
+        "rate": 0.1723
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 2725,
+        "rate": 0.1419
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 2784,
+        "rate": 0.1501
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 2907,
+        "rate": 0.1668
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 2376,
+        "rate": 0.1609
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 1970,
+        "rate": 0.1384
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 2077,
+        "rate": 0.1581
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 1959,
+        "rate": 0.1514
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 1833,
+        "rate": 0.1446
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 2139,
+        "rate": 0.1716
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 1763,
+        "rate": 0.1522
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 1448,
+        "rate": 0.1316
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 1513,
+        "rate": 0.1428
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 1713,
+        "rate": 0.1624
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 1635,
+        "rate": 0.1581
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 1317,
+        "rate": 0.1414
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 1488,
+        "rate": 0.1624
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 1572,
+        "rate": 0.1787
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 1143,
+        "rate": 0.1356
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 1164,
+        "rate": 0.1511
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 1185,
+        "rate": 0.1583
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 1020,
+        "rate": 0.1369
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 1203,
+        "rate": 0.1617
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 1114,
+        "rate": 0.1667
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 1130,
+        "rate": 0.171
+      }
+    ],
+    "X/X": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 8490,
+        "rate": 0.1381
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 5291,
+        "rate": 0.1252
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 5640,
+        "rate": 0.1415
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 5062,
+        "rate": 0.182
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 4332,
+        "rate": 0.1756
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 3745,
+        "rate": 0.1765
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 2459,
+        "rate": 0.128
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 2321,
+        "rate": 0.1251
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 3749,
+        "rate": 0.2152
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 2405,
+        "rate": 0.1629
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 1588,
+        "rate": 0.1116
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 2049,
+        "rate": 0.156
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 1466,
+        "rate": 0.1133
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 1527,
+        "rate": 0.1205
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 1886,
+        "rate": 0.1513
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 1771,
+        "rate": 0.1529
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 1446,
+        "rate": 0.1314
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 1249,
+        "rate": 0.1179
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 1614,
+        "rate": 0.153
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 1655,
+        "rate": 0.1601
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 1212,
+        "rate": 0.1301
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 1329,
+        "rate": 0.145
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 1631,
+        "rate": 0.1854
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 790,
+        "rate": 0.0937
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 1096,
+        "rate": 0.1423
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 1167,
+        "rate": 0.1559
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 988,
+        "rate": 0.1327
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 1201,
+        "rate": 0.1614
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 1139,
+        "rate": 0.1705
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 1223,
+        "rate": 0.1851
+      }
+    ],
+    "X/2": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 7041,
+        "rate": 0.1145
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 4834,
+        "rate": 0.1144
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 4335,
+        "rate": 0.1088
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 3002,
+        "rate": 0.108
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 2706,
+        "rate": 0.1097
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 2245,
+        "rate": 0.1058
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 2108,
+        "rate": 0.1098
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 2047,
+        "rate": 0.1104
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 1895,
+        "rate": 0.1088
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 1756,
+        "rate": 0.1189
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 1575,
+        "rate": 0.1107
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 1743,
+        "rate": 0.1327
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 1384,
+        "rate": 0.1069
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 1493,
+        "rate": 0.1178
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 1402,
+        "rate": 0.1124
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 1340,
+        "rate": 0.1157
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 1330,
+        "rate": 0.1208
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 1143,
+        "rate": 0.1079
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 1242,
+        "rate": 0.1177
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 1196,
+        "rate": 0.1157
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 1067,
+        "rate": 0.1145
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 947,
+        "rate": 0.1033
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 852,
+        "rate": 0.0968
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 1012,
+        "rate": 0.12
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 868,
+        "rate": 0.1127
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 922,
+        "rate": 0.1232
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 914,
+        "rate": 0.1227
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 839,
+        "rate": 0.1128
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 963,
+        "rate": 0.1441
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 685,
+        "rate": 0.1037
+      }
+    ],
+    "2/1": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 1799,
+        "rate": 0.0293
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 1071,
+        "rate": 0.0254
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 1052,
+        "rate": 0.0264
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 672,
+        "rate": 0.0242
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 628,
+        "rate": 0.0255
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 487,
+        "rate": 0.023
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 576,
+        "rate": 0.03
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 387,
+        "rate": 0.0209
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 370,
+        "rate": 0.0212
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 379,
+        "rate": 0.0257
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 466,
+        "rate": 0.0327
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 344,
+        "rate": 0.0262
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 365,
+        "rate": 0.0282
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 336,
+        "rate": 0.0265
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 373,
+        "rate": 0.0299
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 303,
+        "rate": 0.0262
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 299,
+        "rate": 0.0272
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 331,
+        "rate": 0.0312
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 323,
+        "rate": 0.0306
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 246,
+        "rate": 0.0238
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 249,
+        "rate": 0.0267
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 291,
+        "rate": 0.0318
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 214,
+        "rate": 0.0243
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 271,
+        "rate": 0.0321
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 227,
+        "rate": 0.0295
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 189,
+        "rate": 0.0253
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 179,
+        "rate": 0.024
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 224,
+        "rate": 0.0301
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 182,
+        "rate": 0.0272
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 126,
+        "rate": 0.0191
+      }
+    ],
+    "2/2": [
+      {
+        "league": "ENGLAND",
+        "count": 61476,
+        "hits": 11469,
+        "rate": 0.1866
+      },
+      {
+        "league": "WORLD",
+        "count": 42244,
+        "hits": 9256,
+        "rate": 0.2191
+      },
+      {
+        "league": "GERMANY",
+        "count": 39860,
+        "hits": 7842,
+        "rate": 0.1967
+      },
+      {
+        "league": "SPAIN",
+        "count": 27806,
+        "hits": 4028,
+        "rate": 0.1449
+      },
+      {
+        "league": "ITALY",
+        "count": 24665,
+        "hits": 3719,
+        "rate": 0.1508
+      },
+      {
+        "league": "BRAZIL",
+        "count": 21220,
+        "hits": 2983,
+        "rate": 0.1406
+      },
+      {
+        "league": "SWEDEN",
+        "count": 19205,
+        "hits": 3671,
+        "rate": 0.1911
+      },
+      {
+        "league": "EUROPE",
+        "count": 18548,
+        "hits": 3674,
+        "rate": 0.1981
+      },
+      {
+        "league": "ARGENTINA",
+        "count": 17423,
+        "hits": 2398,
+        "rate": 0.1376
+      },
+      {
+        "league": "FRANCE",
+        "count": 14766,
+        "hits": 2439,
+        "rate": 0.1652
+      },
+      {
+        "league": "NORWAY",
+        "count": 14232,
+        "hits": 2883,
+        "rate": 0.2026
+      },
+      {
+        "league": "JAPAN",
+        "count": 13136,
+        "hits": 2320,
+        "rate": 0.1766
+      },
+      {
+        "league": "CZECH REPUBLIC",
+        "count": 12943,
+        "hits": 2543,
+        "rate": 0.1965
+      },
+      {
+        "league": "SCOTLAND",
+        "count": 12677,
+        "hits": 2623,
+        "rate": 0.2069
+      },
+      {
+        "league": "TURKEY",
+        "count": 12468,
+        "hits": 2080,
+        "rate": 0.1668
+      },
+      {
+        "league": "POLAND",
+        "count": 11580,
+        "hits": 2075,
+        "rate": 0.1792
+      },
+      {
+        "league": "DENMARK",
+        "count": 11006,
+        "hits": 2452,
+        "rate": 0.2228
+      },
+      {
+        "league": "NETHERLANDS",
+        "count": 10597,
+        "hits": 2020,
+        "rate": 0.1906
+      },
+      {
+        "league": "PORTUGAL",
+        "count": 10549,
+        "hits": 1734,
+        "rate": 0.1644
+      },
+      {
+        "league": "RUSSIA",
+        "count": 10339,
+        "hits": 1853,
+        "rate": 0.1792
+      },
+      {
+        "league": "FINLAND",
+        "count": 9315,
+        "hits": 1809,
+        "rate": 0.1942
+      },
+      {
+        "league": "USA",
+        "count": 9165,
+        "hits": 1307,
+        "rate": 0.1426
+      },
+      {
+        "league": "COLOMBIA",
+        "count": 8798,
+        "hits": 1061,
+        "rate": 0.1206
+      },
+      {
+        "league": "AUSTRALIA",
+        "count": 8431,
+        "hits": 1975,
+        "rate": 0.2343
+      },
+      {
+        "league": "BELGIUM",
+        "count": 7701,
+        "hits": 1398,
+        "rate": 0.1815
+      },
+      {
+        "league": "ROMANIA",
+        "count": 7484,
+        "hits": 1238,
+        "rate": 0.1654
+      },
+      {
+        "league": "AUSTRIA",
+        "count": 7448,
+        "hits": 1528,
+        "rate": 0.2052
+      },
+      {
+        "league": "MEXICO",
+        "count": 7439,
+        "hits": 1054,
+        "rate": 0.1417
+      },
+      {
+        "league": "SOUTH KOREA",
+        "count": 6682,
+        "hits": 1055,
+        "rate": 0.1579
+      },
+      {
+        "league": "GREECE",
+        "count": 6607,
+        "hits": 1017,
+        "rate": 0.1539
+      }
+    ]
+  }
+}

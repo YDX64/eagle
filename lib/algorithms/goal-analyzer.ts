@@ -623,8 +623,12 @@ async function fetchProBetPredictions(date: string, baseUrl: string): Promise<Ma
   const map = new Map<number, any>();
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000); // 45s cap
-    const r = await fetch(`${baseUrl}/api/probet?date=${date}&limit=40&majorLeagues=true`, {
+    // 180s — /api/probet endpoint'i predictFixture'ı sırayla çağırıyor, her biri
+    // league history getiriyor; 100 fixture için 2-3 dakika bulabilir. Aciliyet yok.
+    const timer = setTimeout(() => ctrl.abort(), 180000);
+    // majorLeagues=false → MLS/Regionalliga/ülke liglerini de kapsa. limit=50 çünkü
+    // Cloudflare/Traefik 125s'de 524 veriyor; 50 fixture için ortalama 60-90s sürer.
+    const r = await fetch(`${baseUrl}/api/probet?date=${date}&limit=50&majorLeagues=false`, {
       cache: 'no-store',
       signal: ctrl.signal,
     });

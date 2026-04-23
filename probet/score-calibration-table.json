@@ -1,0 +1,1630 @@
+{
+  "note": "Exact score calibration from Bet365 closing odds (ka* columns).",
+  "source": "bet365_matches",
+  "markets": {
+    "1-0": {
+      "column": "kamacsk10_odds",
+      "total_samples": 1088133,
+      "total_hits": 104690,
+      "overall_rate": 0.0962,
+      "buckets": [
+        {
+          "bucket": "K",
+          "odds_low": 3.3,
+          "odds_high": 4.0,
+          "count": 226,
+          "hits": 61,
+          "rate": 0.2699
+        },
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 8150,
+          "hits": 1560,
+          "rate": 0.1914
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 141609,
+          "hits": 20955,
+          "rate": 0.148
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 469074,
+          "hits": 41057,
+          "rate": 0.0875
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 263779,
+          "hits": 28204,
+          "rate": 0.1069
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 128857,
+          "hits": 9578,
+          "rate": 0.0743
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 57347,
+          "hits": 2844,
+          "rate": 0.0496
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 15190,
+          "hits": 386,
+          "rate": 0.0254
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 3010,
+          "hits": 44,
+          "rate": 0.0146
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 891,
+          "hits": 1,
+          "rate": 0.0011
+        }
+      ]
+    },
+    "2-0": {
+      "column": "kamacsk20_odds",
+      "total_samples": 1184066,
+      "total_hits": 82283,
+      "overall_rate": 0.0695,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 1320,
+          "hits": 219,
+          "rate": 0.1659
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 51364,
+          "hits": 6712,
+          "rate": 0.1307
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 565691,
+          "hits": 37676,
+          "rate": 0.0666
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 198370,
+          "hits": 19095,
+          "rate": 0.0963
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 189322,
+          "hits": 12498,
+          "rate": 0.066
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 123700,
+          "hits": 5177,
+          "rate": 0.0419
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 39659,
+          "hits": 801,
+          "rate": 0.0202
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 12128,
+          "hits": 102,
+          "rate": 0.0084
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 2512,
+          "hits": 3,
+          "rate": 0.0012
+        }
+      ]
+    },
+    "2-1": {
+      "column": "kamacsk21_odds",
+      "total_samples": 1238003,
+      "total_hits": 106383,
+      "overall_rate": 0.0859,
+      "buckets": [
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 187,
+          "hits": 15,
+          "rate": 0.0802
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 618908,
+          "hits": 53184,
+          "rate": 0.0859
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 312236,
+          "hits": 31264,
+          "rate": 0.1001
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 228928,
+          "hits": 18486,
+          "rate": 0.0808
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 59318,
+          "hits": 3060,
+          "rate": 0.0516
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 14692,
+          "hits": 343,
+          "rate": 0.0233
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 2822,
+          "hits": 28,
+          "rate": 0.0099
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 912,
+          "hits": 3,
+          "rate": 0.0033
+        }
+      ]
+    },
+    "3-0": {
+      "column": "kamacsk30_odds",
+      "total_samples": 1221344,
+      "total_hits": 49017,
+      "overall_rate": 0.0401,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 111,
+          "hits": 15,
+          "rate": 0.1351
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 9653,
+          "hits": 1234,
+          "rate": 0.1278
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 605790,
+          "hits": 23884,
+          "rate": 0.0394
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 51675,
+          "hits": 4746,
+          "rate": 0.0918
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 106155,
+          "hits": 6766,
+          "rate": 0.0637
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 231976,
+          "hits": 8896,
+          "rate": 0.0383
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 157821,
+          "hits": 3115,
+          "rate": 0.0197
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 44157,
+          "hits": 329,
+          "rate": 0.0075
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 14006,
+          "hits": 32,
+          "rate": 0.0023
+        }
+      ]
+    },
+    "3-1": {
+      "column": "kamacsk31_odds",
+      "total_samples": 1235724,
+      "total_hits": 50480,
+      "overall_rate": 0.0409,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 617862,
+          "hits": 25240,
+          "rate": 0.0409
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 642,
+          "hits": 49,
+          "rate": 0.0763
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 143376,
+          "hits": 9287,
+          "rate": 0.0648
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 325819,
+          "hits": 13292,
+          "rate": 0.0408
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 120952,
+          "hits": 2430,
+          "rate": 0.0201
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 21969,
+          "hits": 172,
+          "rate": 0.0078
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 5104,
+          "hits": 10,
+          "rate": 0.002
+        }
+      ]
+    },
+    "3-2": {
+      "column": "kamacsk32_odds",
+      "total_samples": 1237944,
+      "total_hits": 31822,
+      "overall_rate": 0.0257,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 618973,
+          "hits": 15911,
+          "rate": 0.0257
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 836,
+          "hits": 29,
+          "rate": 0.0347
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 156837,
+          "hits": 5713,
+          "rate": 0.0364
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 416799,
+          "hits": 9746,
+          "rate": 0.0234
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 40398,
+          "hits": 406,
+          "rate": 0.0101
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 4101,
+          "hits": 17,
+          "rate": 0.0041
+        }
+      ]
+    },
+    "4-0": {
+      "column": "kamacsk40_odds",
+      "total_samples": 1210184,
+      "total_hits": 23056,
+      "overall_rate": 0.0191,
+      "buckets": [
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 1580,
+          "hits": 204,
+          "rate": 0.1291
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 604302,
+          "hits": 11426,
+          "rate": 0.0189
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 12097,
+          "hits": 1141,
+          "rate": 0.0943
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 26117,
+          "hits": 1672,
+          "rate": 0.064
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 97922,
+          "hits": 3554,
+          "rate": 0.0363
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 226569,
+          "hits": 3740,
+          "rate": 0.0165
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 178834,
+          "hits": 1185,
+          "rate": 0.0066
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 62763,
+          "hits": 134,
+          "rate": 0.0021
+        }
+      ]
+    },
+    "4-1": {
+      "column": "kamacsk41_odds",
+      "total_samples": 1224759,
+      "total_hits": 21328,
+      "overall_rate": 0.0174,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 612380,
+          "hits": 10664,
+          "rate": 0.0174
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 7830,
+          "hits": 405,
+          "rate": 0.0517
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 111450,
+          "hits": 4275,
+          "rate": 0.0384
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 290662,
+          "hits": 4861,
+          "rate": 0.0167
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 164441,
+          "hits": 1046,
+          "rate": 0.0064
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 37996,
+          "hits": 77,
+          "rate": 0.002
+        }
+      ]
+    },
+    "4-2": {
+      "column": "kamacsk42_odds",
+      "total_samples": 1224277,
+      "total_hits": 11322,
+      "overall_rate": 0.0092,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 612141,
+          "hits": 5661,
+          "rate": 0.0092
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 5447,
+          "hits": 155,
+          "rate": 0.0285
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 195417,
+          "hits": 2894,
+          "rate": 0.0148
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 342324,
+          "hits": 2445,
+          "rate": 0.0071
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 68948,
+          "hits": 167,
+          "rate": 0.0024
+        }
+      ]
+    },
+    "4-3": {
+      "column": "kamacsk43_odds",
+      "total_samples": 1167369,
+      "total_hits": 4830,
+      "overall_rate": 0.0041,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 583686,
+          "hits": 2415,
+          "rate": 0.0041
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 86,
+          "hits": 1,
+          "rate": 0.0116
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 13064,
+          "hits": 158,
+          "rate": 0.0121
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 235766,
+          "hits": 1340,
+          "rate": 0.0057
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 334767,
+          "hits": 916,
+          "rate": 0.0027
+        }
+      ]
+    },
+    "0-0": {
+      "column": "kamacsk00_odds",
+      "total_samples": 1192061,
+      "total_hits": 85972,
+      "overall_rate": 0.0721,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 1251,
+          "hits": 220,
+          "rate": 0.1759
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 44718,
+          "hits": 6084,
+          "rate": 0.1361
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 573048,
+          "hits": 39834,
+          "rate": 0.0695
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 178270,
+          "hits": 17882,
+          "rate": 0.1003
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 224804,
+          "hits": 15519,
+          "rate": 0.069
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 144023,
+          "hits": 5906,
+          "rate": 0.041
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 25722,
+          "hits": 525,
+          "rate": 0.0204
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 225,
+          "hits": 2,
+          "rate": 0.0089
+        }
+      ]
+    },
+    "1-1": {
+      "column": "kamacsk11_odds",
+      "total_samples": 975077,
+      "total_hits": 100401,
+      "overall_rate": 0.103,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 133,
+          "hits": 23,
+          "rate": 0.1729
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 262980,
+          "hits": 34818,
+          "rate": 0.1324
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 355982,
+          "hits": 32780,
+          "rate": 0.0921
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 277762,
+          "hits": 28639,
+          "rate": 0.1031
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 51410,
+          "hits": 3250,
+          "rate": 0.0632
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 21128,
+          "hits": 807,
+          "rate": 0.0382
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 4308,
+          "hits": 71,
+          "rate": 0.0165
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 1185,
+          "hits": 13,
+          "rate": 0.011
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 189,
+          "hits": 0,
+          "rate": 0.0
+        }
+      ]
+    },
+    "2-2": {
+      "column": "kamacsk22_odds",
+      "total_samples": 1238232,
+      "total_hits": 56596,
+      "overall_rate": 0.0457,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 619116,
+          "hits": 28298,
+          "rate": 0.0457
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 1367,
+          "hits": 70,
+          "rate": 0.0512
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 181014,
+          "hits": 10245,
+          "rate": 0.0566
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 387440,
+          "hits": 16957,
+          "rate": 0.0438
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 44090,
+          "hits": 990,
+          "rate": 0.0225
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 4462,
+          "hits": 34,
+          "rate": 0.0076
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 743,
+          "hits": 2,
+          "rate": 0.0027
+        }
+      ]
+    },
+    "3-3": {
+      "column": "kamacsk33_odds",
+      "total_samples": 1232101,
+      "total_hits": 11236,
+      "overall_rate": 0.0091,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 616057,
+          "hits": 5619,
+          "rate": 0.0091
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 4598,
+          "hits": 97,
+          "rate": 0.0211
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 214996,
+          "hits": 2836,
+          "rate": 0.0132
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 358166,
+          "hits": 2559,
+          "rate": 0.0071
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 38284,
+          "hits": 125,
+          "rate": 0.0033
+        }
+      ]
+    },
+    "4-4": {
+      "column": "kamacsk44_odds",
+      "total_samples": 966363,
+      "total_hits": 1216,
+      "overall_rate": 0.0013,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 483183,
+          "hits": 608,
+          "rate": 0.0013
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 734,
+          "hits": 3,
+          "rate": 0.0041
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 40143,
+          "hits": 120,
+          "rate": 0.003
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 442303,
+          "hits": 485,
+          "rate": 0.0011
+        }
+      ]
+    },
+    "0-1": {
+      "column": "kamacsk01_odds",
+      "total_samples": 1187059,
+      "total_hits": 89135,
+      "overall_rate": 0.0751,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 1406,
+          "hits": 255,
+          "rate": 0.1814
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 49675,
+          "hits": 6944,
+          "rate": 0.1398
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 567989,
+          "hits": 40968,
+          "rate": 0.0721
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 215817,
+          "hits": 21425,
+          "rate": 0.0993
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 191178,
+          "hits": 13325,
+          "rate": 0.0697
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 120046,
+          "hits": 5359,
+          "rate": 0.0446
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 34978,
+          "hits": 799,
+          "rate": 0.0228
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 5137,
+          "hits": 58,
+          "rate": 0.0113
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 833,
+          "hits": 2,
+          "rate": 0.0024
+        }
+      ]
+    },
+    "0-2": {
+      "column": "kamacsk02_odds",
+      "total_samples": 1224177,
+      "total_hits": 56356,
+      "overall_rate": 0.046,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 287,
+          "hits": 54,
+          "rate": 0.1882
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 12206,
+          "hits": 1650,
+          "rate": 0.1352
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 605842,
+          "hits": 27326,
+          "rate": 0.0451
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 70272,
+          "hits": 6653,
+          "rate": 0.0947
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 141309,
+          "hits": 8886,
+          "rate": 0.0629
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 240536,
+          "hits": 9292,
+          "rate": 0.0386
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 115839,
+          "hits": 2241,
+          "rate": 0.0193
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 32963,
+          "hits": 244,
+          "rate": 0.0074
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 4923,
+          "hits": 10,
+          "rate": 0.002
+        }
+      ]
+    },
+    "1-2": {
+      "column": "kamacsk12_odds",
+      "total_samples": 1237033,
+      "total_hits": 84086,
+      "overall_rate": 0.068,
+      "buckets": [
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 53,
+          "hits": 6,
+          "rate": 0.1132
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 618490,
+          "hits": 42040,
+          "rate": 0.068
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 133497,
+          "hits": 13228,
+          "rate": 0.0991
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 264664,
+          "hits": 19710,
+          "rate": 0.0745
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 172499,
+          "hits": 8123,
+          "rate": 0.0471
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 41200,
+          "hits": 941,
+          "rate": 0.0228
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 5641,
+          "hits": 36,
+          "rate": 0.0064
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 989,
+          "hits": 2,
+          "rate": 0.002
+        }
+      ]
+    },
+    "0-3": {
+      "column": "kamacsk03_odds",
+      "total_samples": 1221254,
+      "total_hits": 28176,
+      "overall_rate": 0.0231,
+      "buckets": [
+        {
+          "bucket": "L",
+          "odds_low": 4.0,
+          "odds_high": 5.0,
+          "count": 60,
+          "hits": 8,
+          "rate": 0.1333
+        },
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 3016,
+          "hits": 350,
+          "rate": 0.116
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 609089,
+          "hits": 13909,
+          "rate": 0.0228
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 17179,
+          "hits": 1612,
+          "rate": 0.0938
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 36092,
+          "hits": 2307,
+          "rate": 0.0639
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 119590,
+          "hits": 4422,
+          "rate": 0.037
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 256569,
+          "hits": 4465,
+          "rate": 0.0174
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 136254,
+          "hits": 984,
+          "rate": 0.0072
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 43405,
+          "hits": 119,
+          "rate": 0.0027
+        }
+      ]
+    },
+    "1-3": {
+      "column": "kamacsk13_odds",
+      "total_samples": 1233470,
+      "total_hits": 34546,
+      "overall_rate": 0.028,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 616735,
+          "hits": 17273,
+          "rate": 0.028
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 347,
+          "hits": 23,
+          "rate": 0.0663
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 56944,
+          "hits": 3745,
+          "rate": 0.0658
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 206880,
+          "hits": 7931,
+          "rate": 0.0383
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 263395,
+          "hits": 4982,
+          "rate": 0.0189
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 74342,
+          "hits": 557,
+          "rate": 0.0075
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 14827,
+          "hits": 35,
+          "rate": 0.0024
+        }
+      ]
+    },
+    "2-3": {
+      "column": "kamacsk23_odds",
+      "total_samples": 1203300,
+      "total_hits": 25156,
+      "overall_rate": 0.0209,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 601651,
+          "hits": 12578,
+          "rate": 0.0209
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 609,
+          "hits": 39,
+          "rate": 0.064
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 95195,
+          "hits": 3443,
+          "rate": 0.0362
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 392267,
+          "hits": 8068,
+          "rate": 0.0206
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 104154,
+          "hits": 989,
+          "rate": 0.0095
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 9424,
+          "hits": 39,
+          "rate": 0.0041
+        }
+      ]
+    },
+    "0-4": {
+      "column": "kamacsk04_odds",
+      "total_samples": 1146397,
+      "total_hits": 12004,
+      "overall_rate": 0.0105,
+      "buckets": [
+        {
+          "bucket": "M",
+          "odds_low": 5.0,
+          "odds_high": 7.0,
+          "count": 833,
+          "hits": 100,
+          "rate": 0.12
+        },
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 572782,
+          "hits": 5952,
+          "rate": 0.0104
+        },
+        {
+          "bucket": "O",
+          "odds_low": 7.0,
+          "odds_high": 10.0,
+          "count": 5193,
+          "hits": 444,
+          "rate": 0.0855
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 9481,
+          "hits": 630,
+          "rate": 0.0664
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 34062,
+          "hits": 1263,
+          "rate": 0.0371
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 107333,
+          "hits": 1813,
+          "rate": 0.0169
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 233056,
+          "hits": 1422,
+          "rate": 0.0061
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 183657,
+          "hits": 380,
+          "rate": 0.0021
+        }
+      ]
+    },
+    "1-4": {
+      "column": "kamacsk14_odds",
+      "total_samples": 1169275,
+      "total_hits": 12822,
+      "overall_rate": 0.011,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 584638,
+          "hits": 6411,
+          "rate": 0.011
+        },
+        {
+          "bucket": "P",
+          "odds_low": 10.0,
+          "odds_high": 15.0,
+          "count": 4464,
+          "hits": 260,
+          "rate": 0.0582
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 44767,
+          "hits": 1693,
+          "rate": 0.0378
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 160017,
+          "hits": 2544,
+          "rate": 0.0159
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 252351,
+          "hits": 1660,
+          "rate": 0.0066
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 123038,
+          "hits": 254,
+          "rate": 0.0021
+        }
+      ]
+    },
+    "2-4": {
+      "column": "kamacsk24_odds",
+      "total_samples": 1103785,
+      "total_hits": 7676,
+      "overall_rate": 0.007,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 551894,
+          "hits": 3838,
+          "rate": 0.007
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 3654,
+          "hits": 102,
+          "rate": 0.0279
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 104533,
+          "hits": 1560,
+          "rate": 0.0149
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 279028,
+          "hits": 1774,
+          "rate": 0.0064
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 164676,
+          "hits": 402,
+          "rate": 0.0024
+        }
+      ]
+    },
+    "3-4": {
+      "column": "kamacsk34_odds",
+      "total_samples": 991354,
+      "total_hits": 3684,
+      "overall_rate": 0.0037,
+      "buckets": [
+        {
+          "bucket": "N",
+          "odds_low": 7.0,
+          "odds_high": null,
+          "count": 495677,
+          "hits": 1842,
+          "rate": 0.0037
+        },
+        {
+          "bucket": "Q",
+          "odds_low": 15.0,
+          "odds_high": 25.0,
+          "count": 60,
+          "hits": 3,
+          "rate": 0.05
+        },
+        {
+          "bucket": "R",
+          "odds_low": 25.0,
+          "odds_high": 50.0,
+          "count": 9928,
+          "hits": 105,
+          "rate": 0.0106
+        },
+        {
+          "bucket": "S",
+          "odds_low": 50.0,
+          "odds_high": 100.0,
+          "count": 161895,
+          "hits": 993,
+          "rate": 0.0061
+        },
+        {
+          "bucket": "T",
+          "odds_low": 100.0,
+          "odds_high": null,
+          "count": 323794,
+          "hits": 741,
+          "rate": 0.0023
+        }
+      ]
+    }
+  }
+}

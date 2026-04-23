@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runGoalAnalyzer } from '@/lib/algorithms/goal-analyzer';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   try {

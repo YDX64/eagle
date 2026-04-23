@@ -1,0 +1,1872 @@
+{
+  "generated_at": "2026-04-06T23:33:55.545126+00:00",
+  "total_matches": 795505,
+  "note": "Calibration tables from 20 years of Pinnacle closing odds. For each market, buckets odds into ranges and reports the empirical hit rate in each bucket. Use at runtime to map live API odds \u2192 data-driven probabilities.",
+  "markets": {
+    "HOME_WIN": {
+      "column": "c_ft1_18",
+      "total_samples": 795504,
+      "total_hits": 353229,
+      "overall_rate": 0.444,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 26508,
+          "hits": 22968,
+          "rate": 0.8665,
+          "implied": 0.9091,
+          "calibration_ratio": 0.953
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 38249,
+          "hits": 29259,
+          "rate": 0.765,
+          "implied": 0.7843,
+          "calibration_ratio": 0.975
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 49260,
+          "hits": 33910,
+          "rate": 0.6884,
+          "implied": 0.7018,
+          "calibration_ratio": 0.981
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 58097,
+          "hits": 36002,
+          "rate": 0.6197,
+          "implied": 0.6349,
+          "calibration_ratio": 0.976
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 62043,
+          "hits": 34535,
+          "rate": 0.5566,
+          "implied": 0.5797,
+          "calibration_ratio": 0.96
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 57212,
+          "hits": 29464,
+          "rate": 0.515,
+          "implied": 0.5333,
+          "calibration_ratio": 0.966
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 57258,
+          "hits": 27413,
+          "rate": 0.4788,
+          "implied": 0.4938,
+          "calibration_ratio": 0.969
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 72732,
+          "hits": 31922,
+          "rate": 0.4389,
+          "implied": 0.4545,
+          "calibration_ratio": 0.966
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 90470,
+          "hits": 35485,
+          "rate": 0.3922,
+          "implied": 0.4082,
+          "calibration_ratio": 0.961
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 82769,
+          "hits": 28292,
+          "rate": 0.3418,
+          "implied": 0.3571,
+          "calibration_ratio": 0.957
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 62873,
+          "hits": 18565,
+          "rate": 0.2953,
+          "implied": 0.3077,
+          "calibration_ratio": 0.96
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 59249,
+          "hits": 14258,
+          "rate": 0.2406,
+          "implied": 0.25,
+          "calibration_ratio": 0.963
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 35357,
+          "hits": 6622,
+          "rate": 0.1873,
+          "implied": 0.1905,
+          "calibration_ratio": 0.983
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 43427,
+          "hits": 4534,
+          "rate": 0.1044,
+          "implied": 0.002,
+          "calibration_ratio": 52.464
+        }
+      ]
+    },
+    "DRAW": {
+      "column": "c_ftx_18",
+      "total_samples": 795416,
+      "total_hits": 189358,
+      "overall_rate": 0.2381,
+      "buckets": [
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 142,
+          "hits": 65,
+          "rate": 0.4577,
+          "implied": 0.4938,
+          "calibration_ratio": 0.927
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 742,
+          "hits": 300,
+          "rate": 0.4043,
+          "implied": 0.4545,
+          "calibration_ratio": 0.889
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 6439,
+          "hits": 2343,
+          "rate": 0.3639,
+          "implied": 0.4082,
+          "calibration_ratio": 0.891
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 73400,
+          "hits": 23672,
+          "rate": 0.3225,
+          "implied": 0.3571,
+          "calibration_ratio": 0.903
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 242572,
+          "hits": 68353,
+          "rate": 0.2818,
+          "implied": 0.3077,
+          "calibration_ratio": 0.916
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 321901,
+          "hits": 73554,
+          "rate": 0.2285,
+          "implied": 0.25,
+          "calibration_ratio": 0.914
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 96527,
+          "hits": 15914,
+          "rate": 0.1649,
+          "implied": 0.1905,
+          "calibration_ratio": 0.866
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 53693,
+          "hits": 5157,
+          "rate": 0.096,
+          "implied": 0.002,
+          "calibration_ratio": 48.263
+        }
+      ]
+    },
+    "AWAY_WIN": {
+      "column": "c_ft2_18",
+      "total_samples": 795504,
+      "total_hits": 252872,
+      "overall_rate": 0.3179,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 10791,
+          "hits": 9516,
+          "rate": 0.8818,
+          "implied": 0.9091,
+          "calibration_ratio": 0.97
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 14017,
+          "hits": 10685,
+          "rate": 0.7623,
+          "implied": 0.7843,
+          "calibration_ratio": 0.972
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 18404,
+          "hits": 12616,
+          "rate": 0.6855,
+          "implied": 0.7018,
+          "calibration_ratio": 0.977
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 22600,
+          "hits": 13939,
+          "rate": 0.6168,
+          "implied": 0.6349,
+          "calibration_ratio": 0.971
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 25735,
+          "hits": 14582,
+          "rate": 0.5666,
+          "implied": 0.5797,
+          "calibration_ratio": 0.977
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 25588,
+          "hits": 13268,
+          "rate": 0.5185,
+          "implied": 0.5333,
+          "calibration_ratio": 0.972
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 27973,
+          "hits": 13453,
+          "rate": 0.4809,
+          "implied": 0.4938,
+          "calibration_ratio": 0.974
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 41366,
+          "hits": 18364,
+          "rate": 0.4439,
+          "implied": 0.4545,
+          "calibration_ratio": 0.977
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 66344,
+          "hits": 26022,
+          "rate": 0.3922,
+          "implied": 0.4082,
+          "calibration_ratio": 0.961
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 88523,
+          "hits": 30411,
+          "rate": 0.3435,
+          "implied": 0.3571,
+          "calibration_ratio": 0.962
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 99724,
+          "hits": 29192,
+          "rate": 0.2927,
+          "implied": 0.3077,
+          "calibration_ratio": 0.951
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 130670,
+          "hits": 30850,
+          "rate": 0.2361,
+          "implied": 0.25,
+          "calibration_ratio": 0.944
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 97260,
+          "hits": 17366,
+          "rate": 0.1786,
+          "implied": 0.1905,
+          "calibration_ratio": 0.937
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 126509,
+          "hits": 12608,
+          "rate": 0.0997,
+          "implied": 0.002,
+          "calibration_ratio": 50.08
+        }
+      ]
+    },
+    "DC_1X": {
+      "column": "c_dc1x_18",
+      "total_samples": 211202,
+      "total_hits": 144854,
+      "overall_rate": 0.6859,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 49696,
+          "hits": 43206,
+          "rate": 0.8694,
+          "implied": 0.9091,
+          "calibration_ratio": 0.956
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 55162,
+          "hits": 42005,
+          "rate": 0.7615,
+          "implied": 0.7843,
+          "calibration_ratio": 0.971
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 38007,
+          "hits": 25595,
+          "rate": 0.6734,
+          "implied": 0.7018,
+          "calibration_ratio": 0.96
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 22153,
+          "hits": 13480,
+          "rate": 0.6085,
+          "implied": 0.6349,
+          "calibration_ratio": 0.958
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 14310,
+          "hits": 7876,
+          "rate": 0.5504,
+          "implied": 0.5797,
+          "calibration_ratio": 0.949
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 8339,
+          "hits": 4146,
+          "rate": 0.4972,
+          "implied": 0.5333,
+          "calibration_ratio": 0.932
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 5215,
+          "hits": 2494,
+          "rate": 0.4782,
+          "implied": 0.4938,
+          "calibration_ratio": 0.968
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 5097,
+          "hits": 2157,
+          "rate": 0.4232,
+          "implied": 0.4545,
+          "calibration_ratio": 0.931
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 4561,
+          "hits": 1651,
+          "rate": 0.362,
+          "implied": 0.4082,
+          "calibration_ratio": 0.887
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 3179,
+          "hits": 1027,
+          "rate": 0.3231,
+          "implied": 0.3571,
+          "calibration_ratio": 0.905
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 2146,
+          "hits": 598,
+          "rate": 0.2787,
+          "implied": 0.3077,
+          "calibration_ratio": 0.906
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 1978,
+          "hits": 443,
+          "rate": 0.224,
+          "implied": 0.25,
+          "calibration_ratio": 0.896
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 989,
+          "hits": 134,
+          "rate": 0.1355,
+          "implied": 0.1905,
+          "calibration_ratio": 0.711
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 370,
+          "hits": 42,
+          "rate": 0.1135,
+          "implied": 0.002,
+          "calibration_ratio": 57.041
+        }
+      ]
+    },
+    "DC_12": {
+      "column": "c_dc12_18",
+      "total_samples": 211192,
+      "total_hits": 158266,
+      "overall_rate": 0.7494,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 24659,
+          "hits": 21133,
+          "rate": 0.857,
+          "implied": 0.9091,
+          "calibration_ratio": 0.943
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 124725,
+          "hits": 94364,
+          "rate": 0.7566,
+          "implied": 0.7843,
+          "calibration_ratio": 0.965
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 60566,
+          "hits": 41981,
+          "rate": 0.6931,
+          "implied": 0.7018,
+          "calibration_ratio": 0.988
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 1242,
+          "hits": 788,
+          "rate": 0.6345,
+          "implied": 0.6349,
+          "calibration_ratio": 0.999
+        }
+      ]
+    },
+    "DC_X2": {
+      "column": "c_dcx2_18",
+      "total_samples": 211202,
+      "total_hits": 119279,
+      "overall_rate": 0.5648,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 15822,
+          "hits": 13729,
+          "rate": 0.8677,
+          "implied": 0.9091,
+          "calibration_ratio": 0.954
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 25614,
+          "hits": 19322,
+          "rate": 0.7544,
+          "implied": 0.7843,
+          "calibration_ratio": 0.962
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 31442,
+          "hits": 21412,
+          "rate": 0.681,
+          "implied": 0.7018,
+          "calibration_ratio": 0.97
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 28844,
+          "hits": 17670,
+          "rate": 0.6126,
+          "implied": 0.6349,
+          "calibration_ratio": 0.965
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 25748,
+          "hits": 14377,
+          "rate": 0.5584,
+          "implied": 0.5797,
+          "calibration_ratio": 0.963
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 17973,
+          "hits": 9232,
+          "rate": 0.5137,
+          "implied": 0.5333,
+          "calibration_ratio": 0.963
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 12884,
+          "hits": 6015,
+          "rate": 0.4669,
+          "implied": 0.4938,
+          "calibration_ratio": 0.945
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 13399,
+          "hits": 5836,
+          "rate": 0.4356,
+          "implied": 0.4545,
+          "calibration_ratio": 0.958
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 12884,
+          "hits": 4870,
+          "rate": 0.378,
+          "implied": 0.4082,
+          "calibration_ratio": 0.926
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 9357,
+          "hits": 3015,
+          "rate": 0.3222,
+          "implied": 0.3571,
+          "calibration_ratio": 0.902
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 6504,
+          "hits": 1775,
+          "rate": 0.2729,
+          "implied": 0.3077,
+          "calibration_ratio": 0.887
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 5964,
+          "hits": 1347,
+          "rate": 0.2259,
+          "implied": 0.25,
+          "calibration_ratio": 0.903
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 3286,
+          "hits": 521,
+          "rate": 0.1586,
+          "implied": 0.1905,
+          "calibration_ratio": 0.832
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 1481,
+          "hits": 158,
+          "rate": 0.1067,
+          "implied": 0.002,
+          "calibration_ratio": 53.609
+        }
+      ]
+    },
+    "OVER_05": {
+      "column": "c_fto05_18",
+      "total_samples": 33285,
+      "total_hits": 29228,
+      "overall_rate": 0.8781,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 32840,
+          "hits": 28857,
+          "rate": 0.8787,
+          "implied": 0.9091,
+          "calibration_ratio": 0.967
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 445,
+          "hits": 371,
+          "rate": 0.8337,
+          "implied": 0.7843,
+          "calibration_ratio": 1.063
+        }
+      ]
+    },
+    "UNDER_05": {
+      "column": "c_ftu05_18",
+      "total_samples": 33229,
+      "total_hits": 4046,
+      "overall_rate": 0.1218,
+      "buckets": [
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 216,
+          "hits": 40,
+          "rate": 0.1852,
+          "implied": 0.25,
+          "calibration_ratio": 0.741
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 5757,
+          "hits": 890,
+          "rate": 0.1546,
+          "implied": 0.1905,
+          "calibration_ratio": 0.812
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 27256,
+          "hits": 3116,
+          "rate": 0.1143,
+          "implied": 0.002,
+          "calibration_ratio": 57.448
+        }
+      ]
+    },
+    "OVER_15": {
+      "column": "c_fto15_18",
+      "total_samples": 317140,
+      "total_hits": 220052,
+      "overall_rate": 0.6939,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 30001,
+          "hits": 25186,
+          "rate": 0.8395,
+          "implied": 0.9091,
+          "calibration_ratio": 0.923
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 92633,
+          "hits": 69543,
+          "rate": 0.7507,
+          "implied": 0.7843,
+          "calibration_ratio": 0.957
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 127667,
+          "hits": 85183,
+          "rate": 0.6672,
+          "implied": 0.7018,
+          "calibration_ratio": 0.951
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 54028,
+          "hits": 33067,
+          "rate": 0.612,
+          "implied": 0.6349,
+          "calibration_ratio": 0.964
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 10862,
+          "hits": 6048,
+          "rate": 0.5568,
+          "implied": 0.5797,
+          "calibration_ratio": 0.96
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 1702,
+          "hits": 903,
+          "rate": 0.5306,
+          "implied": 0.5333,
+          "calibration_ratio": 0.995
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 247,
+          "hits": 122,
+          "rate": 0.4939,
+          "implied": 0.4938,
+          "calibration_ratio": 1.0
+        }
+      ]
+    },
+    "UNDER_15": {
+      "column": "c_ftu15_18",
+      "total_samples": 317155,
+      "total_hits": 97097,
+      "overall_rate": 0.3061,
+      "buckets": [
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 145,
+          "hits": 72,
+          "rate": 0.4966,
+          "implied": 0.5797,
+          "calibration_ratio": 0.857
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 980,
+          "hits": 494,
+          "rate": 0.5041,
+          "implied": 0.5333,
+          "calibration_ratio": 0.945
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 4316,
+          "hits": 1971,
+          "rate": 0.4567,
+          "implied": 0.4938,
+          "calibration_ratio": 0.925
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 15727,
+          "hits": 6695,
+          "rate": 0.4257,
+          "implied": 0.4545,
+          "calibration_ratio": 0.937
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 65170,
+          "hits": 24390,
+          "rate": 0.3743,
+          "implied": 0.4082,
+          "calibration_ratio": 0.917
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 86670,
+          "hits": 29165,
+          "rate": 0.3365,
+          "implied": 0.3571,
+          "calibration_ratio": 0.942
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 50951,
+          "hits": 14674,
+          "rate": 0.288,
+          "implied": 0.3077,
+          "calibration_ratio": 0.936
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 54232,
+          "hits": 13049,
+          "rate": 0.2406,
+          "implied": 0.25,
+          "calibration_ratio": 0.962
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 30227,
+          "hits": 5462,
+          "rate": 0.1807,
+          "implied": 0.1905,
+          "calibration_ratio": 0.949
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 8737,
+          "hits": 1125,
+          "rate": 0.1288,
+          "implied": 0.002,
+          "calibration_ratio": 64.703
+        }
+      ]
+    },
+    "OVER_25": {
+      "column": "c_fto25_18",
+      "total_samples": 699939,
+      "total_hits": 350268,
+      "overall_rate": 0.5004,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 462,
+          "hits": 387,
+          "rate": 0.8377,
+          "implied": 0.9091,
+          "calibration_ratio": 0.921
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 3632,
+          "hits": 2658,
+          "rate": 0.7318,
+          "implied": 0.7843,
+          "calibration_ratio": 0.933
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 50947,
+          "hits": 33867,
+          "rate": 0.6647,
+          "implied": 0.7018,
+          "calibration_ratio": 0.947
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 106019,
+          "hits": 64677,
+          "rate": 0.6101,
+          "implied": 0.6349,
+          "calibration_ratio": 0.961
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 104183,
+          "hits": 57826,
+          "rate": 0.555,
+          "implied": 0.5797,
+          "calibration_ratio": 0.957
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 93476,
+          "hits": 48089,
+          "rate": 0.5145,
+          "implied": 0.5333,
+          "calibration_ratio": 0.965
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 94198,
+          "hits": 44688,
+          "rate": 0.4744,
+          "implied": 0.4938,
+          "calibration_ratio": 0.961
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 101326,
+          "hits": 44133,
+          "rate": 0.4356,
+          "implied": 0.4545,
+          "calibration_ratio": 0.958
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 94799,
+          "hits": 36829,
+          "rate": 0.3885,
+          "implied": 0.4082,
+          "calibration_ratio": 0.952
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 43498,
+          "hits": 14958,
+          "rate": 0.3439,
+          "implied": 0.3571,
+          "calibration_ratio": 0.963
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 6878,
+          "hits": 2030,
+          "rate": 0.2951,
+          "implied": 0.3077,
+          "calibration_ratio": 0.959
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 521,
+          "hits": 126,
+          "rate": 0.2418,
+          "implied": 0.25,
+          "calibration_ratio": 0.967
+        }
+      ]
+    },
+    "UNDER_25": {
+      "column": "c_ftu25_18",
+      "total_samples": 699860,
+      "total_hits": 349664,
+      "overall_rate": 0.4996,
+      "buckets": [
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 5002,
+          "hits": 3573,
+          "rate": 0.7143,
+          "implied": 0.7843,
+          "calibration_ratio": 0.911
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 60612,
+          "hits": 39642,
+          "rate": 0.654,
+          "implied": 0.7018,
+          "calibration_ratio": 0.932
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 105114,
+          "hits": 63220,
+          "rate": 0.6014,
+          "implied": 0.6349,
+          "calibration_ratio": 0.947
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 112794,
+          "hits": 62225,
+          "rate": 0.5517,
+          "implied": 0.5797,
+          "calibration_ratio": 0.952
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 97484,
+          "hits": 49673,
+          "rate": 0.5096,
+          "implied": 0.5333,
+          "calibration_ratio": 0.955
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 88820,
+          "hits": 41687,
+          "rate": 0.4693,
+          "implied": 0.4938,
+          "calibration_ratio": 0.95
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 95198,
+          "hits": 40903,
+          "rate": 0.4297,
+          "implied": 0.4545,
+          "calibration_ratio": 0.945
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 97872,
+          "hits": 36888,
+          "rate": 0.3769,
+          "implied": 0.4082,
+          "calibration_ratio": 0.923
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 30186,
+          "hits": 9987,
+          "rate": 0.3308,
+          "implied": 0.3571,
+          "calibration_ratio": 0.926
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 4616,
+          "hits": 1361,
+          "rate": 0.2948,
+          "implied": 0.3077,
+          "calibration_ratio": 0.958
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 1766,
+          "hits": 432,
+          "rate": 0.2446,
+          "implied": 0.25,
+          "calibration_ratio": 0.978
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 396,
+          "hits": 73,
+          "rate": 0.1843,
+          "implied": 0.1905,
+          "calibration_ratio": 0.968
+        }
+      ]
+    },
+    "OVER_35": {
+      "column": "c_fto35_18",
+      "total_samples": 411787,
+      "total_hits": 148941,
+      "overall_rate": 0.3617,
+      "buckets": [
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 3950,
+          "hits": 2622,
+          "rate": 0.6638,
+          "implied": 0.7018,
+          "calibration_ratio": 0.946
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 15018,
+          "hits": 9014,
+          "rate": 0.6002,
+          "implied": 0.6349,
+          "calibration_ratio": 0.945
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 17372,
+          "hits": 9203,
+          "rate": 0.5298,
+          "implied": 0.5797,
+          "calibration_ratio": 0.914
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 22216,
+          "hits": 11000,
+          "rate": 0.4951,
+          "implied": 0.5333,
+          "calibration_ratio": 0.928
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 31933,
+          "hits": 14705,
+          "rate": 0.4605,
+          "implied": 0.4938,
+          "calibration_ratio": 0.933
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 53005,
+          "hits": 22116,
+          "rate": 0.4172,
+          "implied": 0.4545,
+          "calibration_ratio": 0.918
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 98982,
+          "hits": 35934,
+          "rate": 0.363,
+          "implied": 0.4082,
+          "calibration_ratio": 0.889
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 59498,
+          "hits": 19151,
+          "rate": 0.3219,
+          "implied": 0.3571,
+          "calibration_ratio": 0.901
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 34816,
+          "hits": 9779,
+          "rate": 0.2809,
+          "implied": 0.3077,
+          "calibration_ratio": 0.913
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 45645,
+          "hits": 10584,
+          "rate": 0.2319,
+          "implied": 0.25,
+          "calibration_ratio": 0.928
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 24329,
+          "hits": 4202,
+          "rate": 0.1727,
+          "implied": 0.1905,
+          "calibration_ratio": 0.907
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 5023,
+          "hits": 631,
+          "rate": 0.1256,
+          "implied": 0.002,
+          "calibration_ratio": 63.125
+        }
+      ]
+    },
+    "UNDER_35": {
+      "column": "c_ftu35_18",
+      "total_samples": 411749,
+      "total_hits": 262832,
+      "overall_rate": 0.6383,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 22307,
+          "hits": 18806,
+          "rate": 0.8431,
+          "implied": 0.9091,
+          "calibration_ratio": 0.927
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 66070,
+          "hits": 50622,
+          "rate": 0.7662,
+          "implied": 0.7843,
+          "calibration_ratio": 0.977
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 99310,
+          "hits": 67729,
+          "rate": 0.682,
+          "implied": 0.7018,
+          "calibration_ratio": 0.972
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 103196,
+          "hits": 64316,
+          "rate": 0.6232,
+          "implied": 0.6349,
+          "calibration_ratio": 0.982
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 51040,
+          "hits": 28681,
+          "rate": 0.5619,
+          "implied": 0.5797,
+          "calibration_ratio": 0.969
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 26707,
+          "hits": 13801,
+          "rate": 0.5168,
+          "implied": 0.5333,
+          "calibration_ratio": 0.969
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 17354,
+          "hits": 8465,
+          "rate": 0.4878,
+          "implied": 0.4938,
+          "calibration_ratio": 0.988
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 14003,
+          "hits": 6059,
+          "rate": 0.4327,
+          "implied": 0.4545,
+          "calibration_ratio": 0.952
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 10438,
+          "hits": 3929,
+          "rate": 0.3764,
+          "implied": 0.4082,
+          "calibration_ratio": 0.922
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 1324,
+          "hits": 424,
+          "rate": 0.3202,
+          "implied": 0.3571,
+          "calibration_ratio": 0.897
+        }
+      ]
+    },
+    "OVER_45": {
+      "column": "c_fto45_18",
+      "total_samples": 151352,
+      "total_hits": 33075,
+      "overall_rate": 0.2185,
+      "buckets": [
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 257,
+          "hits": 175,
+          "rate": 0.6809,
+          "implied": 0.7018,
+          "calibration_ratio": 0.97
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 1658,
+          "hits": 938,
+          "rate": 0.5657,
+          "implied": 0.6349,
+          "calibration_ratio": 0.891
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 1704,
+          "hits": 877,
+          "rate": 0.5147,
+          "implied": 0.5797,
+          "calibration_ratio": 0.888
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 2251,
+          "hits": 1099,
+          "rate": 0.4882,
+          "implied": 0.5333,
+          "calibration_ratio": 0.915
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 3339,
+          "hits": 1503,
+          "rate": 0.4501,
+          "implied": 0.4938,
+          "calibration_ratio": 0.912
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 8112,
+          "hits": 3278,
+          "rate": 0.4041,
+          "implied": 0.4545,
+          "calibration_ratio": 0.889
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 14513,
+          "hits": 5123,
+          "rate": 0.353,
+          "implied": 0.4082,
+          "calibration_ratio": 0.865
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 6501,
+          "hits": 2062,
+          "rate": 0.3172,
+          "implied": 0.3571,
+          "calibration_ratio": 0.888
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 5281,
+          "hits": 1478,
+          "rate": 0.2799,
+          "implied": 0.3077,
+          "calibration_ratio": 0.91
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 18231,
+          "hits": 4105,
+          "rate": 0.2252,
+          "implied": 0.25,
+          "calibration_ratio": 0.901
+        },
+        {
+          "odds_low": 4.5,
+          "odds_high": 6.0,
+          "count": 39391,
+          "hits": 6598,
+          "rate": 0.1675,
+          "implied": 0.1905,
+          "calibration_ratio": 0.879
+        },
+        {
+          "odds_low": 6.0,
+          "odds_high": null,
+          "count": 50114,
+          "hits": 5839,
+          "rate": 0.1165,
+          "implied": 0.002,
+          "calibration_ratio": 58.548
+        }
+      ]
+    },
+    "UNDER_45": {
+      "column": "c_ftu45_18",
+      "total_samples": 151342,
+      "total_hits": 118274,
+      "overall_rate": 0.7815,
+      "buckets": [
+        {
+          "odds_low": 1.0,
+          "odds_high": 1.2,
+          "count": 82702,
+          "hits": 71559,
+          "rate": 0.8653,
+          "implied": 0.9091,
+          "calibration_ratio": 0.952
+        },
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 27687,
+          "hits": 21564,
+          "rate": 0.7788,
+          "implied": 0.7843,
+          "calibration_ratio": 0.993
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 13681,
+          "hits": 9385,
+          "rate": 0.686,
+          "implied": 0.7018,
+          "calibration_ratio": 0.978
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 15789,
+          "hits": 9844,
+          "rate": 0.6235,
+          "implied": 0.6349,
+          "calibration_ratio": 0.982
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 5207,
+          "hits": 2925,
+          "rate": 0.5617,
+          "implied": 0.5797,
+          "calibration_ratio": 0.969
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 2492,
+          "hits": 1290,
+          "rate": 0.5177,
+          "implied": 0.5333,
+          "calibration_ratio": 0.971
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 1533,
+          "hits": 742,
+          "rate": 0.484,
+          "implied": 0.4938,
+          "calibration_ratio": 0.98
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 1528,
+          "hits": 673,
+          "rate": 0.4404,
+          "implied": 0.4545,
+          "calibration_ratio": 0.969
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 723,
+          "hits": 292,
+          "rate": 0.4039,
+          "implied": 0.4082,
+          "calibration_ratio": 0.989
+        }
+      ]
+    },
+    "BTTS_YES": {
+      "column": "c_btts1_18",
+      "total_samples": 206009,
+      "total_hits": 106934,
+      "overall_rate": 0.5191,
+      "buckets": [
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 1519,
+          "hits": 1075,
+          "rate": 0.7077,
+          "implied": 0.7843,
+          "calibration_ratio": 0.902
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 11056,
+          "hits": 7188,
+          "rate": 0.6501,
+          "implied": 0.7018,
+          "calibration_ratio": 0.926
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 30608,
+          "hits": 18271,
+          "rate": 0.5969,
+          "implied": 0.6349,
+          "calibration_ratio": 0.94
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 45386,
+          "hits": 25058,
+          "rate": 0.5521,
+          "implied": 0.5797,
+          "calibration_ratio": 0.952
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 42058,
+          "hits": 21408,
+          "rate": 0.509,
+          "implied": 0.5333,
+          "calibration_ratio": 0.954
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 31796,
+          "hits": 15336,
+          "rate": 0.4823,
+          "implied": 0.4938,
+          "calibration_ratio": 0.977
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 25885,
+          "hits": 11600,
+          "rate": 0.4481,
+          "implied": 0.4545,
+          "calibration_ratio": 0.986
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 13548,
+          "hits": 5519,
+          "rate": 0.4074,
+          "implied": 0.4082,
+          "calibration_ratio": 0.998
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 3300,
+          "hits": 1197,
+          "rate": 0.3627,
+          "implied": 0.3571,
+          "calibration_ratio": 1.016
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 659,
+          "hits": 232,
+          "rate": 0.352,
+          "implied": 0.3077,
+          "calibration_ratio": 1.144
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 194,
+          "hits": 50,
+          "rate": 0.2577,
+          "implied": 0.25,
+          "calibration_ratio": 1.031
+        }
+      ]
+    },
+    "BTTS_NO": {
+      "column": "c_btts2_18",
+      "total_samples": 205995,
+      "total_hits": 99066,
+      "overall_rate": 0.4809,
+      "buckets": [
+        {
+          "odds_low": 1.2,
+          "odds_high": 1.35,
+          "count": 522,
+          "hits": 362,
+          "rate": 0.6935,
+          "implied": 0.7843,
+          "calibration_ratio": 0.884
+        },
+        {
+          "odds_low": 1.35,
+          "odds_high": 1.5,
+          "count": 3560,
+          "hits": 2256,
+          "rate": 0.6337,
+          "implied": 0.7018,
+          "calibration_ratio": 0.903
+        },
+        {
+          "odds_low": 1.5,
+          "odds_high": 1.65,
+          "count": 16422,
+          "hits": 9662,
+          "rate": 0.5884,
+          "implied": 0.6349,
+          "calibration_ratio": 0.927
+        },
+        {
+          "odds_low": 1.65,
+          "odds_high": 1.8,
+          "count": 35979,
+          "hits": 19536,
+          "rate": 0.543,
+          "implied": 0.5797,
+          "calibration_ratio": 0.937
+        },
+        {
+          "odds_low": 1.8,
+          "odds_high": 1.95,
+          "count": 40381,
+          "hits": 20343,
+          "rate": 0.5038,
+          "implied": 0.5333,
+          "calibration_ratio": 0.945
+        },
+        {
+          "odds_low": 1.95,
+          "odds_high": 2.1,
+          "count": 34388,
+          "hits": 16278,
+          "rate": 0.4734,
+          "implied": 0.4938,
+          "calibration_ratio": 0.959
+        },
+        {
+          "odds_low": 2.1,
+          "odds_high": 2.3,
+          "count": 34485,
+          "hits": 15286,
+          "rate": 0.4433,
+          "implied": 0.4545,
+          "calibration_ratio": 0.975
+        },
+        {
+          "odds_low": 2.3,
+          "odds_high": 2.6,
+          "count": 26491,
+          "hits": 10628,
+          "rate": 0.4012,
+          "implied": 0.4082,
+          "calibration_ratio": 0.983
+        },
+        {
+          "odds_low": 2.6,
+          "odds_high": 3.0,
+          "count": 10569,
+          "hits": 3742,
+          "rate": 0.3541,
+          "implied": 0.3571,
+          "calibration_ratio": 0.991
+        },
+        {
+          "odds_low": 3.0,
+          "odds_high": 3.5,
+          "count": 2716,
+          "hits": 851,
+          "rate": 0.3133,
+          "implied": 0.3077,
+          "calibration_ratio": 1.018
+        },
+        {
+          "odds_low": 3.5,
+          "odds_high": 4.5,
+          "count": 482,
+          "hits": 122,
+          "rate": 0.2531,
+          "implied": 0.25,
+          "calibration_ratio": 1.012
+        }
+      ]
+    }
+  },
+  "best_signal_per_market": {
+    "HOME_WIN": {
+      "odds_low": 6.0,
+      "odds_high": null,
+      "rate": 0.1044,
+      "count": 43427
+    },
+    "DRAW": {
+      "odds_low": 3.5,
+      "odds_high": 4.5,
+      "rate": 0.2285,
+      "count": 321901
+    },
+    "AWAY_WIN": {
+      "odds_low": 6.0,
+      "odds_high": null,
+      "rate": 0.0997,
+      "count": 126509
+    },
+    "DC_1X": {
+      "odds_low": 1.0,
+      "odds_high": 1.2,
+      "rate": 0.8694,
+      "count": 49696
+    },
+    "DC_12": {
+      "odds_low": 1.2,
+      "odds_high": 1.35,
+      "rate": 0.7566,
+      "count": 124725
+    },
+    "DC_X2": {
+      "odds_low": 1.0,
+      "odds_high": 1.2,
+      "rate": 0.8677,
+      "count": 15822
+    },
+    "OVER_05": {
+      "odds_low": 1.0,
+      "odds_high": 1.2,
+      "rate": 0.8787,
+      "count": 32840
+    },
+    "UNDER_05": {
+      "odds_low": 6.0,
+      "odds_high": null,
+      "rate": 0.1143,
+      "count": 27256
+    },
+    "OVER_15": {
+      "odds_low": 1.2,
+      "odds_high": 1.35,
+      "rate": 0.7507,
+      "count": 92633
+    },
+    "UNDER_15": {
+      "odds_low": 3.5,
+      "odds_high": 4.5,
+      "rate": 0.2406,
+      "count": 54232
+    },
+    "OVER_25": {
+      "odds_low": 1.35,
+      "odds_high": 1.5,
+      "rate": 0.6647,
+      "count": 50947
+    },
+    "UNDER_25": {
+      "odds_low": 2.3,
+      "odds_high": 2.6,
+      "rate": 0.3769,
+      "count": 97872
+    },
+    "OVER_35": {
+      "odds_low": 3.5,
+      "odds_high": 4.5,
+      "rate": 0.2319,
+      "count": 45645
+    },
+    "UNDER_35": {
+      "odds_low": 1.2,
+      "odds_high": 1.35,
+      "rate": 0.7662,
+      "count": 66070
+    },
+    "OVER_45": {
+      "odds_low": 6.0,
+      "odds_high": null,
+      "rate": 0.1165,
+      "count": 50114
+    },
+    "UNDER_45": {
+      "odds_low": 1.0,
+      "odds_high": 1.2,
+      "rate": 0.8653,
+      "count": 82702
+    },
+    "BTTS_YES": {
+      "odds_low": 1.5,
+      "odds_high": 1.65,
+      "rate": 0.5969,
+      "count": 30608
+    },
+    "BTTS_NO": {
+      "odds_low": 2.3,
+      "odds_high": 2.6,
+      "rate": 0.4012,
+      "count": 26491
+    }
+  }
+}

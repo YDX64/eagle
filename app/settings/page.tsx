@@ -69,19 +69,30 @@ export default function SettingsPage() {
     }
   };
 
-  // Test analysis manually
-  const testCronJob = async () => {
+  // Test analysis manually — cache-friendly by default (6h window).
+  // Kullanıcı açıkça Zorla Yenile dediğinde force=true kullanılır.
+  const testCronJob = async (force: boolean = false) => {
+    if (force) {
+      const confirmed = window.confirm(
+        'Zorla yenileme tüm upstream API kotasını tüketebilir.\n' +
+        'Yine de devam etmek istiyor musunuz?'
+      );
+      if (!confirmed) return;
+    }
+
     setTestingCron(true);
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/bulk-analysis?date=${today}&forceRefresh=true`, {
-        method: 'POST',
-      });
+      const qs = force
+        ? `date=${today}&forceRefresh=true`
+        : `date=${today}&maxAgeHours=6`;
 
+      const response = await fetch(`/api/bulk-analysis?${qs}`, { method: 'POST' });
       const data = await response.json();
 
       if (data.success) {
-        toast.success(`Analiz başarılı: ${data.count} maç analiz edildi`);
+        const cacheInfo = data.data?.cached ? ' (önbellekten)' : '';
+        toast.success(`Analiz başarılı${cacheInfo}: ${data.data?.count ?? 0} maç`);
         setCronSettings({
           ...cronSettings,
           lastRun: new Date().toISOString()
@@ -206,12 +217,25 @@ export default function SettingsPage() {
             </Button>
 
             <Button
+              type="button"
               variant="outline"
-              onClick={testCronJob}
+              onClick={() => testCronJob(false)}
               disabled={testingCron}
+              title="Son 6 saat içindeki önbellekten getirir (upstream tüketmez)"
             >
               <Play className="w-4 h-4 mr-2" />
-              {testingCron ? 'Analiz Ediliyor...' : 'Şimdi Analiz Et'}
+              {testingCron ? 'Analiz Ediliyor…' : 'Şimdi Analiz Et (cache)'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => testCronJob(true)}
+              disabled={testingCron}
+              title="Önbelleği bypass eder, tüm upstream kotasını tüketir"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Zorla Yenile
             </Button>
           </div>
         </CardContent>

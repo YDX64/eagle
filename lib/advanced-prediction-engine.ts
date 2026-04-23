@@ -326,18 +326,6 @@ export class AdvancedPredictionEngine {
   /**
    * Calculate Poisson probability for exact scores
    */
-  /**
-   * Cumulative Poisson CDF: P(X < k | lambda). Used by over/under models.
-   * e.g. `poissonCumulativeBelow(4, 2.8)` gives P(≤3 goals) for a match with
-   * expected total 2.8 goals. Range of k clamped to [0, 15] for speed.
-   */
-  static poissonCumulativeBelow(k: number, lambda: number): number {
-    const max = Math.min(Math.max(0, Math.floor(k)), 15);
-    let sum = 0;
-    for (let i = 0; i < max; i++) sum += this.poissonProbability(i, lambda);
-    return sum;
-  }
-
   static poissonProbability(k: number, lambda: number): number {
     const e = Math.E;
     return (Math.pow(lambda, k) * Math.pow(e, -lambda)) / this.factorial(k);

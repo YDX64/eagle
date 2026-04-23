@@ -1,21 +1,13 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { MatchCard } from './match-card';
-import { HighConfidenceGoalsTable } from './high-confidence-goals-table';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { PredictionModal } from './prediction-modal';
+import { LeagueStandings } from './league-standings';
 import { OptimizedMatchListEnhanced } from './optimized-match-list-enhanced';
 import { GoalAnalyzerPanel } from './goal-analyzer-panel';
 import { ThemeToggle } from './theme-toggle';
-import { Pagination } from './pagination';
 import { ClientWrapper } from './client-wrapper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { ProBetTab } from './probet-tab';
 import {
   CalendarDays,
   Activity,
@@ -24,25 +16,24 @@ import {
   RefreshCw,
   TrendingUp,
   Clock,
-  Calendar,
-  Users,
-  Target,
-  History,
-  Filter,
   ChevronLeft,
   ChevronRight,
-  ChartBar
+  ChartBar,
+  Brain,
+  History,
+  Filter,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Fixture } from '@/lib/api-football';
-import { PredictionOutcome } from './match-card';
+import { Fixture, MAJOR_LEAGUES } from '@/lib/api-football';
 import {
   formatToStockholmTime,
   formatToStockholmDate,
   formatToStockholmDateTime,
-  PaginationResult
+  PaginationResult,
 } from '@/lib/utils';
-import { Settings } from 'lucide-react';
+
+/* ─── Types ───────────────────────────────────── */
 
 interface ApiStats {
   totalMatches: number;
@@ -60,767 +51,974 @@ interface ApiPagination {
   itemsPerPage: number;
 }
 
+type StatusFilter = 'all' | 'live' | 'upcoming' | 'finished';
+type GoalFilter = 'all' | '0-1' | '2-3' | '4-5' | '6+';
+
+/* ─── Helpers ─────────────────────────────────── */
+
+const LIVE_CODES = new Set(['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE']);
+const FINISHED_CODES = new Set(['FT', 'AET', 'PEN']);
+const ITEMS_PER_PAGE = 100;
+
+function isLive(status: string) {
+  return LIVE_CODES.has(status);
+}
+function isFinished(status: string) {
+  return FINISHED_CODES.has(status);
+}
+function isUpcoming(status: string) {
+  return status === 'NS' || status === 'TBD' || status === 'PST';
+}
+
+function getMatchTime(match: Fixture): string {
+  try {
+    const d = new Date(match.fixture.date);
+    return d.toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Stockholm',
+    });
+  } catch {
+    return '--:--';
+  }
+}
+
+function totalGoals(match: Fixture): number {
+  return (match.goals?.home ?? 0) + (match.goals?.away ?? 0);
+}
+
+function isBTTS(match: Fixture): boolean {
+  return (match.goals?.home ?? 0) > 0 && (match.goals?.away ?? 0) > 0;
+}
+
+function matchesGoalFilter(match: Fixture, filter: GoalFilter): boolean {
+  if (filter === 'all') return true;
+  const t = totalGoals(match);
+  switch (filter) {
+    case '0-1': return t <= 1;
+    case '2-3': return t >= 2 && t <= 3;
+    case '4-5': return t >= 4 && t <= 5;
+    case '6+': return t >= 6;
+    default: return true;
+  }
+}
+
+/* ─── Status Badge ────────────────────────────── */
+
+function StatusBadge({ status }: { status: { short: string; elapsed: number; long: string } }) {
+  const code = status.short;
+
+  if (isLive(code)) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white animate-pulse">
+        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+        {status.elapsed ? `${status.elapsed}'` : code}
+      </span>
+    );
+  }
+
+  if (code === 'HT') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500 text-white">
+        DS
+      </span>
+    );
+  }
+
+  if (isFinished(code)) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+        {code === 'AET' ? 'UZ' : code === 'PEN' ? 'PEN' : 'MS'}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+      {code === 'NS' ? 'BS' : code}
+    </span>
+  );
+}
+
+/* ─── League Header Row ───────────────────────── */
+
+function LeagueHeader({ name, country, logo, count }: { name: string; country: string; logo?: string; count: number }) {
+  return (
+    <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
+      {logo && (
+        <img src={logo} alt="" className="w-4 h-4 object-contain" loading="lazy" />
+      )}
+      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+        {country && <span className="text-slate-400 dark:text-slate-500 mr-1">{country} ·</span>}
+        {name}
+      </span>
+      <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-auto">{count}</span>
+    </div>
+  );
+}
+
+/* ─── Match Row ───────────────────────────────── */
+
+function MatchRow({ match }: { match: Fixture }) {
+  const status = match.fixture?.status?.short ?? 'NS';
+  const live = isLive(status) || status === 'HT';
+  const finished = isFinished(status);
+  const homeGoals = match.goals?.home;
+  const awayGoals = match.goals?.away;
+  const hasScore = homeGoals !== null && awayGoals !== null;
+
+  return (
+    <PredictionModal match={match}>
+      <div
+        className={`
+          flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 border-b border-slate-100 dark:border-slate-700/50
+          hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-sm cursor-pointer select-none
+          ${live ? 'bg-red-50/50 dark:bg-red-950/20 border-l-2 border-l-red-500' : ''}
+          ${finished ? 'text-slate-500 dark:text-slate-500' : ''}
+        `}
+      >
+        {/* Time */}
+        <span className="w-10 sm:w-12 text-[11px] sm:text-xs font-mono text-muted-foreground shrink-0 text-center">
+          {live && match.fixture?.status?.elapsed
+            ? <span className="text-red-500 font-bold">{match.fixture.status.elapsed}&apos;</span>
+            : getMatchTime(match)
+          }
+        </span>
+
+        {/* League - hidden on mobile */}
+        <span className="hidden md:block w-32 text-[11px] text-muted-foreground truncate shrink-0" title={match.league?.name}>
+          {match.league?.name}
+        </span>
+
+        {/* Home team */}
+        <span className={`flex-1 text-right text-xs sm:text-sm truncate ${finished ? '' : 'font-medium'} ${live ? 'text-slate-900 dark:text-white' : ''}`}>
+          {match.teams?.home?.name}
+        </span>
+
+        {/* Score */}
+        <span className={`w-12 sm:w-16 text-center font-bold font-mono text-sm sm:text-base shrink-0 ${live ? 'text-red-600 dark:text-red-400' : finished ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'}`}>
+          {hasScore ? `${homeGoals} - ${awayGoals}` : 'vs'}
+        </span>
+
+        {/* Away team */}
+        <span className={`flex-1 text-xs sm:text-sm truncate ${finished ? '' : 'font-medium'} ${live ? 'text-slate-900 dark:text-white' : ''}`}>
+          {match.teams?.away?.name}
+        </span>
+
+        {/* Status badge */}
+        <span className="w-14 sm:w-20 shrink-0 flex justify-center">
+          <StatusBadge status={match.fixture?.status ?? { short: 'NS', elapsed: 0, long: '' }} />
+        </span>
+
+        {/* Action link */}
+        <span className="shrink-0 text-[11px] sm:text-xs text-primary hover:underline hidden sm:block">
+          Tahmin →
+        </span>
+      </div>
+    </PredictionModal>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN DASHBOARD
+   ═══════════════════════════════════════════════ */
+
 export function MatchesDashboard() {
-  const router = useRouter();
-  // Core state
+  /* ── Core state ─────────────────────────────── */
   const [matches, setMatches] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('matches');
 
-  // Enhanced filtering and pagination state
+  /* ── Filtering & pagination state ───────────── */
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<ApiPagination | null>(null);
   const [stats, setStats] = useState<ApiStats | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'upcoming' | 'finished'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [leagueFilter, setLeagueFilter] = useState<string>('all');
-  const [lowRiskOnly, setLowRiskOnly] = useState(false);
+  const [goalFilter, setGoalFilter] = useState<GoalFilter>('all');
+  const [kgFilter, setKgFilter] = useState(false);
 
-  // Ended matches functionality
+  /* ── Ended matches ──────────────────────────── */
   const [endedMatchesHours, setEndedMatchesHours] = useState(0);
   const [showEndedMatches, setShowEndedMatches] = useState(false);
 
-  // Prediction outcomes for finished matches
-  const [predictionOutcomes, setPredictionOutcomes] = useState<Record<number, PredictionOutcome[]>>({});
+  /* ── Refs ────────────────────────────────────── */
+  const listTopRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchMatches = async (
-    date: string, 
-    page = 1, 
-    search = '', 
-    endedHours = 0
+  /* ── Data Fetching ──────────────────────────── */
+  const fetchMatches = useCallback(async (
+    date: string,
+    page = 1,
+    search = '',
+    endedHours = 0,
   ) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params = new URLSearchParams({
         date,
         page: page.toString(),
-        limit: '10000', // No limit - show all matches
+        limit: String(ITEMS_PER_PAGE),
         search,
-        endedMatchesHours: endedHours.toString()
+        endedMatchesHours: endedHours.toString(),
+        status: statusFilter,
       });
-      
-      
+
       const response = await fetch(`/api/matches/today?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        const matchesData = data.data?.matches || [];
-        setMatches(matchesData);
+        setMatches(data.data?.matches || []);
         setPagination(data.data?.pagination || data.pagination);
         setStats(data.data?.stats || data.stats);
-        
       } else {
-        const errorMsg = data.error || 'Failed to fetch matches';
-        setError(errorMsg);
+        setError(data.error || 'Maclar yuklenemedi');
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Network error occurred';
-      setError(errorMsg);
+      setError(err instanceof Error ? err.message : 'Ag hatasi olustu');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchMatches(selectedDate, currentPage, searchTerm, endedMatchesHours);
     setRefreshing(false);
-  };
+  }, [fetchMatches, selectedDate, currentPage, searchTerm, endedMatchesHours]);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     fetchMatches(selectedDate, page, searchTerm, endedMatchesHours);
-  };
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [fetchMatches, selectedDate, searchTerm, endedMatchesHours]);
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page when searching
-    fetchMatches(selectedDate, 1, value, endedMatchesHours);
-  };
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchMatches(selectedDate, 1, value, endedMatchesHours);
+    }, 400);
+  }, [fetchMatches, selectedDate, endedMatchesHours]);
 
-  const handleDateChange = (date: string) => {
+  const handleDateChange = useCallback((date: string) => {
     setSelectedDate(date);
     setCurrentPage(1);
     setEndedMatchesHours(0);
     setShowEndedMatches(false);
     fetchMatches(date, 1, searchTerm, 0);
-  };
+  }, [fetchMatches, searchTerm]);
 
-  const handleEndedMatchesNavigation = (direction: 'prev' | 'next') => {
-    const newHours = direction === 'next' 
+  const handleEndedMatchesNavigation = useCallback((direction: 'prev' | 'next') => {
+    const newHours = direction === 'next'
       ? Math.max(0, endedMatchesHours - 2)
       : endedMatchesHours + 2;
-    
     setEndedMatchesHours(newHours);
     setCurrentPage(1);
     fetchMatches(selectedDate, 1, searchTerm, newHours);
-  };
+  }, [fetchMatches, selectedDate, searchTerm, endedMatchesHours]);
 
-  const toggleEndedMatches = () => {
-    const newShowEnded = !showEndedMatches;
-    setShowEndedMatches(newShowEnded);
-    
-    if (newShowEnded) {
-      setEndedMatchesHours(2); // Start with 2 hours ago
-      setCurrentPage(1);
-      fetchMatches(selectedDate, 1, searchTerm, 2);
-    } else {
-      setEndedMatchesHours(0);
-      setCurrentPage(1);
-      fetchMatches(selectedDate, 1, searchTerm, 0);
-    }
-  };
+  const toggleEndedMatches = useCallback(() => {
+    const next = !showEndedMatches;
+    setShowEndedMatches(next);
+    const hours = next ? 2 : 0;
+    setEndedMatchesHours(hours);
+    setCurrentPage(1);
+    fetchMatches(selectedDate, 1, searchTerm, hours);
+  }, [fetchMatches, selectedDate, searchTerm, showEndedMatches]);
 
-  // Fetch prediction outcomes for finished matches
-  const fetchPredictionOutcomes = async (finishedMatchIds: number[]) => {
-    if (finishedMatchIds.length === 0) return;
-    try {
-      const response = await fetch(`/api/predictions/history?matchIds=${finishedMatchIds.join(',')}&limit=500`);
-      if (!response.ok) return;
-      const data = await response.json();
-      if (data.success && data.data?.predictions) {
-        const outcomeMap: Record<number, PredictionOutcome[]> = {};
-        for (const p of data.data.predictions) {
-          if (!outcomeMap[p.matchId]) outcomeMap[p.matchId] = [];
-          outcomeMap[p.matchId].push({
-            predictionType: p.predictionType,
-            predictedValue: p.predictedValue,
-            isCorrect: p.isCorrect,
-            actualResult: p.actualResult,
-            confidenceScore: p.confidenceScore,
-            confidenceTier: p.confidenceTier,
-          });
-        }
-        setPredictionOutcomes(prev => ({ ...prev, ...outcomeMap }));
-      }
-    } catch {
-      // Silent fail - badge'ler gösterilmez
-    }
-  };
-
-  // When matches change, fetch prediction outcomes for finished ones
-  useEffect(() => {
-    const finishedIds = safeMatches
-      .filter(m => m?.fixture?.status?.short === 'FT')
-      .map(m => m.fixture.id);
-    if (finishedIds.length > 0) {
-      fetchPredictionOutcomes(finishedIds);
-    }
-  }, [matches]);
-
-  // Initial load and date changes
+  /* ── Initial load ───────────────────────────── */
   useEffect(() => {
     fetchMatches(selectedDate, currentPage, searchTerm, endedMatchesHours);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-refresh for live matches every 30 seconds
+  /* ── Auto-refresh live matches every 30s ────── */
   useEffect(() => {
-    const hasLiveMatches = stats?.liveMatches && stats.liveMatches > 0;
-    if (hasLiveMatches && !showEndedMatches) {
+    if ((stats?.liveMatches ?? 0) > 0 && !showEndedMatches) {
       const interval = setInterval(() => {
-        console.log('[Auto-refresh] Updating live matches...');
         fetchMatches(selectedDate, currentPage, searchTerm, endedMatchesHours);
-      }, 30000); // 30 seconds
-
+      }, 30000);
       return () => clearInterval(interval);
     }
-  }, [stats?.liveMatches, selectedDate, currentPage, searchTerm, endedMatchesHours, showEndedMatches]);
+  }, [stats?.liveMatches, selectedDate, currentPage, searchTerm, endedMatchesHours, showEndedMatches, fetchMatches]);
 
-  // Enhanced match categorization based on API stats with safety checks
+  /* ── Derived data ───────────────────────────── */
   const safeMatches = Array.isArray(matches) ? matches : [];
 
-  // Sort all matches by timestamp (earliest first)
-  const sortedMatches = [...safeMatches].sort((a, b) => {
-    const timeA = a?.fixture?.timestamp || 0;
-    const timeB = b?.fixture?.timestamp || 0;
-    return timeA - timeB;
-  });
-
-  const liveMatches = sortedMatches.filter(m =>
-    m && m.fixture && m.fixture.status && ['1H', '2H', 'HT'].includes(m.fixture.status.short)
+  const sortedMatches = useMemo(() =>
+    [...safeMatches].sort((a, b) => (a?.fixture?.timestamp ?? 0) - (b?.fixture?.timestamp ?? 0)),
+    [safeMatches],
   );
 
-  const upcomingMatches = sortedMatches.filter(m =>
-    m && m.fixture && m.fixture.status && m.fixture.status.short === 'NS'
-  );
+  // Client-side categorizations (for local filtering within the 100-item page)
+  const localLive = useMemo(() => sortedMatches.filter(m => isLive(m?.fixture?.status?.short ?? '') || m?.fixture?.status?.short === 'HT'), [sortedMatches]);
+  const localUpcoming = useMemo(() => sortedMatches.filter(m => isUpcoming(m?.fixture?.status?.short ?? '')), [sortedMatches]);
+  const localFinished = useMemo(() => sortedMatches.filter(m => isFinished(m?.fixture?.status?.short ?? '')), [sortedMatches]);
 
-  const finishedMatches = sortedMatches.filter(m =>
-    m && m.fixture && m.fixture.status && m.fixture.status.short === 'FT'
-  );
+  // Status filter (client-side within page)
+  // Status filtering is now server-side (API param).
+  // afterStatusFilter just passes through sortedMatches.
+  const afterStatusFilter = sortedMatches;
 
-  // Filter matches based on status filter
-  const filteredByStatus = useMemo(() => {
-    switch (statusFilter) {
-      case 'live':
-        return liveMatches;
-      case 'upcoming':
-        return upcomingMatches;
-      case 'finished':
-        return finishedMatches;
-      default:
-        return sortedMatches;
-    }
-  }, [sortedMatches, liveMatches, upcomingMatches, finishedMatches, statusFilter]);
-
-  // Get unique leagues for filtering
+  // Unique leagues for dropdown
   const uniqueLeagues = useMemo(() => {
-    const leagues = new Map();
-    sortedMatches.forEach(match => {
-      if (match?.league?.id && match?.league?.name) {
-        leagues.set(match.league.id, match.league.name);
+    const map = new Map<string, { id: string; name: string; country: string }>();
+    sortedMatches.forEach(m => {
+      const lid = m?.league?.id?.toString();
+      if (lid && m?.league?.name) {
+        map.set(lid, { id: lid, name: m.league.name, country: m.league.country ?? '' });
       }
     });
-    return Array.from(leagues, ([id, name]) => ({ id, name }));
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [sortedMatches]);
 
-  // Filter by league and risk level
+  // Apply all client-side filters
   const filteredMatches = useMemo(() => {
-    let filtered = filteredByStatus;
+    let result = afterStatusFilter;
 
-    // Apply league filter
+    // League filter
     if (leagueFilter !== 'all') {
-      filtered = filtered.filter(m => m?.league?.id?.toString() === leagueFilter);
+      result = result.filter(m => m?.league?.id?.toString() === leagueFilter);
     }
 
-    // Apply low risk filter (show only major leagues)
-    if (lowRiskOnly) {
-      const majorLeagueIds = [39, 140, 78, 135, 61, 2, 3, 203, 88, 94]; // Major leagues
-      filtered = filtered.filter(m =>
-        m?.league?.id && majorLeagueIds.includes(m.league.id)
-      );
+    // KG filter
+    if (kgFilter) {
+      result = result.filter(m => isBTTS(m));
     }
 
-    return filtered;
-  }, [filteredByStatus, leagueFilter, lowRiskOnly]);
+    // Goal filter
+    if (goalFilter !== 'all') {
+      result = result.filter(m => matchesGoalFilter(m, goalFilter));
+    }
 
-  // Paginate filtered matches
-  const paginatedMatches = useMemo(() => {
-    const startIdx = (currentPage - 1) * 20;
-    const endIdx = startIdx + 20;
-    return filteredMatches.slice(startIdx, endIdx);
-  }, [filteredMatches, currentPage]);
+    return result;
+  }, [afterStatusFilter, leagueFilter, kgFilter, goalFilter]);
 
-  const totalPages = Math.ceil(filteredMatches.length / 20);
+  // Group by league
+  const groupedByLeague = useMemo(() => {
+    const groups: { leagueId: string; leagueName: string; leagueCountry: string; leagueLogo: string; matches: Fixture[] }[] = [];
+    const map = new Map<string, typeof groups[0]>();
 
-  const getStatsCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <Card className="hover:shadow-md transition-shadow duration-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Toplam Maç</CardTitle>
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats?.totalMatches ?? matches?.length ?? 0}</div>
-          <p className="text-xs text-muted-foreground">
-            {showEndedMatches 
-              ? `${endedMatchesHours}-${endedMatchesHours + 2} saat önce`
-              : selectedDate === new Date().toISOString().split('T')[0] ? 'Bugün' : formatToStockholmDate(selectedDate)
-            }
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card className="hover:shadow-md transition-shadow duration-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Canlı Maçlar</CardTitle>
-          <Activity className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats?.liveMatches ?? liveMatches?.length ?? 0}</div>
-          <p className="text-xs text-muted-foreground">Şu anda oynanıyor</p>
-        </CardContent>
-      </Card>
-      
-      <Card className="hover:shadow-md transition-shadow duration-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Yaklaşan</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{stats?.upcomingMatches ?? upcomingMatches?.length ?? 0}</div>
-          <p className="text-xs text-muted-foreground">Başlamamış</p>
-        </CardContent>
-      </Card>
-      
-      <Card className="hover:shadow-md transition-shadow duration-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Tamamlanan</CardTitle>
-          <Trophy className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">{stats?.finishedMatches ?? finishedMatches?.length ?? 0}</div>
-          <p className="text-xs text-muted-foreground">Biten maçlar</p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    filteredMatches.forEach(m => {
+      const lid = m?.league?.id?.toString() ?? 'unknown';
+      if (!map.has(lid)) {
+        const entry = {
+          leagueId: lid,
+          leagueName: m?.league?.name ?? 'Bilinmeyen Lig',
+          leagueCountry: m?.league?.country ?? '',
+          leagueLogo: m?.league?.logo ?? '',
+          matches: [] as Fixture[],
+        };
+        map.set(lid, entry);
+        groups.push(entry);
+      }
+      map.get(lid)!.matches.push(m);
+    });
 
-  const renderContent = () => (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Enhanced Header with Dark Mode Toggle */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <Target className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Football Prediction System</h1>
+    return groups;
+  }, [filteredMatches]);
+
+  // API-level pagination info
+  const apiTotalPages = pagination?.totalPages ?? 1;
+  const apiTotalItems = pagination?.totalItems ?? stats?.totalMatches ?? filteredMatches.length;
+
+  /* ── Active filter count for badge ──────────── */
+  const activeFilterCount = [
+    statusFilter !== 'all',
+    leagueFilter !== 'all',
+    kgFilter,
+    goalFilter !== 'all',
+    searchTerm.length > 0,
+  ].filter(Boolean).length;
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilter('all');
+    setLeagueFilter('all');
+    setGoalFilter('all');
+    setKgFilter(false);
+    setSearchTerm('');
+    setCurrentPage(1);
+    fetchMatches(selectedDate, 1, '', endedMatchesHours);
+  }, [fetchMatches, selectedDate, endedMatchesHours]);
+
+  /* ═══════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════ */
+  return (
+    <div className="min-h-dvh bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+
+        {/* ── Compact Header (sticky, mobile scroll sırasında görünür) ── */}
+        <div className="sticky top-0 z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 pt-2 pb-2 mb-3 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80 supports-[backdrop-filter]:dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+              Futbol
+            </h1>
+            <div className="flex items-center gap-2 text-xs font-medium">
+              <span className="text-slate-500 dark:text-slate-400">
+                {stats?.totalMatches ?? 0} Mac
+              </span>
+              {(stats?.liveMatches ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                  {stats!.liveMatches} Canli
+                </span>
+              )}
+              <span className="text-blue-600 dark:text-blue-400">
+                {stats?.upcomingMatches ?? 0} Yaklasan
+              </span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                {stats?.finishedMatches ?? 0} Biten
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/prediction-history">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <History className="w-4 h-4" />
-                Tahmin Gecmisi
-              </Button>
-            </Link>
-            <Link href="/system-coupons">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Sistem Kupon
-              </Button>
-            </Link>
+
+          <div className="flex items-center gap-2">
             <Link href="/statistics">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <ChartBar className="w-4 h-4" />
-                Istatistikler
-              </Button>
+              <button className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
+                <ChartBar className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Istatistikler</span>
+              </button>
             </Link>
+            <Link href="/toplu-analiz">
+              <button className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm">
+                <span>🔥</span>
+                <span className="hidden sm:inline">Toplu Yüksek Değer</span>
+              </button>
+            </Link>
+            <GoalAnalyzerPanel />
             <ThemeToggle />
           </div>
         </div>
-        <p className="text-muted-foreground">
-          Gelişmiş maç analizi ve AI destekli tahminler - Stockholm saati ({formatToStockholmDateTime(new Date().toISOString())})
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <GoalAnalyzerPanel />
-          <span className="text-xs text-muted-foreground">
-            Poisson + Oran Konsensüsü + H2H + Value Bet algoritmaları ile gol-beklentili maçları tek tıkla bul
-          </span>
-        </div>
-      </div>
 
-      {/* Enhanced Controls */}
-      <ClientWrapper>
-        <div className="space-y-4 mb-6">
-          {/* Primary controls row */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative">
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full sm:w-48 pr-10 form-input shadow-sm"
-              />
-              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            </div>
+        {/* ── Multi-Sport Navigation ────────────────── */}
+        <nav className="mb-4 -mx-1 overflow-x-auto">
+          <div className="flex items-center gap-1.5 px-1 whitespace-nowrap min-w-max">
+            <Link href="/" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500 text-white shadow-sm flex items-center gap-1.5"
+                aria-current="page"
+              >
+                <span>⚽</span>
+                <span>Futbol</span>
+              </button>
+            </Link>
+            <Link href="/basketball" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🏀</span>
+                <span>Basketbol</span>
+              </button>
+            </Link>
+            <Link href="/nba" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🏀</span>
+                <span>NBA</span>
+              </button>
+            </Link>
+            <Link href="/hockey" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🏒</span>
+                <span>Hokey</span>
+              </button>
+            </Link>
+            <Link href="/hockey-2" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🏒</span>
+                <span>Hockey-2</span>
+              </button>
+            </Link>
+            <Link href="/volleyball" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🏐</span>
+                <span>Voleybol</span>
+              </button>
+            </Link>
+            <Link href="/handball" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🤾</span>
+                <span>Hentbol</span>
+              </button>
+            </Link>
+            <Link href="/iddaa-hockey" className="inline-block">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 text-slate-600 dark:text-slate-300"
+              >
+                <span>🎯</span>
+                <span>İddaa Hokey</span>
+              </button>
+            </Link>
+          </div>
+        </nav>
 
-            <div className="flex gap-2 flex-1">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Takım, lig veya ülke ara..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 form-input shadow-sm"
-                />
-              </div>
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              title="Yenile"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </Button>
+        {/* ── Tab Navigation ──────────────────── */}
+        <div className="mb-4">
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-800 p-1 inline-flex gap-1 flex-wrap">
+            {([
+              { value: 'matches', icon: CalendarDays, label: 'Maclar', count: stats?.totalMatches ?? 0 },
+              { value: 'live', icon: Activity, label: 'Canli', count: stats?.liveMatches ?? 0 },
+              { value: 'upcoming', icon: TrendingUp, label: 'Tahminler', count: stats?.upcomingMatches ?? 0 },
+              { value: 'probet', icon: Brain, label: 'ProBet', count: null },
+              { value: 'bulk-analysis', icon: ChartBar, label: 'Toplu Analiz', count: null },
+              { value: 'standings', icon: Trophy, label: 'Siralamalar', count: null },
+            ] as const).map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  activeTab === tab.value
+                    ? tab.value === 'probet'
+                      ? 'bg-gradient-to-r from-violet-500 to-blue-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                {tab.count !== null && (
+                  <span className={`text-xs ${activeTab === tab.value ? 'opacity-80' : 'opacity-50'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Filter Controls */}
-        <div className="flex flex-wrap gap-2">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setStatusFilter('all')}
-              variant={statusFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-            >
-              Tümü ({filteredMatches.length})
-            </Button>
-            <Button
-              onClick={() => setStatusFilter('live')}
-              variant={statusFilter === 'live' ? 'default' : 'outline'}
-              size="sm"
-              className={statusFilter === 'live' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Canlı ({liveMatches.length})
-            </Button>
-            <Button
-              onClick={() => setStatusFilter('upcoming')}
-              variant={statusFilter === 'upcoming' ? 'default' : 'outline'}
-              size="sm"
-              className={statusFilter === 'upcoming' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-            >
-              Yaklaşan ({upcomingMatches.length})
-            </Button>
-            <Button
-              onClick={() => setStatusFilter('finished')}
-              variant={statusFilter === 'finished' ? 'default' : 'outline'}
-              size="sm"
-              className={statusFilter === 'finished' ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              Biten ({finishedMatches.length})
-            </Button>
-            <Button
-              onClick={() => setLowRiskOnly(!lowRiskOnly)}
-              variant={lowRiskOnly ? 'default' : 'outline'}
-              size="sm"
-              className={lowRiskOnly ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
-              title="Sadece düşük riskli ve güvenilir tahminleri göster"
-            >
-              <Target className="w-4 h-4 mr-1" />
-              Güvenilir Tahminler
-            </Button>
-          </div>
+        {/* ═══ TAB CONTENT ═══════════════════════ */}
 
-          {uniqueLeagues.length > 0 && (
-            <select
-              value={leagueFilter}
-              onChange={(e) => {
-                setLeagueFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-1.5 text-sm border rounded-md bg-background"
-            >
-              <option value="all">Tüm Ligler</option>
-              {uniqueLeagues.map(league => (
-                <option key={league.id} value={league.id}>{league.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
+        {/* ── Matches Tab ─────────────────────── */}
+        {activeTab === 'matches' && (
+          <div ref={listTopRef}>
+            {/* Filter Bar */}
+            <ClientWrapper>
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 sm:p-3 mb-4">
+                {/* Row 1: Date, Search, Refresh */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm w-full sm:w-40"
+                  />
 
-        {/* Ended Matches Navigation */}
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={toggleEndedMatches}
-            variant={showEndedMatches ? "default" : "outline"}
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <History className="w-4 h-4" />
-            {showEndedMatches ? 'Biten Maçlar' : 'Biten Maçları Göster'}
-          </Button>
-          
-          {showEndedMatches && (
-            <div className="flex items-center gap-2 ml-2">
-              <Button
-                onClick={() => handleEndedMatchesNavigation('next')}
-                disabled={endedMatchesHours === 0}
-                variant="outline"
-                size="sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Daha Yakın
-              </Button>
-              <span className="text-sm text-muted-foreground px-2">
-                {endedMatchesHours}-{endedMatchesHours + 2} saat önce
-              </span>
-              <Button
-                onClick={() => handleEndedMatchesNavigation('prev')}
-                variant="outline"
-                size="sm"
-              >
-                Daha Uzak
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    </ClientWrapper>
-
-    {/* Enhanced Stats Cards */}
-    {getStatsCards()}
-
-      {/* Main Content with Enhanced Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="matches">
-            <CalendarDays className="w-4 h-4 mr-2" />
-            Maçlar ({stats?.totalMatches ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="live">
-            <Activity className="w-4 h-4 mr-2" />
-            Canlı ({stats?.liveMatches ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="upcoming">
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Tahminler ({stats?.upcomingMatches ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="bulk-analysis">
-            <ChartBar className="w-4 h-4 mr-2" />
-            Toplu Analiz
-          </TabsTrigger>
-          <TabsTrigger value="goal-insights">
-            <Target className="w-4 h-4 mr-2" />
-            KG & Üst 2.5
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Enhanced All Matches Tab */}
-        <TabsContent value="matches" className="space-y-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-              <div className="text-lg font-medium">Maçlar yükleniyor...</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Enhanced API ile sıralama ve filtreleme uygulanıyor...
-              </div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <div className="text-red-600 text-lg font-medium mb-2">Maçlar yüklenemedi</div>
-              <div className="text-sm text-muted-foreground mb-6">{error}</div>
-              <Button onClick={handleRefresh} size="lg">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Tekrar Dene
-              </Button>
-            </div>
-          ) : matches?.length === 0 ? (
-            <div className="text-center py-12">
-              <CalendarDays className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-              <div className="text-xl font-medium mb-3">Maç bulunamadı</div>
-              <div className="text-muted-foreground mb-6">
-                {searchTerm ? 'Arama kriterlerinize uygun' : showEndedMatches ? 'Bu zaman aralığında biten' : 'Seçilen tarih için'} maç bulunamadı.
-              </div>
-              <div className="flex gap-2 justify-center">
-                {searchTerm && (
-                  <Button onClick={() => handleSearchChange('')} variant="outline">
-                    Aramayı Temizle
-                  </Button>
-                )}
-                {showEndedMatches && (
-                  <Button onClick={toggleEndedMatches} variant="outline">
-                    Biten Maç Modunu Kapat
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Enhanced Match List - Chronological Order (Live First) */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold flex items-center gap-3">
-                    <Filter className="w-6 h-6 text-primary" />
-                    {showEndedMatches ? 'Biten Maçlar' : 'Tüm Maçlar'}
+                  <div className="relative flex-1 min-w-0">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Takim veya lig ara..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm"
+                    />
                     {searchTerm && (
-                      <Badge variant="secondary" className="ml-2">
-                        "{searchTerm}" için sonuçlar
-                      </Badge>
+                      <button
+                        onClick={() => handleSearchChange('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </h3>
-                  <div className="text-sm text-muted-foreground">
-                    Sayfa {currentPage} / {totalPages} ({filteredMatches.length} maç)
+                  </div>
+
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shrink-0 self-stretch sm:self-auto"
+                    title="Yenile"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-slate-600 dark:text-slate-400 ${refreshing ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Row 2: Status pills + Smart filters */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                  {/* Status Filters - using REAL stats counts */}
+                  {([
+                    { key: 'all' as StatusFilter, label: 'Tumu', count: stats?.totalMatches ?? 0, activeClass: 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white' },
+                    { key: 'live' as StatusFilter, label: 'Canli', count: stats?.liveMatches ?? 0, activeClass: 'bg-red-500 text-white border-red-500' },
+                    { key: 'upcoming' as StatusFilter, label: 'Yaklasan', count: stats?.upcomingMatches ?? 0, activeClass: 'bg-blue-500 text-white border-blue-500' },
+                    { key: 'finished' as StatusFilter, label: 'Biten', count: stats?.finishedMatches ?? 0, activeClass: 'bg-emerald-500 text-white border-emerald-500' },
+                  ]).map((btn) => (
+                    <button
+                      key={btn.key}
+                      onClick={() => { setStatusFilter(btn.key as StatusFilter); setCurrentPage(1); }}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                        statusFilter === btn.key
+                          ? btn.activeClass
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      {btn.label} <span className="opacity-80">{btn.count}</span>
+                    </button>
+                  ))}
+
+                  {/* Separator */}
+                  <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+
+                  {/* KG (BTTS) Toggle */}
+                  <button
+                    onClick={() => { setKgFilter(!kgFilter); setCurrentPage(1); }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                      kgFilter
+                        ? 'bg-amber-500 text-white border-amber-500'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    KG Var
+                  </button>
+
+                  {/* Goal Filter Dropdown */}
+                  <select
+                    value={goalFilter}
+                    onChange={(e) => { setGoalFilter(e.target.value as GoalFilter); setCurrentPage(1); }}
+                    className="px-2 py-1 rounded-full text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer"
+                  >
+                    <option value="all">Gol: Tumu</option>
+                    <option value="0-1">Gol: 0-1</option>
+                    <option value="2-3">Gol: 2-3</option>
+                    <option value="4-5">Gol: 4-5</option>
+                    <option value="6+">Gol: 6+</option>
+                  </select>
+
+                  {/* League Dropdown */}
+                  {uniqueLeagues.length > 0 && (
+                    <select
+                      value={leagueFilter}
+                      onChange={(e) => { setLeagueFilter(e.target.value); setCurrentPage(1); }}
+                      className="px-2 py-1 rounded-full text-[11px] font-medium border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer max-w-[160px] truncate"
+                    >
+                      <option value="all">Tum Ligler ({uniqueLeagues.length})</option>
+                      {uniqueLeagues.map(l => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Clear all filters */}
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    >
+                      <X className="w-3 h-3 inline mr-0.5" />
+                      Temizle ({activeFilterCount})
+                    </button>
+                  )}
+                </div>
+
+                {/* Row 3: Ended matches controls */}
+                <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-700/50">
+                  <button
+                    onClick={toggleEndedMatches}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                      showEndedMatches
+                        ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <History className="w-3 h-3" />
+                    {showEndedMatches ? 'Biten Maclar' : 'Biten Maclari Goster'}
+                  </button>
+
+                  {showEndedMatches && (
+                    <div className="flex items-center gap-2 ml-1">
+                      <button
+                        onClick={() => handleEndedMatchesNavigation('next')}
+                        disabled={endedMatchesHours === 0}
+                        className="px-2 py-1 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <ChevronLeft className="w-3 h-3 inline" /> Yakin
+                      </button>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                        {endedMatchesHours}-{endedMatchesHours + 2}s
+                      </span>
+                      <button
+                        onClick={() => handleEndedMatchesNavigation('prev')}
+                        className="px-2 py-1 rounded-lg text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        Uzak <ChevronRight className="w-3 h-3 inline" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </ClientWrapper>
+
+            {/* Match List Content */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-violet-500 rounded-full animate-spin" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">Maclar yukleniyor...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+                <p className="text-red-700 dark:text-red-400 font-medium mb-2">Maclar yuklenemedi</p>
+                <p className="text-sm text-red-600/70 dark:text-red-400/70 mb-4">{error}</p>
+                <button
+                  onClick={handleRefresh}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Tekrar Dene
+                </button>
+              </div>
+            ) : filteredMatches.length === 0 ? (
+              <div className="text-center py-20 text-slate-500 dark:text-slate-400">
+                <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                <p className="font-medium mb-1">Mac bulunamadi</p>
+                <p className="text-sm opacity-70">
+                  {activeFilterCount > 0 ? 'Filtrelerinize uygun' : showEndedMatches ? 'Bu zaman araliginda biten' : 'Secilen tarih icin'} mac bulunamadi.
+                </p>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-4 px-4 py-2 rounded-lg text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Filtreleri Temizle
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div>
+                {/* List Header */}
+                <div className="flex items-center justify-between px-3 sm:px-4 py-2 mb-1">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {filteredMatches.length} mac{leagueFilter !== 'all' ? ` (filtrelenmis)` : ''}
+                    {kgFilter ? ' · KG' : ''}
+                    {goalFilter !== 'all' ? ` · ${goalFilter} gol` : ''}
+                  </span>
+                  {/* Column labels - desktop only */}
+                  <div className="hidden md:flex items-center gap-3 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <span className="w-12 text-center">Saat</span>
+                    <span className="w-32">Lig</span>
+                    <span className="flex-1 text-right">Ev</span>
+                    <span className="w-16 text-center">Skor</span>
+                    <span className="flex-1">Deplasman</span>
+                    <span className="w-20 text-center">Durum</span>
+                    <span className="w-16"></span>
                   </div>
                 </div>
-                
-                {/* Responsive grid with chronological sorting - Using paginated matches */}
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                 {paginatedMatches?.map((match) => (
-                    <PredictionModal key={match?.fixture?.id} match={match}>
-                      <div className="cursor-pointer h-full">
-                        <MatchCard
-                          match={match}
-                          onViewPrediction={(matchId) => {}}
-                          showPrediction={true}
-                          onNavigateToPage={(matchId) => router.push(`/predictions/${matchId}`)}
-                          predictionOutcomes={predictionOutcomes[match?.fixture?.id]}
-                        />
-                      </div>
-                    </PredictionModal>
-                  )) ?? []}
+
+                {/* Grouped Match List */}
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  {groupedByLeague.map((group) => (
+                    <div key={group.leagueId}>
+                      <LeagueHeader
+                        name={group.leagueName}
+                        country={group.leagueCountry}
+                        logo={group.leagueLogo}
+                        count={group.matches.length}
+                      />
+                      {group.matches.map((match) => (
+                        <MatchRow key={match.fixture?.id} match={match} />
+                      ))}
+                    </div>
+                  ))}
                 </div>
 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-6">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => {
-                          setCurrentPage(Math.max(1, currentPage - 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
+                {/* Pagination */}
+                {apiTotalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-5">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        variant="outline"
-                        size="sm"
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                       >
-                        <ChevronLeft className="w-4 h-4" />
-                        Önceki
-                      </Button>
+                        Onceki
+                      </button>
 
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-
-                          return (
-                            <Button
-                              key={pageNum}
-                              onClick={() => {
-                                setCurrentPage(pageNum);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              variant={currentPage === pageNum ? 'default' : 'outline'}
-                              size="sm"
-                              className="w-10"
+                      {/* Page number buttons */}
+                      {(() => {
+                        const pages: number[] = [];
+                        const total = apiTotalPages;
+                        if (total <= 7) {
+                          for (let i = 1; i <= total; i++) pages.push(i);
+                        } else if (currentPage <= 4) {
+                          for (let i = 1; i <= 5; i++) pages.push(i);
+                          pages.push(-1); // ellipsis
+                          pages.push(total);
+                        } else if (currentPage >= total - 3) {
+                          pages.push(1);
+                          pages.push(-1);
+                          for (let i = total - 4; i <= total; i++) pages.push(i);
+                        } else {
+                          pages.push(1);
+                          pages.push(-1);
+                          for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                          pages.push(-2);
+                          pages.push(total);
+                        }
+                        return pages.map((p, idx) =>
+                          p < 0 ? (
+                            <span key={`e${idx}`} className="px-1 text-slate-400">...</span>
+                          ) : (
+                            <button
+                              key={p}
+                              onClick={() => handlePageChange(p)}
+                              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                                currentPage === p
+                                  ? 'bg-gradient-to-r from-violet-500 to-blue-600 text-white shadow-md'
+                                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                              }`}
                             >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
-                      </div>
+                              {p}
+                            </button>
+                          ),
+                        );
+                      })()}
 
-                      <Button
-                        onClick={() => {
-                          setCurrentPage(Math.min(totalPages, currentPage + 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={currentPage === totalPages}
-                        variant="outline"
-                        size="sm"
+                      <button
+                        onClick={() => handlePageChange(Math.min(apiTotalPages, currentPage + 1))}
+                        disabled={currentPage === apiTotalPages}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                       >
                         Sonraki
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span>Sayfa</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={apiTotalPages}
+                        value={currentPage}
+                        onChange={(e) => {
+                          const p = parseInt(e.target.value);
+                          if (p >= 1 && p <= apiTotalPages) handlePageChange(p);
+                        }}
+                        className="w-12 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center text-sm"
+                      />
+                      <span>/ {apiTotalPages} · {apiTotalItems} mac</span>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Enhanced Live Matches Tab */}
-        <TabsContent value="live" className="space-y-4">
-          {(stats?.liveMatches ?? 0) === 0 ? (
-            <div className="text-center py-12">
-              <Activity className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-              <div className="text-xl font-medium mb-3">Şu anda canlı maç yok</div>
-              <div className="text-muted-foreground">
-                Canlı maçlar otomatik olarak bu bölümde görüntülenir
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <Activity className="w-6 h-6 text-red-600" />
-                  Canlı Maçlar
-                </h3>
-                <Badge variant="destructive" className="animate-pulse">
-                  {stats?.liveMatches ?? 0} canlı
-                </Badge>
-              </div>
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {liveMatches?.map((match) => (
-                  <PredictionModal key={match?.fixture?.id} match={match}>
-                    <div className="cursor-pointer h-full">
-                      <MatchCard
-                        match={match}
-                        onViewPrediction={(matchId) => {}}
-                        showPrediction={true}
-                        onNavigateToPage={(matchId) => router.push(`/predictions/${matchId}`)}
-                      />
-                    </div>
-                  </PredictionModal>
-                )) ?? []}
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Enhanced Predictions Tab with High Confidence Indicators */}
-        <TabsContent value="upcoming" className="space-y-4">
-          {loading ? (
-            <div className="text-center py-12">
-              <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-              <div className="text-lg font-medium">Tahminler yükleniyor...</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Yaklaşan maçlar için model verileri hazırlanıyor
-              </div>
-            </div>
-          ) : upcomingMatches.length === 0 ? (
-            <div className="text-center py-12">
-              <TrendingUp className="w-16 h-16 mx-auto mb-6 text-muted-foreground" />
-              <div className="text-xl font-medium mb-3">Tahmin edilecek maç yok</div>
-              <div className="text-muted-foreground">
-                Yaklaşan maçlar için AI tahminleri burada görüntülenir
-              </div>
-            </div>
-          ) : (
-            <OptimizedMatchListEnhanced
-              matches={upcomingMatches}
-              loading={loading}
-              error={error}
-              onRetry={handleRefresh}
-              searchPlaceholder="Yaklaşan maçlarda ara..."
-              showPagination={true}
-              pageSize={20}
-              showHighConfidenceOnly={false}
-            />
-          )}
-        </TabsContent>
-
-        {/* Bulk Analysis Tab */}
-        <TabsContent value="bulk-analysis" className="space-y-6">
-          <div className="text-center py-8">
-            <ChartBar className="w-16 h-16 mx-auto mb-6 text-primary" />
-            <div className="text-xl font-medium mb-3">Toplu Maç Analizi</div>
-            <div className="text-muted-foreground mb-6">
-              Günün tüm maçları için kapsamlı analiz yapmak için aşağıdaki linke tıklayın
-            </div>
-            <div className="flex gap-4 justify-center">
-              <Link href="/bulk-analysis">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
-                  <ChartBar className="w-4 h-4 mr-2" />
-                  Analiz Sayfasına Git
-                </Button>
-              </Link>
-              <Link href="/settings">
-                <Button size="lg" variant="outline">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Ayarlar
-                </Button>
-              </Link>
-            </div>
+            )}
           </div>
-        </TabsContent>
+        )}
 
-        {/* Goals & KG High Confidence Tab */}
-        <TabsContent value="goal-insights" className="space-y-4">
-          <HighConfidenceGoalsTable />
-        </TabsContent>
-      </Tabs>
+        {/* ── Live Matches Tab ────────────────── */}
+        {activeTab === 'live' && (
+          <>
+            {(stats?.liveMatches ?? 0) === 0 ? (
+              <div className="text-center py-20 text-slate-500 dark:text-slate-400">
+                <Activity className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                <p className="font-medium mb-1">Su anda canli mac yok</p>
+                <p className="text-sm opacity-70">Canli maclar otomatik olarak burada goruntulenir</p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between px-1 mb-3">
+                  <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-red-500" />
+                    Canli Maclar
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
+                    {stats?.liveMatches ?? 0} canli
+                  </span>
+                </div>
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                  {localLive.map((match) => (
+                    <MatchRow key={match?.fixture?.id} match={match} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Predictions Tab ─────────────────── */}
+        {activeTab === 'upcoming' && (
+          <>
+            {(stats?.upcomingMatches ?? 0) === 0 ? (
+              <div className="text-center py-20 text-slate-500 dark:text-slate-400">
+                <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                <p className="font-medium mb-1">Tahmin edilecek mac yok</p>
+                <p className="text-sm opacity-70">Yaklasan maclar icin AI tahminleri burada goruntulenir</p>
+              </div>
+            ) : (
+              <OptimizedMatchListEnhanced
+                matches={localUpcoming}
+                loading={loading}
+                error={error}
+                onRetry={handleRefresh}
+                searchPlaceholder="Yaklasan maclarda ara..."
+                showPagination={true}
+                pageSize={20}
+                showHighConfidenceOnly={false}
+              />
+            )}
+          </>
+        )}
+
+        {/* ── ProBet Tab ──────────────────────── */}
+        {activeTab === 'probet' && <ProBetTab />}
+
+        {/* ── Bulk Analysis Tab ───────────────── */}
+        {activeTab === 'bulk-analysis' && (
+          <div className="text-center py-16">
+            <ChartBar className="w-12 h-12 mx-auto mb-4 text-violet-400 opacity-60" />
+            <p className="font-medium text-slate-800 dark:text-slate-200 mb-1">Toplu Mac Analizi</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+              Gunun tum maclari icin kapsamli analiz
+            </p>
+            <Link href="/bulk-analysis">
+              <button className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-violet-500 to-blue-600 text-white text-sm font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-2">
+                <ChartBar className="w-4 h-4" />
+                Analiz Sayfasina Git
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {/* ── Standings Tab ───────────────────── */}
+        {activeTab === 'standings' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <LeagueStandings leagueId={MAJOR_LEAGUES.PREMIER_LEAGUE} leagueName="Premier League" />
+            <LeagueStandings leagueId={MAJOR_LEAGUES.LA_LIGA} leagueName="La Liga" />
+            <LeagueStandings leagueId={MAJOR_LEAGUES.BUNDESLIGA} leagueName="Bundesliga" />
+            <LeagueStandings leagueId={MAJOR_LEAGUES.SERIE_A} leagueName="Serie A" />
+            <LeagueStandings leagueId={MAJOR_LEAGUES.LIGUE_1} leagueName="Ligue 1" />
+            <LeagueStandings leagueId={MAJOR_LEAGUES.SUPER_LIG} leagueName="Super Lig" />
+          </div>
+        )}
+
+      </div>
     </div>
   );
-
-  return renderContent();
 }

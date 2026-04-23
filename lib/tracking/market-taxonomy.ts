@@ -16,7 +16,7 @@
  * Rules return true (hit), false (miss), or 'void'.
  */
 
-import { prisma } from '@/lib/db';
+import { trackingPrisma as prisma } from '@/lib/db';
 import type { MarketCategory, MarketFamily, SportCode } from './types';
 
 export interface MarketDef {

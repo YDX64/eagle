@@ -2,20 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🔒 Single-Folder Workflow (MANDATORY)
-
-**All work happens in `/Users/max/Downloads/eagle-1` on the `main` branch.**
-
-Rules that apply to every session:
-- ❌ **Never create git worktrees** (`git worktree add ...`). If you feel the need to isolate work, use a branch inside this same clone instead.
-- ❌ **Never switch to a different clone of this repo**. If you see nested directories like `.claude/worktrees/*`, they are leftovers — remove them, do not use them.
-- ✅ **Always work from the `main` branch**. Create feature branches only for PRs; merge back into `main` quickly.
-- ✅ **Push to `origin/main` only** (GitHub: `YDX64/awastats`). No other remotes.
-- ✅ **Database is remote PostgreSQL** (`awa-postgres` on AWAXX). No local DB. Schema is `provider = "postgresql"`.
-- ✅ **Production runs on AWAXX** (`/opt/probet`, container `probet-app`, port 5051, behind traefik at `pro.awastats.com`). Local repo is the source of truth for code; deployment pulls from `origin/main`.
-
-If a previous session created worktrees, branches like `claude/*`, or nested dev directories, **consolidate into this folder and main branch first**, then continue the task. Never work around the mess.
-
 ## Football Prediction System
 
 This is a real-money football betting prediction system ("Eagle") using AwaStats data. The system generates predictions using dual prediction engines, tracks high-confidence opportunities, and provides comprehensive backtesting with Turkish localization for betting recommendations.

@@ -1,7 +1,7 @@
 # Eagle Football Prediction System - Replit Setup
 
 ## Project Overview
-This is a Next.js-based football prediction system that provides AI-powered match predictions using advanced statistical modeling. The system integrates with API-Football.com for real-time match data and includes features like:
+This is a Next.js-based football prediction system that provides AI-powered match predictions using advanced statistical modeling. The system integrates with AwaStats for real-time match data and includes features like:
 
 - Real-time match data display
 - Advanced prediction algorithms with confidence scoring
@@ -23,11 +23,11 @@ This is a Next.js-based football prediction system that provides AI-powered matc
 
 ## Environment Variables Required
 To fully function, the application needs:
-- `API_FOOTBALL_KEY`: Get from api-football.com (currently using placeholder)
+- `AWASTATS_API_KEY`: AwaStats service credential (currently using placeholder)
 - `NEXTAUTH_SECRET`: For authentication (currently using placeholder)
 
 ## Current Limitations
-1. **API Key**: The application requires a valid API_FOOTBALL_KEY from api-football.com for live data
+1. **API Key**: The application requires a valid AWASTATS_API_KEY for live data
 2. **Minor JS Error**: There's a syntax error in the browser console that should be investigated
 3. **No Seed Data**: The database is empty - you may want to add some sample data
 

@@ -30,11 +30,25 @@ export async function GET(
 
     const cacheKey = CacheService.generateApiKey('prediction', { matchId });
 
+    // Smart-TTL: önce match'i fetch et (kendisi de cache'li), kickoff/status'e göre
+    // TTL belirle. Bu sayede:
+    //   · Biten maçlar (FT) 7 gün cache
+    //   · Canlı maçlar 30 sn
+    //   · Yaklaşan maçlar (< 2h) 5 dk
+    //   · Uzak maçlar (≥ 7 gün) 24 saat
+    // Ayrıca 10 dk stale-while-revalidate — kullanıcı hızlı yanıt alır, bu sırada
+    // fresh prediction arka planda hesaplanır.
+    const seedMatch = await ApiFootballService.getFixture(matchId);
+    const smartTtl = (await import('@/lib/cache')).ttlForMatch({
+      kickoff: seedMatch?.fixture?.date,
+      status: seedMatch?.fixture?.status?.short,
+    });
+
     const predictionResult = await CacheService.cacheApiResponse<PredictionApiData>(
       cacheKey,
       async () => {
         // Get match details
-        const match = await ApiFootballService.getFixture(matchId);
+        const match = seedMatch ?? await ApiFootballService.getFixture(matchId);
         if (!match) {
           throw new Error('Match not found');
         }
@@ -299,7 +313,8 @@ export async function GET(
           basicPrediction,
         };
       },
-      CacheService.TTL.PREDICTIONS
+      smartTtl,
+      { overrideTtl: true, staleWindow: 600 }
     );
 
     return NextResponse.json({
