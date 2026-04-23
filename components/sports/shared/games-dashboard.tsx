@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { SportType } from '@/lib/sports/base/types';
+import {
+  PredictionResultBadge,
+  PredictionResultBadgeProvider,
+} from '@/components/tracking/prediction-result-badge';
 
 interface GamesDashboardProps {
   sport: SportType;
@@ -160,6 +164,7 @@ export function GamesDashboard({
   ];
 
   return (
+    <PredictionResultBadgeProvider sport={sport as any}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
 
@@ -323,6 +328,14 @@ export function GamesDashboard({
                         {getStatusBadge(game)}
                       </span>
 
+                      {/* Tracking: Kazandı/Kaybetti/Bekliyor */}
+                      <PredictionResultBadge
+                        fixtureId={game.id}
+                        sport={sport as any}
+                        size="xs"
+                        className="shrink-0 hidden sm:inline-flex"
+                      />
+
                       {/* Analysis Link */}
                       <Link
                         href={`${predictionPath}/${game.id}`}
@@ -366,5 +379,6 @@ export function GamesDashboard({
         )}
       </div>
     </div>
+    </PredictionResultBadgeProvider>
   );
 }

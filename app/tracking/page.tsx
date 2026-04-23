@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { KpiCard } from '@/components/tracking/kpi-card';
 import { RoiBarChart, type RoiBarDatum } from '@/components/tracking/roi-bar-chart';
 import { DailyVolumeChart } from '@/components/tracking/daily-volume-chart';
+import { ActivityFeed } from '@/components/tracking/activity-feed';
 import { QueryError } from '@/components/tracking/query-state';
 import {
   formatMoney,
@@ -83,6 +84,9 @@ export default function TrackingOverviewPage() {
           Seçilen tarih aralığı ve sporlar için toplu tahmin istatistikleri.
         </p>
       </div>
+
+      {/* Son 24 saat aktivite feed — kazanan/kaybeden/yaklaşan */}
+      <ActivityFeed limit={30} />
 
       {kpis.isError ? <QueryError error={kpis.error} /> : null}
 
