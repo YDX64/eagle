@@ -73,7 +73,13 @@ export async function POST(req: NextRequest) {
         note: body.note ?? null,
         legs: {
           create: body.legs.map(leg => ({
-            pick_id: BigInt(leg.pick_id as any),
+            // Accept either a numeric id from the client or fall back to 0
+            // when the upstream didn't carry one (e.g. synthetic picks).
+            pick_id: BigInt(
+              leg.pick_id != null && leg.pick_id !== ''
+                ? Number(leg.pick_id)
+                : 0,
+            ),
             sport: leg.sport,
             fixture_id: leg.fixture_id,
             home_team: leg.home_team ?? null,

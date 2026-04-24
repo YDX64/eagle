@@ -168,7 +168,9 @@ export async function getPendingValueBets(filters: AnalyticsFilters & { limit?: 
     take: filters.limit ?? 100,
   });
   return picks.map(p => ({
+    pick_id: typeof p.id === 'bigint' ? Number(p.id) : p.id,
     prediction_id: p.prediction_id,
+    fixture_id: p.predictions.fixture_id,
     sport: p.predictions.sport,
     match_date: p.predictions.match_date,
     home_team: p.predictions.home_team,
